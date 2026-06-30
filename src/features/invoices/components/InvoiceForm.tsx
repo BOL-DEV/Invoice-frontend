@@ -5,24 +5,25 @@ import { useRouter } from 'next/navigation';
 import { useInvoice, FocusTarget } from '../context/InvoiceContext';
 import { useInvoiceRows } from '../hooks/useInvoiceRows';
 import { useInvoiceCalculations } from '../hooks/useInvoiceCalculations';
-import { useCreateInvoice, useUpdateInvoice, useInvoiceDetails } from '../hooks/useInvoices';
+import { useInvoiceDetails, useCreateInvoice, useUpdateInvoice } from '../hooks/useInvoices';
+import { numberToNairaWords } from '../utils/numberToWords';
+import { usePermission } from '../../auth/hooks/usePermission';
 import { CustomerSearchInput } from '../../../components/forms/CustomerSearchInput';
 import { PhoneInput } from '../../../components/forms/PhoneInput';
-import { MoneyInput } from '../../../components/forms/MoneyInput';
 import { QuantityInput } from '../../../components/forms/QuantityInput';
+import { MoneyInput } from '../../../components/forms/MoneyInput';
 import { BasicCalculator } from '../../../components/forms/BasicCalculator';
 import { WeightCalculator } from '../../../components/forms/WeightCalculator';
-import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
+import { Label } from '../../../components/ui/label';
+import { Button } from '../../../components/ui/button';
+import { Textarea } from '../../../components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '../../../components/ui/card';
-import { Label } from '../../../components/ui/label';
-import { Textarea } from '../../../components/ui/textarea';
-import { usePermission } from '../../auth/hooks/usePermission';
-import { numberToNairaWords } from '../utils/numberToWords';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui/dialog';
-import { apiClient } from '../../../services/api/axios';
 import { AxiosErrorLike } from '../../../types/api';
+import { apiClient } from '../../../services/api/axios';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import {
   Trash2,
   Plus,
@@ -36,6 +37,8 @@ import {
   Printer,
   FileSpreadsheet,
   FileDown,
+  User,
+  ShoppingBag,
 } from 'lucide-react';
 
 interface InvoiceFormProps {
@@ -65,7 +68,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     loadInvoice,
     getFormPayload,
     addCharge,
-    updateCharge,
     deleteCharge,
     focusState,
     setFocus,
@@ -111,24 +113,31 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
   // Render input focus updates
   useEffect(() => {
-    if (focusState) {
-      let elementId = '';
-      if (focusState.type === 'header') {
-        elementId = `customer-${focusState.fieldName}`;
-      } else {
-        const { rowIndex, fieldName } = focusState;
-        elementId = `row-${rowIndex}-${fieldName}`;
-      }
-      const element = document.getElementById(elementId);
-      if (element) {
-        element.focus();
+    if (!focusState) return;
+
+    let elementId = '';
+    if (focusState.type === 'header') {
+      elementId = `customer-${focusState.fieldName}`;
+    } else {
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      elementId = isMobile
+        ? `row-mob-${focusState.rowIndex}-${focusState.fieldName}`
+        : `row-${focusState.rowIndex}-${focusState.fieldName}`;
+    }
+
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.focus();
+      // If it's a standard text input, select the text for quick over-typing
+      if (element instanceof HTMLInputElement) {
+        element.select();
       }
     }
   }, [focusState]);
 
   const handleAddNewCharge = () => {
-    if (!newChargeName.trim()) {
-      alert('Charge name is required.');
+    if (!newChargeName.trim() || !newChargeAmount) {
+      alert('Charge name and amount must be provided.');
       return;
     }
     addCharge(newChargeName.trim(), newChargeAmount);
@@ -209,26 +218,26 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
   if (mode === 'edit' && isDetailsLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
+      <div className="flex flex-col items-center justify-center py-16">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
         <p className="text-sm text-muted-foreground">Loading invoice ledger details...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1400px] mx-auto">
       {/* Top action bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-4">
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" size="icon" onClick={() => router.back()} className="rounded-full">
+        <div className="flex items-center space-x-3.5">
+          <Button variant="outline" size="icon" onClick={() => router.back()} className="rounded-full h-9 w-9 shadow-sm">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h2 className="text-xl font-bold tracking-tight">
+            <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC] font-heading">
               {mode === 'create' ? 'Create New Invoice' : `Edit Invoice #${existingInvoice?.invoiceNumber}`}
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Complete cashier ledger entry fields sequentially.
             </p>
           </div>
@@ -240,7 +249,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
             variant="outline"
             size="sm"
             onClick={() => setShowCalculator(!showCalculator)}
-            className="space-x-1.5 font-semibold text-xs border-border bg-card"
+            className="space-x-1.5 font-semibold text-xs border-border bg-card rounded-xl h-9"
           >
             <Calculator className="h-4 w-4 text-muted-foreground" />
             <span>Open Calculator</span>
@@ -249,7 +258,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
             variant="outline"
             size="sm"
             onClick={() => setShowWeightCalculator(true)}
-            className="space-x-1.5 font-semibold text-xs border-border bg-card"
+            className="space-x-1.5 font-semibold text-xs border-border bg-card rounded-xl h-9"
           >
             <Scale className="h-4 w-4 text-muted-foreground" />
             <span>Weight Estimator</span>
@@ -257,17 +266,20 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-6 items-start">
         {/* Left Side: Ledger Input Grid */}
         <div className="lg:col-span-2 space-y-6">
           {/* Card 1: Customer metadata */}
-          <Card className="border-border bg-card">
-            <CardHeader>
-              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          <Card className="border-border bg-card shadow-premium rounded-2xl">
+            <CardHeader className="flex flex-row items-center space-x-2.5 pb-2">
+              <div className="bg-primary/10 text-primary p-1.5 rounded-lg">
+                <User className="h-4 w-4" />
+              </div>
+              <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Customer Details
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid sm:grid-cols-2 gap-4">
+            <CardContent className="grid sm:grid-cols-2 gap-4 pt-2">
               <div className="space-y-1.5">
                 <Label htmlFor="customer-customerName" className="text-xs font-semibold">
                   Customer Name <span className="text-rose-500">*</span>
@@ -288,7 +300,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                   }}
                   onFocus={() => setFocus({ type: 'header', fieldName: 'customerName' })}
                   placeholder="Type customer name or search..."
-                  className="bg-background font-medium"
+                  className="bg-background font-medium h-10 rounded-xl"
                 />
               </div>
 
@@ -307,125 +319,243 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                     }
                   }}
                   onFocus={() => setFocus({ type: 'header', fieldName: 'customerPhone' })}
-                  className="bg-background"
+                  className="bg-background h-10 rounded-xl"
                 />
               </div>
-
             </CardContent>
           </Card>
 
           {/* Card 2: Items Table Grid */}
-          <Card className="border-border bg-card overflow-hidden">
-            <CardHeader className="flex flex-row justify-between items-center bg-secondary/10 border-b border-border py-4">
-              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                Ledger Line Items
-              </CardTitle>
+          <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden">
+            <CardHeader className="flex flex-row justify-between items-center bg-secondary/15 border-b border-border py-3 px-6">
+              <div className="flex items-center space-x-2.5">
+                <div className="bg-primary/10 text-primary p-1.5 rounded-lg">
+                  <ShoppingBag className="h-4 w-4" />
+                </div>
+                <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Ledger Line Items
+                </CardTitle>
+              </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={addRow}
-                className="space-x-1 font-semibold text-xs border-primary hover:bg-primary/5"
+                className="space-x-1.5 font-semibold text-xs border-primary text-primary hover:bg-primary/5 rounded-xl h-8 px-3"
               >
-                <Plus className="h-3 w-3" />
+                <Plus className="h-3.5 w-3.5" />
                 <span>Add Row</span>
               </Button>
             </CardHeader>
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-secondary/40">
-                  <TableHead className="w-10 text-center">S/N</TableHead>
-                  <TableHead className="w-[50%]">Description</TableHead>
-                  <TableHead className="w-24 text-right">Quantity</TableHead>
-                  <TableHead className="w-32 text-right">Unit Price</TableHead>
-                  <TableHead className="w-32 text-right pr-4">Amount</TableHead>
-                  <TableHead className="w-10 text-center"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((item, idx) => (
-                  <TableRow key={idx} className="hover:bg-transparent">
-                    {/* Position */}
-                    <TableCell className="text-center font-mono text-xs text-muted-foreground select-none pt-4">
-                      {item.position}
-                    </TableCell>
-
-                    {/* Description */}
-                    <TableCell className="pt-2">
-                      <Input
-                        id={`row-${idx}-description`}
-                        type="text"
-                        value={item.description}
-                        onChange={(e) => updateRow(idx, { description: e.target.value })}
-                        onKeyDown={(e) => handleKeyDown(e, idx, 'description')}
-                        onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'description' })}
-                        placeholder="e.g. 16mm Iron Rods"
-                        className="bg-background text-sm font-medium"
-                      />
-                    </TableCell>
-
-                    {/* Quantity */}
-                    <TableCell className="pt-2">
-                      <QuantityInput
-                        id={`row-${idx}-quantity`}
-                        value={item.quantity}
-                        onChange={(val) => updateRow(idx, { quantity: val })}
-                        onKeyDown={(e) => handleKeyDown(e, idx, 'quantity')}
-                        onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'quantity' })}
-                        className="bg-background text-sm"
-                      />
-                    </TableCell>
-
-                    {/* Unit Price */}
-                    <TableCell className="pt-2">
-                      <MoneyInput
-                        id={`row-${idx}-unitPrice`}
-                        value={item.unitPrice}
-                        onChange={(val) => updateRow(idx, { unitPrice: val })}
-                        onKeyDown={(e) => handleKeyDown(e, idx, 'unitPrice')}
-                        onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'unitPrice' })}
-                        className="bg-background text-sm"
-                      />
-                    </TableCell>
-
-                    {/* Line Total */}
-                    <TableCell className="text-right font-mono font-bold text-sm pt-4 select-none pr-4">
-                      ₦{item.totalPrice.toFixed(2)}
-                    </TableCell>
-
-                    {/* Delete action */}
-                    <TableCell className="text-center pt-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteRow(idx)}
-                        disabled={rows.length === 1}
-                        className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto relative">
+              <Table>
+                <TableHeader className="bg-secondary/20">
+                  <TableRow className="border-b border-border hover:bg-transparent">
+                    <TableHead className="w-12 text-center text-[10px] uppercase font-bold text-muted-foreground">S/N</TableHead>
+                    <TableHead className="w-[50%] text-[10px] uppercase font-bold text-muted-foreground">Description</TableHead>
+                    <TableHead className="w-28 text-right text-[10px] uppercase font-bold text-muted-foreground">Quantity</TableHead>
+                    <TableHead className="w-36 text-right text-[10px] uppercase font-bold text-muted-foreground">Unit Price</TableHead>
+                    <TableHead className="w-36 text-right pr-4 text-[10px] uppercase font-bold text-muted-foreground">Amount</TableHead>
+                    <TableHead className="w-12 text-center"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  <LayoutGroup>
+                    <AnimatePresence initial={false}>
+                      {rows.map((item, idx) => {
+                        const isActive = focusState?.type === 'item' && focusState.rowIndex === idx;
+                        return (
+                          <motion.tr
+                            key={idx}
+                            layout
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -5 }}
+                            transition={{ duration: 0.15 }}
+                            className={`border-b border-border/60 transition-all duration-150 ${
+                              isActive ? 'active-row-highlight' : 'hover:bg-slate-50/20 dark:hover:bg-slate-900/10'
+                            }`}
+                          >
+                            {/* Position */}
+                            <TableCell className="text-center font-mono text-xs text-muted-foreground select-none py-3">
+                              {item.position}
+                            </TableCell>
+
+                            {/* Description */}
+                            <TableCell className="py-2">
+                              <Input
+                                id={`row-${idx}-description`}
+                                type="text"
+                                value={item.description}
+                                onChange={(e) => updateRow(idx, { description: e.target.value })}
+                                onKeyDown={(e) => handleKeyDown(e, idx, 'description')}
+                                onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'description' })}
+                                placeholder="e.g. 16mm Iron Rods"
+                                className="bg-background text-sm font-medium h-9 rounded-xl border border-border"
+                              />
+                            </TableCell>
+
+                            {/* Quantity */}
+                            <TableCell className="py-2">
+                              <QuantityInput
+                                id={`row-${idx}-quantity`}
+                                value={item.quantity}
+                                onChange={(val) => updateRow(idx, { quantity: val })}
+                                onKeyDown={(e) => handleKeyDown(e, idx, 'quantity')}
+                                onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'quantity' })}
+                                className="bg-background text-sm h-9 rounded-xl border border-border"
+                              />
+                            </TableCell>
+
+                            {/* Unit Price */}
+                            <TableCell className="py-2">
+                              <MoneyInput
+                                id={`row-${idx}-unitPrice`}
+                                value={item.unitPrice}
+                                onChange={(val) => updateRow(idx, { unitPrice: val })}
+                                onKeyDown={(e) => handleKeyDown(e, idx, 'unitPrice')}
+                                onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'unitPrice' })}
+                                className="bg-background text-sm h-9 rounded-xl border border-border"
+                              />
+                            </TableCell>
+
+                            {/* Line Total */}
+                            <TableCell className="text-right font-mono font-bold text-sm py-3 select-none pr-4 text-[#0F172A] dark:text-[#F8FAFC]">
+                              ₦{item.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </TableCell>
+
+                            {/* Delete action */}
+                            <TableCell className="text-center py-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => deleteRow(idx)}
+                                disabled={rows.length === 1}
+                                className="h-8 w-8 rounded-full text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </motion.tr>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </LayoutGroup>
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile Stacked Items Layout (visible on mobile only) */}
+            <div className="md:hidden p-4 space-y-4 bg-slate-50/50 dark:bg-slate-900/10 border-t border-border">
+              <AnimatePresence initial={false}>
+                {rows.map((item, idx) => {
+                  const isActive = focusState?.type === 'item' && focusState.rowIndex === idx;
+                  return (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      transition={{ duration: 0.15 }}
+                      className={`p-4 rounded-xl border transition-all duration-155 space-y-3 relative ${
+                        isActive
+                          ? 'border-primary ring-2 ring-primary/20 bg-card'
+                          : 'border-border bg-card shadow-sm'
+                      }`}
+                    >
+                      {/* Card Header: Position & Delete */}
+                      <div className="flex justify-between items-center border-b border-border/60 pb-2">
+                        <span className="font-mono text-xs font-bold text-muted-foreground select-none">
+                          Item #{item.position}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteRow(idx)}
+                          disabled={rows.length === 1}
+                          className="h-8 w-8 rounded-full text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      {/* Description */}
+                      <div className="space-y-1">
+                        <Label htmlFor={`row-mob-${idx}-description`} className="text-[10px] font-bold text-muted-foreground uppercase">
+                          Description
+                        </Label>
+                        <Input
+                          id={`row-mob-${idx}-description`}
+                          type="text"
+                          value={item.description}
+                          onChange={(e) => updateRow(idx, { description: e.target.value })}
+                          onKeyDown={(e) => handleKeyDown(e, idx, 'description')}
+                          onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'description' })}
+                          placeholder="e.g. 16mm Iron Rods"
+                          className="bg-background text-sm font-medium h-9 rounded-xl border border-border"
+                        />
+                      </div>
+
+                      {/* Quantity & Unit Price in 2-Column Grid */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label htmlFor={`row-mob-${idx}-quantity`} className="text-[10px] font-bold text-muted-foreground uppercase">
+                            Quantity
+                          </Label>
+                          <QuantityInput
+                            id={`row-mob-${idx}-quantity`}
+                            value={item.quantity}
+                            onChange={(val) => updateRow(idx, { quantity: val })}
+                            onKeyDown={(e) => handleKeyDown(e, idx, 'quantity')}
+                            onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'quantity' })}
+                            className="bg-background text-sm h-9 rounded-xl border border-border"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`row-mob-${idx}-unitPrice`} className="text-[10px] font-bold text-muted-foreground uppercase">
+                            Unit Price
+                          </Label>
+                          <MoneyInput
+                            id={`row-mob-${idx}-unitPrice`}
+                            value={item.unitPrice}
+                            onChange={(val) => updateRow(idx, { unitPrice: val })}
+                            onKeyDown={(e) => handleKeyDown(e, idx, 'unitPrice')}
+                            onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'unitPrice' })}
+                            className="bg-background text-sm h-9 rounded-xl border border-border"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Line Amount */}
+                      <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-lg border border-border/40 text-xs font-mono">
+                        <span className="text-muted-foreground font-sans uppercase text-[9px] font-bold">Line Total:</span>
+                        <span className="font-bold text-[#0F172A] dark:text-[#F8FAFC]">
+                          ₦{item.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
           </Card>
         </div>
 
         {/* Right Side: Charges & Final Summaries */}
-        <div className="space-y-6">
+        <div className="space-y-6 lg:sticky lg:top-20">
           {/* Card 3: Financial Summary Card */}
-          <Card className="border-border bg-card shadow-lg sticky top-20">
-            <CardHeader className="border-b border-border py-4">
-              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden">
+            <CardHeader className="border-b border-border py-4 px-6 bg-slate-50 dark:bg-slate-900/35">
+              <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Summary details
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6 pt-6">
+            <CardContent className="space-y-5 p-6">
               {/* Financial values */}
-              <div className="space-y-3 font-mono text-sm border-b border-border pb-4">
+              <div className="space-y-2.5 font-mono text-sm border-b border-border pb-4">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground font-sans">Subtotal:</span>
-                  <span className="font-bold">₦{formattedSubtotal}</span>
+                  <span className="font-bold text-foreground">₦{formattedSubtotal}</span>
                 </div>
 
                 {/* Additional Charges list */}
@@ -433,17 +563,17 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                   <div className="space-y-2 border-t border-border/40 pt-2 pb-1">
                     {charges.map((charge, idx) => (
                       <div key={idx} className="flex justify-between text-xs items-center">
-                        <span className="text-muted-foreground font-sans uppercase flex items-center space-x-1">
+                        <span className="text-muted-foreground font-sans uppercase flex items-center">
                           <button
                             type="button"
                             onClick={() => deleteCharge(idx)}
-                            className="text-rose-500 hover:text-rose-600 mr-1 p-0.5 rounded"
+                            className="text-rose-500 hover:text-rose-600 mr-1.5 p-0.5 rounded text-sm leading-none font-bold"
                           >
                             ×
                           </button>
                           <span>{charge.name}</span>
                         </span>
-                        <span className={charge.amount < 0 ? 'text-emerald-500 font-semibold' : ''}>
+                        <span className={charge.amount < 0 ? 'text-emerald-500 font-semibold' : 'text-foreground'}>
                           {charge.amount < 0 ? '-' : ''}₦{Math.abs(charge.amount).toFixed(2)}
                         </span>
                       </div>
@@ -451,48 +581,48 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                   </div>
                 )}
 
-                <div className="flex justify-between border-t border-border pt-3 text-lg font-bold text-foreground">
+                <div className="flex justify-between border-t border-border pt-3 text-lg font-bold text-[#0F172A] dark:text-[#F8FAFC]">
                   <span className="font-sans">Grand Total:</span>
                   <span>₦{formattedTotal}</span>
                 </div>
               </div>
 
               {/* Amount in words */}
-              <div className="space-y-1 bg-secondary/35 p-3 rounded-lg border border-border/40 text-xs">
-                <h4 className="font-bold text-muted-foreground uppercase tracking-wide">Amount in Words</h4>
-                <p className="font-semibold text-foreground font-sans capitalize italic leading-relaxed">
+              <div className="space-y-1 bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-xl border border-border/60 text-xs">
+                <h4 className="font-bold text-muted-foreground uppercase tracking-wider text-[9px]">Amount in Words</h4>
+                <p className="font-semibold text-[#334155] dark:text-[#E2E8F0] font-sans capitalize italic leading-relaxed mt-0.5">
                   {numberToNairaWords(total)}
                 </p>
               </div>
 
               {/* Add Custom Charge Section */}
-              <div className="space-y-3 bg-secondary/15 p-4 rounded-xl border border-border/50">
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center">
-                  <DollarSign className="h-4 w-4 mr-1 text-muted-foreground" />
+              <div className="space-y-3 bg-[#F8FAFC] dark:bg-[#020617]/25 p-4 rounded-xl border border-border">
+                <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center">
+                  <DollarSign className="h-4 w-4 mr-0.5 text-muted-foreground" />
                   <span>Add Additional Charge</span>
                 </h4>
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <Label htmlFor="charge-name" className="text-[10px] font-bold">Charge Name</Label>
+                      <Label htmlFor="charge-name" className="text-[9px] font-bold text-muted-foreground">Charge Name</Label>
                       <Input
                         id="charge-name"
                         type="text"
                         value={newChargeName}
                         onChange={(e) => setNewChargeName(e.target.value)}
-                        placeholder="e.g. Loading, Discount"
-                        className="h-8 bg-background text-xs"
+                        placeholder="e.g. Discount"
+                        className="h-8 bg-background text-xs rounded-lg"
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor="charge-amount" className="text-[10px] font-bold">Amount (₦)</Label>
+                      <Label htmlFor="charge-amount" className="text-[9px] font-bold text-muted-foreground">Amount (₦)</Label>
                       <Input
                         id="charge-amount"
                         type="number"
                         value={newChargeAmount || ''}
                         onChange={(e) => setNewChargeAmount(parseFloat(e.target.value) || 0)}
                         placeholder="Negative = discount"
-                        className="h-8 bg-background text-xs font-mono"
+                        className="h-8 bg-background text-xs font-mono rounded-lg"
                       />
                     </div>
                   </div>
@@ -500,9 +630,9 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                     type="button"
                     onClick={handleAddNewCharge}
                     variant="outline"
-                    className="w-full text-xs font-semibold h-8 space-x-1"
+                    className="w-full text-xs font-semibold h-8 space-x-1 rounded-lg"
                   >
-                    <Plus className="h-3 w-3" />
+                    <Plus className="h-3.5 w-3.5" />
                     <span>Apply Charge</span>
                   </Button>
                 </div>
@@ -510,25 +640,25 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
               {/* Notes */}
               <div className="space-y-1.5">
-                <Label htmlFor="invoice-notes" className="text-xs font-semibold">
+                <Label htmlFor="invoice-notes" className="text-xs font-semibold text-muted-foreground">
                   Cashier Transaction Notes
                 </Label>
                 <Textarea
                   id="invoice-notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g. Transport delivery arrangements, weight calculations details..."
-                  className="bg-background min-h-20 text-xs"
+                  placeholder="e.g. Delivery terms..."
+                  className="bg-background min-h-20 text-xs rounded-xl border border-border"
                 />
               </div>
 
               {/* Action operations buttons */}
-              <div className="space-y-2 pt-2">
+              <div className="space-y-2 pt-1.5">
                 <Button
                   onClick={() => handleSave('DRAFT')}
                   disabled={createMutation.isPending || updateMutation.isPending}
                   variant="outline"
-                  className="w-full font-semibold border-primary hover:bg-primary/5 py-6 text-sm"
+                  className="w-full font-semibold border-[#10B981] hover:bg-emerald-500/5 text-[#059669] dark:text-[#10B981] py-5 text-xs rounded-xl"
                 >
                   {createMutation.isPending || updateMutation.isPending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -542,7 +672,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                   <Button
                     onClick={() => handleSave('FINALIZED')}
                     disabled={createMutation.isPending || updateMutation.isPending}
-                    className="w-full font-bold bg-primary text-primary-foreground py-6 text-sm"
+                    className="w-full font-bold bg-[#10B981] hover:bg-[#059669] text-white py-5 text-xs rounded-xl shadow-premium"
                   >
                     {createMutation.isPending || updateMutation.isPending ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -566,58 +696,60 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
       {/* Finalized Receipt Download Dialog popup */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-2xl bg-card border-border">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl bg-card border-border rounded-2xl p-6 shadow-2xl">
+          <DialogHeader className="border-b border-border pb-4">
             <DialogTitle className="font-mono font-bold text-lg flex items-center">
               <span>Finalized Invoice #{createdInvoiceNumber}</span>
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs text-muted-foreground mt-1">
               Backend successfully generated printable formats. Trigger downloads below:
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col items-center justify-center p-8 border rounded-xl bg-secondary/10 border-dashed my-4 space-y-4">
-            <Printer className="h-12 w-12 text-muted-foreground animate-pulse" />
+          <div className="flex flex-col items-center justify-center p-8 border rounded-2xl bg-[#D1FAE5]/10 border-dashed my-4 space-y-4">
+            <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-full animate-bounce">
+              <Printer className="h-10 w-10" />
+            </div>
             <div className="text-center">
-              <p className="font-bold text-sm">Receipt creation finalized</p>
+              <p className="font-bold text-sm text-[#0F172A] dark:text-[#F8FAFC]">Receipt creation finalized</p>
               <p className="text-xs text-muted-foreground mt-1">Invoice is permanently locked in ledger history.</p>
             </div>
           </div>
 
-          <DialogFooter className="flex justify-between sm:justify-between items-center w-full gap-2">
-            <div className="flex gap-2">
+          <DialogFooter className="flex justify-between sm:justify-between items-center w-full gap-2 pt-2">
+            <div className="flex gap-1.5">
               <Button
                 onClick={() => handleExport(createdInvoiceId || '', 'pdf', createdInvoiceNumber)}
                 variant="outline"
                 size="sm"
-                className="space-x-1 font-semibold"
+                className="space-x-1.5 font-semibold text-xs rounded-xl shadow-sm"
               >
-                <Printer className="h-4 w-4" />
-                <span>PDF Document</span>
+                <Printer className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>PDF</span>
               </Button>
               <Button
                 onClick={() => handleExport(createdInvoiceId || '', 'excel', createdInvoiceNumber)}
                 variant="outline"
                 size="sm"
-                className="space-x-1 font-semibold"
+                className="space-x-1.5 font-semibold text-xs rounded-xl shadow-sm"
               >
-                <FileSpreadsheet className="h-4 w-4" />
-                <span>CSV Sheet</span>
+                <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>CSV</span>
               </Button>
               <Button
                 onClick={() => handleExport(createdInvoiceId || '', 'image', createdInvoiceNumber)}
                 variant="outline"
                 size="sm"
-                className="space-x-1 font-semibold"
+                className="space-x-1.5 font-semibold text-xs rounded-xl shadow-sm"
               >
-                <FileDown className="h-4 w-4" />
-                <span>SVG Image</span>
+                <FileDown className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>SVG</span>
               </Button>
             </div>
             <Button onClick={() => {
               setIsPreviewOpen(false);
               router.push('/invoices');
-            }} className="font-semibold bg-zinc-950 text-white hover:bg-zinc-800">
+            }} className="font-semibold bg-[#0F172A] hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-[#0F172A] rounded-xl text-xs px-4 py-2">
               Close View
             </Button>
           </DialogFooter>
