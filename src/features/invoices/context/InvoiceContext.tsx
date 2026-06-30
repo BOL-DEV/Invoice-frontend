@@ -214,22 +214,22 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (focusState.fieldName === 'customerName') {
         setFocus({ type: 'header', fieldName: 'customerPhone' });
       } else if (focusState.fieldName === 'customerPhone') {
-        setFocus({ type: 'item', rowIndex: 0, fieldName: 'description' });
+        setFocus({ type: 'item', rowIndex: 0, fieldName: 'quantity' });
       }
     } else {
       const { rowIndex, fieldName } = focusState;
-      if (fieldName === 'description') {
-        setFocus({ type: 'item', rowIndex, fieldName: 'quantity' });
-      } else if (fieldName === 'quantity') {
+      if (fieldName === 'quantity') {
+        setFocus({ type: 'item', rowIndex, fieldName: 'description' });
+      } else if (fieldName === 'description') {
         setFocus({ type: 'item', rowIndex, fieldName: 'unitPrice' });
       } else if (fieldName === 'unitPrice') {
-        // End of row. Move to next description or append row
+        // End of row. Move to next quantity or append row
         if (rowIndex < items.length - 1) {
-          setFocus({ type: 'item', rowIndex: rowIndex + 1, fieldName: 'description' });
+          setFocus({ type: 'item', rowIndex: rowIndex + 1, fieldName: 'quantity' });
         } else {
           addItemRow();
           setTimeout(() => {
-            setFocus({ type: 'item', rowIndex: rowIndex + 1, fieldName: 'description' });
+            setFocus({ type: 'item', rowIndex: rowIndex + 1, fieldName: 'quantity' });
           }, 50);
         }
       }

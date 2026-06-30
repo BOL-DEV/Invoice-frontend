@@ -173,15 +173,15 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
           const res = await createMutation.mutateAsync(payload);
           alert('Invoice saved successfully');
           if (targetStatus === 'FINALIZED') {
-            setCreatedInvoiceId(res.id);
-            setCreatedInvoiceNumber(res.invoiceNumber);
-            setIsPreviewOpen(true);
-          } else {
-            router.push('/invoices');
+            await handleExport(res.id, 'pdf', res.invoiceNumber);
           }
+          router.push('/invoices');
         } else {
-          await updateMutation.mutateAsync(payload);
+          const res = await updateMutation.mutateAsync(payload);
           alert('Invoice updated successfully');
+          if (targetStatus === 'FINALIZED') {
+            await handleExport(invoiceId || '', 'pdf', res.invoiceNumber);
+          }
           router.push('/invoices');
         }
       } catch (err) {
@@ -203,13 +203,17 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       
       const blob = new Blob([response.data], { type: contentType });
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `invoice_${invoiceNumber}.${extension}`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      if (format === 'pdf') {
+        window.open(url, '_blank');
+      } else {
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `invoice_${invoiceNumber}.${extension}`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+      }
     } catch (error) {
       console.error(`Export to ${format} failed:`, error);
       alert((error as AxiosErrorLike).response?.data?.error?.message || `Failed to export invoice to ${format}`);
@@ -352,9 +356,9 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                 <TableHeader className="bg-secondary/20">
                   <TableRow className="border-b border-border hover:bg-transparent">
                     <TableHead className="w-12 text-center text-[10px] uppercase font-bold text-muted-foreground">S/N</TableHead>
-                    <TableHead className="w-[50%] text-[10px] uppercase font-bold text-muted-foreground">Description</TableHead>
                     <TableHead className="w-28 text-right text-[10px] uppercase font-bold text-muted-foreground">Quantity</TableHead>
-                    <TableHead className="w-36 text-right text-[10px] uppercase font-bold text-muted-foreground">Unit Price</TableHead>
+                    <TableHead className="w-[50%] text-[10px] uppercase font-bold text-muted-foreground">Description of Goods</TableHead>
+                    <TableHead className="w-36 text-right text-[10px] uppercase font-bold text-muted-foreground">Rate</TableHead>
                     <TableHead className="w-36 text-right pr-4 text-[10px] uppercase font-bold text-muted-foreground">Amount</TableHead>
                     <TableHead className="w-12 text-center"></TableHead>
                   </TableRow>
@@ -381,6 +385,18 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                               {item.position}
                             </TableCell>
 
+                            {/* Quantity */}
+                            <TableCell className="py-2">
+                              <QuantityInput
+                                id={`row-${idx}-quantity`}
+                                value={item.quantity}
+                                onChange={(val) => updateRow(idx, { quantity: val })}
+                                onKeyDown={(e) => handleKeyDown(e, idx, 'quantity')}
+                                onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'quantity' })}
+                                className="bg-background text-sm h-9 rounded-xl border border-border"
+                              />
+                            </TableCell>
+
                             {/* Description */}
                             <TableCell className="py-2">
                               <Input
@@ -392,18 +408,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                                 onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'description' })}
                                 placeholder="e.g. 16mm Iron Rods"
                                 className="bg-background text-sm font-medium h-9 rounded-xl border border-border"
-                              />
-                            </TableCell>
-
-                            {/* Quantity */}
-                            <TableCell className="py-2">
-                              <QuantityInput
-                                id={`row-${idx}-quantity`}
-                                value={item.quantity}
-                                onChange={(val) => updateRow(idx, { quantity: val })}
-                                onKeyDown={(e) => handleKeyDown(e, idx, 'quantity')}
-                                onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'quantity' })}
-                                className="bg-background text-sm h-9 rounded-xl border border-border"
                               />
                             </TableCell>
 
