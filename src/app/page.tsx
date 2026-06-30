@@ -1,103 +1,203 @@
-import Image from "next/image";
+'use client';
+
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../features/auth/context/AuthContext';
+import { useDashboardStats } from '../features/dashboard/hooks/useDashboardStats';
+import { AppLayout } from '../components/layout/AppLayout';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../components/ui/card';
+import {
+  TrendingUp,
+  Clock,
+  UserCheck,
+  FileSpreadsheet,
+} from 'lucide-react';
+import { Skeleton } from '../components/ui/skeleton';
+import { Button } from '../components/ui/button';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
+  const { data: stats, isLoading: statsLoading, isError, refetch } = useDashboardStats();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    if (!authLoading && user && user.role !== 'ADMIN') {
+      router.replace('/invoices');
+    }
+  }, [user, authLoading, router]);
+
+  if (authLoading || (user && user.role !== 'ADMIN')) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground animate-pulse">Initializing terminal context...</p>
+      </div>
+    );
+  }
+
+  const formatCurrency = (amount: number) => {
+    return `₦${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  };
+
+  const getSalesChartData = () => {
+    if (!stats?.salesTrend || stats.salesTrend.length === 0) return [];
+    const maxSales = Math.max(...stats.salesTrend.map((t) => t.sales), 1);
+    return stats.salesTrend.map((item) => ({
+      date: item.date,
+      sales: item.sales,
+      heightPercentage: (item.sales / maxSales) * 100,
+    }));
+  };
+
+  const chartData = getSalesChartData();
+
+  return (
+    <AppLayout>
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">System Status Overview</h2>
+            <p className="text-sm text-muted-foreground">
+              Real-time revenue metrics, system loads, and transaction audit summaries.
+            </p>
+          </div>
+          <Button onClick={() => refetch()} className="font-semibold">
+            Refresh Metrics
+          </Button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        {statsLoading ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="border-border">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <Skeleton className="h-4 w-[100px]" />
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-[120px] mb-2" />
+                  <Skeleton className="h-3 w-[80px]" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : isError ? (
+          <div className="bg-rose-500/10 border border-rose-500/20 text-rose-500 p-4 rounded-xl text-center">
+            <p className="font-semibold">Failed to fetch server statistics.</p>
+            <p className="text-xs mb-2">Ensure your local backend server is running and accessible.</p>
+            <Button onClick={() => refetch()} variant="outline" className="border-rose-500/20 hover:bg-rose-500/15">
+              Retry Connection
+            </Button>
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card className="border-border bg-card shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Aggregate Revenue
+                </CardTitle>
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold font-mono">
+                  {formatCurrency(stats?.totalSales || 0)}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Calculated from finalized sales ledger</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border bg-card shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Pending Approvals
+                </CardTitle>
+                <Clock className="h-4 w-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold font-mono">
+                  {stats?.pendingApprovalsCount || 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stats?.pendingApprovalsCount && stats.pendingApprovalsCount > 0
+                    ? 'Requires immediate administrator action'
+                    : 'System verification queues clear'}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border bg-card shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Active Cashiers
+                </CardTitle>
+                <UserCheck className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold font-mono">
+                  {stats?.cashiersCount || 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Registered apprentice cashiers</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border bg-card shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Invoice Statuses
+                </CardTitle>
+                <FileSpreadsheet className="h-4 w-4 text-purple-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold font-mono">
+                  {stats?.invoiceCounts?.total || 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stats?.invoiceCounts?.finalized || 0} Finalized | {stats?.invoiceCounts?.draft || 0} Drafts
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {!statsLoading && !isError && (
+          <Card className="border-border bg-card shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Sales Trend (30 Days)
+              </CardTitle>
+              <CardDescription>Daily finalized invoice transaction volume in Naira.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {chartData.length === 0 ? (
+                <div className="h-64 flex items-center justify-center border border-dashed rounded-lg text-muted-foreground">
+                  No sales transaction data recorded for this period.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="h-64 flex items-end space-x-2 md:space-x-4 border-b border-border pb-2 pt-6">
+                    {chartData.map((day, idx) => (
+                      <div key={idx} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                        <div className="absolute bottom-full mb-2 bg-zinc-900 border border-zinc-800 text-white text-xs px-2 py-1 rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 font-mono">
+                          {day.date}: {formatCurrency(day.sales)}
+                        </div>
+                        <div
+                          style={{ height: `${Math.max(day.heightPercentage, 4)}%` }}
+                          className="w-full bg-primary hover:bg-zinc-700 dark:hover:bg-zinc-400 rounded-t-sm transition-all duration-300"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-between text-xs text-muted-foreground px-2 font-mono">
+                    <span>{chartData[0]?.date}</span>
+                    <span>{chartData[Math.floor(chartData.length / 2)]?.date}</span>
+                    <span>{chartData[chartData.length - 1]?.date}</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </AppLayout>
   );
 }
