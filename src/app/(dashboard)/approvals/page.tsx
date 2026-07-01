@@ -14,9 +14,11 @@ import { Label } from '../../../components/ui/label';
 import { Input } from '../../../components/ui/input';
 import { Check, X, ThumbsUp, ThumbsDown, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { Skeleton } from '../../../components/ui/skeleton';
+import { useModal } from '../../../components/ui/modal-provider';
 
 export default function ApprovalsPage() {
   const { isAdmin } = usePermission();
+  const modal = useModal();
   const [statusFilter, setStatusFilter] = useState<string>('PENDING');
   const [selectedTicket, setSelectedTicket] = useState<ApprovalRequest | null>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
@@ -48,9 +50,9 @@ export default function ApprovalsPage() {
         },
       });
       setIsActionModalOpen(false);
-      alert(`Ticket has been ${actionType.toLowerCase()} successfully`);
+      modal.alert('Success', `Ticket has been ${actionType.toLowerCase()} successfully`, 'success');
     } catch (err) {
-      alert((err as AxiosErrorLike).response?.data?.error?.message || 'Failed to submit ticket update');
+      modal.alert('Update Failed', (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to submit ticket update', 'error');
     }
   };
 

@@ -91,8 +91,8 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             <Building2 className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="font-bold text-sm tracking-wide uppercase leading-tight text-white font-heading">Lagos Iron</h1>
-            <p className="text-xs text-slate-400">& Steel Co. Ltd</p>
+            <h1 className="font-bold text-sm tracking-wide uppercase leading-tight text-white font-heading">Lao Steel</h1>
+            <p className="text-xs text-slate-400">Ventures</p>
           </div>
         </div>
 
@@ -155,8 +155,8 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                     <Building2 className="h-6 w-6" />
                   </div>
                   <div>
-                    <h1 className="font-bold text-sm tracking-wide uppercase leading-tight text-white">Lagos Iron</h1>
-                    <p className="text-xs text-slate-400">& Steel Co. Ltd</p>
+                    <h1 className="font-bold text-sm tracking-wide uppercase leading-tight text-white">Lao Steel</h1>
+                    <p className="text-xs text-slate-400">Ventures</p>
                   </div>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => setIsMobileOpen(false)} className="text-slate-400 hover:text-white">

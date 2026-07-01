@@ -17,9 +17,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Plus, Trash2, ShieldAlert, UserCheck, Loader2, Mail, Lock as LockIcon } from 'lucide-react';
 import { AxiosErrorLike } from '../../../types/api';
 import { Skeleton } from '../../../components/ui/skeleton';
+import { useModal } from '../../../components/ui/modal-provider';
 
 export default function UsersPage() {
   const { isAdmin } = usePermission();
+  const modal = useModal();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -67,19 +69,23 @@ export default function UsersPage() {
       await createMutation.mutateAsync(data);
       setIsAddOpen(false);
       reset();
-      alert('Cashier user account created successfully');
+      modal.alert('Success', 'Cashier user account created successfully', 'success');
     } catch (err) {
       setErrorMsg((err as AxiosErrorLike).response?.data?.error?.message || 'Failed to create user account');
     }
   };
 
   const handleDelete = async (id: string, email: string) => {
-    if (confirm(`Are you sure you want to delete ${email}?`)) {
+    const isConfirmed = await modal.confirm(
+      'Delete User Account',
+      `Are you sure you want to delete ${email}?`
+    );
+    if (isConfirmed) {
       try {
         await deleteMutation.mutateAsync(id);
-        alert('User account soft-deleted successfully');
+        modal.alert('Success', 'User account soft-deleted successfully', 'success');
       } catch (err) {
-        alert((err as AxiosErrorLike).response?.data?.error?.message || 'Failed to delete user');
+        modal.alert('Delete Failed', (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to delete user', 'error');
       }
     }
   };

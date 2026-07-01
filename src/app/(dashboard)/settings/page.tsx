@@ -9,10 +9,12 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter }
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { ShieldAlert, Loader2, Save, Building2 } from 'lucide-react';
+import { useModal } from '../../../components/ui/modal-provider';
 import { BusinessSettings, AxiosErrorLike } from '../../../types/api';
 
 export default function SettingsPage() {
   const { isAdmin } = usePermission();
+  const modal = useModal();
   const { data: settings, isLoading, isError, refetch } = useBusinessSettings();
   const updateMutation = useUpdateBusinessSettings(settings?.id || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,9 +76,9 @@ export default function SettingsPage() {
         defaultWhtPercentage: Number(data.defaultWhtPercentage) || 0,
       };
       await updateMutation.mutateAsync(payload);
-      alert('Business configurations saved successfully');
+      modal.alert('Success', 'Business configurations saved successfully', 'success');
     } catch (err) {
-      alert((err as AxiosErrorLike).response?.data?.error?.message || 'Failed to update configurations');
+      modal.alert('Update Failed', (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to update configurations', 'error');
     } finally {
       setIsSubmitting(false);
     }
