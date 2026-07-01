@@ -219,8 +219,63 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
   const handleExport = async (invoiceId: string, format: 'pdf' | 'excel' | 'image', invoiceNumber: string) => {
     try {
-      const extension = format === 'pdf' ? 'pdf' : format === 'excel' ? 'csv' : 'svg';
-      const contentType = format === 'pdf' ? 'application/pdf' : format === 'excel' ? 'text/csv' : 'image/svg+xml';
+      if (format === 'image') {
+        const response = await apiClient.get(`/api/printing/${invoiceId}/image`, {
+          responseType: 'blob',
+        });
+        const blobUrl = window.URL.createObjectURL(response.data);
+        
+        const img = new Image();
+        img.src = blobUrl;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const scale = 2; // Scale for high-resolution PNG
+          canvas.width = 600 * scale;
+          canvas.height = (img.naturalHeight || 800) * scale;
+          
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.scale(scale, scale);
+            ctx.drawImage(img, 0, 0);
+            
+            canvas.toBlob((pngBlob) => {
+              if (pngBlob) {
+                const pngUrl = window.URL.createObjectURL(pngBlob);
+                const link = document.createElement('a');
+                link.href = pngUrl;
+                link.setAttribute('download', `invoice_${invoiceNumber}.png`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(pngUrl);
+              }
+              window.URL.revokeObjectURL(blobUrl);
+            }, 'image/png');
+          } else {
+            // Fallback to SVG
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.setAttribute('download', `invoice_${invoiceNumber}.svg`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(blobUrl);
+          }
+        };
+        img.onerror = () => {
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.setAttribute('download', `invoice_${invoiceNumber}.svg`);
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          window.URL.revokeObjectURL(blobUrl);
+        };
+        return;
+      }
+
+      const extension = format === 'pdf' ? 'pdf' : 'csv';
+      const contentType = format === 'pdf' ? 'application/pdf' : 'text/csv';
       
       const response = await apiClient.get(`/api/printing/${invoiceId}/${format}`, {
         responseType: 'blob',
@@ -787,7 +842,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                 className="space-x-1.5 font-semibold text-xs rounded-xl shadow-sm"
               >
                 <FileDown className="h-3.5 w-3.5 text-muted-foreground" />
-                <span>SVG</span>
+                <span>PNG</span>
               </Button>
             </div>
             <Button onClick={() => {

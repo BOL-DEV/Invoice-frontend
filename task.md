@@ -1,0 +1,19 @@
+- [x] Implement new modal-provider context in frontend
+- [x] Register ModalProvider in app layout
+- [x] Replace standard alerts in all frontend pages using `useModal`
+- [x] Refine logo header design layout in PDF kit
+- [x] Refine logo header design layout in SVG kit
+- [x] Replace invisible Naira sign with standard N symbol in PDF kit
+- [x] Compile and verify frontend and backend build success
+- [x] Enlarge logo grid parameters in PDF and SVG exports
+- [x] Align watermark style to match logo design in PDF and SVG
+- [x] Fix status payload save closure bug to prevent saving DRAFT
+- [x] Transition FINALIZED status to PRINTED upon download triggers
+- [x] Make details dialog wider and larger on desktop viewports
+- [x] Change page metadata and browser titles to LSV Invoice Generator
+- [x] Update sidebar logo text and headers to Lao Steel Ventures
+- [x] Overhaul login page to remove technical session jargon and generic placeholders
+- [x] Replace default site favicon.ico with the new SVG logo design
+- [x] Adjust printing controller rules to allow first-time print of finalized invoices without approval
+- [x] Convert SVG image export to PNG using HTML5 canvas
+- [x] Update export buttons label text to PNG in invoices and form pages
