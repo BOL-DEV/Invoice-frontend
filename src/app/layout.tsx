@@ -19,8 +19,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Lagos Iron & Steel Co. - Billing & Invoices",
-  description: "High-speed ledger invoice creator and cash management terminal.",
+  title: "LSV Invoice Generator",
+  description: "Billing & Invoices management for Lao Steel Ventures",
 };
 
 export default function RootLayout({

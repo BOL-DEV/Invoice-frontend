@@ -7,6 +7,7 @@ import { useInvoiceRows } from '../hooks/useInvoiceRows';
 import { useInvoiceCalculations } from '../hooks/useInvoiceCalculations';
 import { useInvoiceDetails, useCreateInvoice, useUpdateInvoice } from '../hooks/useInvoices';
 import { useBusinessSettings } from '../../business/hooks/useBusinessSettings';
+import { useModal } from '../../../components/ui/modal-provider';
 import { numberToNairaWords } from '../utils/numberToWords';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { CustomerSearchInput } from '../../../components/forms/CustomerSearchInput';
@@ -49,6 +50,7 @@ interface InvoiceFormProps {
 
 export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => {
   const router = useRouter();
+  const modal = useModal();
   const { isAdmin } = usePermission();
   
   // Context state
@@ -156,7 +158,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
   const handleAddNewCharge = () => {
     if (!newChargeName.trim() || !newChargeAmount) {
-      alert('Charge name and amount must be provided.');
+      modal.alert('Input Error', 'Charge name and amount must be provided.', 'warning');
       return;
     }
     addCharge(newChargeName.trim(), newChargeAmount);
@@ -169,7 +171,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     if (isSubmitting.current) return;
 
     if (!customerName.trim()) {
-      alert('Customer Name is required to save invoice.');
+      modal.alert('Input Required', 'Customer Name is required to save invoice.', 'warning');
       return;
     }
 
@@ -178,7 +180,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     );
 
     if (filledRows.length === 0) {
-      alert('Please fill out at least one line item row with description, quantity, and price.');
+      modal.alert('Input Required', 'Please fill out at least one line item row with description, quantity, and price.', 'warning');
       return;
     }
 
@@ -187,25 +189,28 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
     // Short timeout to let status state set
     setTimeout(async () => {
-      const payload = getFormPayload();
+      const payload = {
+        ...getFormPayload(),
+        status: targetStatus,
+      };
       try {
         if (mode === 'create') {
           const res = await createMutation.mutateAsync(payload);
-          alert('Invoice saved successfully');
+          await modal.alert('Success', 'Invoice saved successfully', 'success');
           if (targetStatus === 'FINALIZED') {
             await handleExport(res.id, 'pdf', res.invoiceNumber);
           }
           router.push('/invoices');
         } else {
           const res = await updateMutation.mutateAsync(payload);
-          alert('Invoice updated successfully');
+          await modal.alert('Success', 'Invoice updated successfully', 'success');
           if (targetStatus === 'FINALIZED') {
             await handleExport(invoiceId || '', 'pdf', res.invoiceNumber);
           }
           router.push('/invoices');
         }
       } catch (err) {
-        alert((err as AxiosErrorLike).response?.data?.error?.message || 'Failed to save invoice ledger');
+        modal.alert('Operation Failed', (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to save invoice ledger', 'error');
       } finally {
         isSubmitting.current = false;
       }
@@ -236,7 +241,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       }
     } catch (error) {
       console.error(`Export to ${format} failed:`, error);
-      alert((error as AxiosErrorLike).response?.data?.error?.message || `Failed to export invoice to ${format}`);
+      modal.alert('Export Failed', (error as AxiosErrorLike).response?.data?.error?.message || `Failed to export invoice to ${format}`, 'error');
     }
   };
 

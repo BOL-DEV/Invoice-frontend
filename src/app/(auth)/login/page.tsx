@@ -66,17 +66,17 @@ export default function LoginPage() {
             <Building2 className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight font-heading">Lagos Iron & Steel</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Billing & Invoices Management Terminal</p>
+            <h1 className="text-lg font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight font-heading">Lao Steel Ventures</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Invoice Generator</p>
           </div>
         </div>
 
         {/* Login form Card */}
         <Card className="bg-card border-border shadow-premium rounded-2xl overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-[#0F172A] dark:text-[#F8FAFC] text-base font-bold">Cashier Sign In</CardTitle>
+            <CardTitle className="text-[#0F172A] dark:text-[#F8FAFC] text-base font-bold">Sign In</CardTitle>
             <CardDescription className="text-xs text-muted-foreground mt-1">
-              Enter your credential details to open your billing session.
+              Enter your email and password to access the app.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-2">
@@ -97,7 +97,7 @@ export default function LoginPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="cashier@lagossteel.com"
+                    placeholder="cashier@laosteel.com"
                     {...register('email')}
                     className="bg-background pl-9 h-10 rounded-xl border border-border"
                   />
@@ -109,7 +109,7 @@ export default function LoginPage() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="password" className="text-xs font-semibold text-muted-foreground">
-                  Access Key Password
+                  Password
                 </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -144,7 +144,7 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="justify-center border-t border-border/60 pt-4 bg-slate-50 dark:bg-slate-900/35 pb-4">
             <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider select-none">
-              Secured Session Gateway
+              Lao Steel Ventures
             </span>
           </CardFooter>
         </Card>

@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { apiClient } from '../../../services/api/axios';
+import { useModal } from '../../../components/ui/modal-provider';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -37,6 +38,7 @@ import {
 
 export default function InvoicesPage() {
   const { isAdmin } = usePermission();
+  const modal = useModal();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -70,14 +72,18 @@ export default function InvoicesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
+    const isConfirmed = await modal.confirm(
+      'Delete Invoice Ledger',
+      'Are you sure you want to delete this invoice? This action cannot be undone.'
+    );
+    if (isConfirmed) {
       try {
         await deleteInvoiceMutation.mutateAsync(id);
         setIsDetailOpen(false);
-        alert('Invoice soft-deleted successfully');
+        modal.alert('Success', 'Invoice soft-deleted successfully', 'success');
       } catch (err) {
         const errorMsg = (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to delete invoice';
-        alert(errorMsg);
+        modal.alert('Delete Failed', errorMsg, 'error');
       }
     }
   };
@@ -103,7 +109,7 @@ export default function InvoicesPage() {
     } catch (error) {
       console.error(`Export to ${format} failed:`, error);
       const errMsg = (error as AxiosErrorLike).response?.data?.error?.message || `Failed to export invoice to ${format}`;
-      alert(errMsg);
+      modal.alert('Export Failed', errMsg, 'error');
     }
   };
 
@@ -302,7 +308,7 @@ export default function InvoicesPage() {
 
       {/* Invoice Detail Sheet Dialogue */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-border rounded-2xl p-6 shadow-2xl">
+        <DialogContent className="max-w-3xl lg:max-w-5xl xl:max-w-6xl max-h-[90vh] lg:max-h-[95vh] overflow-y-auto bg-card border-border rounded-2xl p-6 shadow-2xl">
           <DialogHeader className="border-b border-border pb-4">
             <DialogTitle className="flex justify-between items-center text-lg font-bold font-heading">
               <span className="font-mono tracking-tight flex items-center space-x-1.5">
@@ -463,8 +469,11 @@ export default function InvoicesPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => {
-                        const reason = prompt('Please state your reasoning for editing this finalized invoice:');
+                      onClick={async () => {
+                        const reason = await modal.prompt(
+                          'Request Edit Approval',
+                          'Please state your reasoning for editing this finalized invoice:'
+                        );
                         if (reason) {
                           apiClient
                             .post('/api/approvals', {
@@ -472,8 +481,8 @@ export default function InvoicesPage() {
                               type: 'EDIT',
                               reason,
                             })
-                            .then(() => alert('Edit authorization ticket requested successfully'))
-                            .catch((err) => alert(err.response?.data?.error?.message || 'Failed to request ticket'));
+                            .then(() => modal.alert('Ticket Requested', 'Edit authorization ticket requested successfully', 'success'))
+                            .catch((err) => modal.alert('Request Failed', err.response?.data?.error?.message || 'Failed to request ticket', 'error'));
                         }
                       }}
                       className="space-x-1.5 font-semibold text-xs rounded-xl border-amber-500/30 text-amber-600 hover:bg-amber-500/5"
