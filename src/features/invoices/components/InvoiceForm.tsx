@@ -6,6 +6,7 @@ import { useInvoice, FocusTarget } from '../context/InvoiceContext';
 import { useInvoiceRows } from '../hooks/useInvoiceRows';
 import { useInvoiceCalculations } from '../hooks/useInvoiceCalculations';
 import { useInvoiceDetails, useCreateInvoice, useUpdateInvoice } from '../hooks/useInvoices';
+import { useBusinessSettings } from '../../business/hooks/useBusinessSettings';
 import { numberToNairaWords } from '../utils/numberToWords';
 import { usePermission } from '../../auth/hooks/usePermission';
 import { CustomerSearchInput } from '../../../components/forms/CustomerSearchInput';
@@ -87,8 +88,26 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   const [showWeightCalculator, setShowWeightCalculator] = useState(false);
   
   // Dynamic custom charge state
+  const [chargeType, setChargeType] = useState<'custom' | 'vat' | 'wht'>('custom');
   const [newChargeName, setNewChargeName] = useState('');
   const [newChargeAmount, setNewChargeAmount] = useState(0);
+
+  const { data: businessSettings } = useBusinessSettings();
+
+  // Reactively calculate VAT/WHT when subtotal or preset changes
+  useEffect(() => {
+    if (chargeType === 'vat') {
+      const vatPercent = businessSettings?.defaultVatPercentage ?? 7.5;
+      setNewChargeName(`VAT (${vatPercent}%)`);
+      const amount = (subtotal * Number(vatPercent)) / 100;
+      setNewChargeAmount(Math.round(amount * 100) / 100);
+    } else if (chargeType === 'wht') {
+      const whtPercent = businessSettings?.defaultWhtPercentage ?? 2.0;
+      setNewChargeName(`WHT (${whtPercent}%)`);
+      const amount = -((subtotal * Number(whtPercent)) / 100);
+      setNewChargeAmount(Math.round(amount * 100) / 100);
+    }
+  }, [chargeType, subtotal, businessSettings]);
 
   // Receipt Preview state
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -143,6 +162,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     addCharge(newChargeName.trim(), newChargeAmount);
     setNewChargeName('');
     setNewChargeAmount(0);
+    setChargeType('custom');
   };
 
   const handleSave = async (targetStatus: 'DRAFT' | 'FINALIZED') => {
@@ -606,6 +626,19 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                   <span>Add Additional Charge</span>
                 </h4>
                 <div className="space-y-2">
+                  <div className="space-y-1">
+                    <Label className="text-[9px] font-bold text-muted-foreground">Charge Type</Label>
+                    <select
+                      value={chargeType}
+                      onChange={(e) => setChargeType(e.target.value as 'custom' | 'vat' | 'wht')}
+                      className="w-full h-8 bg-background border border-border text-xs rounded-lg px-2 text-[#0F172A] dark:text-[#F8FAFC]"
+                    >
+                      <option value="custom">Custom Charge</option>
+                      <option value="vat">VAT (Value Added Tax)</option>
+                      <option value="wht">WHT (Withholding Tax Deduction)</option>
+                    </select>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <Label htmlFor="charge-name" className="text-[9px] font-bold text-muted-foreground">Charge Name</Label>
@@ -615,6 +648,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                         value={newChargeName}
                         onChange={(e) => setNewChargeName(e.target.value)}
                         placeholder="e.g. Discount"
+                        disabled={chargeType !== 'custom'}
                         className="h-8 bg-background text-xs rounded-lg"
                       />
                     </div>
@@ -626,6 +660,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                         value={newChargeAmount || ''}
                         onChange={(e) => setNewChargeAmount(parseFloat(e.target.value) || 0)}
                         placeholder="Negative = discount"
+                        disabled={chargeType !== 'custom'}
                         className="h-8 bg-background text-xs font-mono rounded-lg"
                       />
                     </div>

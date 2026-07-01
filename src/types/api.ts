@@ -50,6 +50,7 @@ export interface BusinessSettings {
   logo: string | null;
   receiptPrefix: string;
   defaultVatPercentage: number;
+  defaultWhtPercentage: number;
   nextInvoiceNumber: number;
   createdAt: string;
   updatedAt: string;

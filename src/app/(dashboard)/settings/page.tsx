@@ -29,6 +29,7 @@ export default function SettingsPage() {
       email: '',
       receiptPrefix: '',
       defaultVatPercentage: 7.5,
+      defaultWhtPercentage: 2.0,
     },
   });
 
@@ -42,6 +43,7 @@ export default function SettingsPage() {
         email: settings.email,
         receiptPrefix: settings.receiptPrefix,
         defaultVatPercentage: settings.defaultVatPercentage,
+        defaultWhtPercentage: settings.defaultWhtPercentage,
       });
     }
   }, [settings, reset]);
@@ -65,10 +67,11 @@ export default function SettingsPage() {
   const onSubmit = async (data: Partial<BusinessSettings>) => {
     setIsSubmitting(true);
     try {
-      // Ensure defaultVatPercentage is numeric
+      // Ensure percentages are numeric
       const payload = {
         ...data,
         defaultVatPercentage: Number(data.defaultVatPercentage) || 0,
+        defaultWhtPercentage: Number(data.defaultWhtPercentage) || 0,
       };
       await updateMutation.mutateAsync(payload);
       alert('Business configurations saved successfully');
@@ -139,7 +142,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground">
                   Contact Phone Number
@@ -151,7 +154,14 @@ export default function SettingsPage() {
                 <Label htmlFor="defaultVatPercentage" className="text-xs font-semibold text-muted-foreground">
                   Standard VAT Rate (%)
                 </Label>
-                <Input id="defaultVatPercentage" type="number" step="0.1" {...register('defaultVatPercentage', { required: true })} className="bg-background font-mono h-10 rounded-xl" />
+                <Input id="defaultVatPercentage" type="number" step="0.01" {...register('defaultVatPercentage', { required: true })} className="bg-background font-mono h-10 rounded-xl" />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="defaultWhtPercentage" className="text-xs font-semibold text-muted-foreground">
+                  Standard WHT Rate (%)
+                </Label>
+                <Input id="defaultWhtPercentage" type="number" step="0.01" {...register('defaultWhtPercentage', { required: true })} className="bg-background font-mono h-10 rounded-xl" />
               </div>
             </div>
 
