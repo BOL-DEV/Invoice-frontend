@@ -95,7 +95,7 @@ export default function UsersPage() {
       {/* Header controls */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC] font-heading">Cashier Management</h2>
+          <h2 className="text-xl font-bold tracking-tight text-foreground font-heading">Cashier Management</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Configure system cashiers and administrator access key accounts.
           </p>
@@ -111,11 +111,11 @@ export default function UsersPage() {
         <Table>
           <TableHeader className="bg-secondary/40 sticky top-0 z-10 border-b border-border">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4 pl-6">Full Name</TableHead>
-              <TableHead className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4">Email Address</TableHead>
-              <TableHead className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4">Role</TableHead>
-              <TableHead className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4">Date Registered</TableHead>
-              <TableHead className="w-24 font-semibold text-center text-[#0F172A] dark:text-[#F8FAFC] py-4 pr-6">Actions</TableHead>
+              <TableHead className="font-semibold text-foreground py-4 pl-6">Full Name</TableHead>
+              <TableHead className="font-semibold text-foreground py-4">Email Address</TableHead>
+              <TableHead className="font-semibold text-foreground py-4">Role</TableHead>
+              <TableHead className="font-semibold text-foreground py-4">Date Registered</TableHead>
+              <TableHead className="w-24 font-semibold text-center text-foreground py-4 pr-6">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -144,7 +144,7 @@ export default function UsersPage() {
                   <TableCell className="text-muted-foreground text-xs py-4">{item.email}</TableCell>
                   <TableCell className="py-4">
                     <Badge className={item.role === 'ADMIN' ? 'bg-blue-50 hover:bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 font-mono text-[10px] font-bold tracking-wider px-2 rounded-full border border-blue-100 dark:border-blue-500/25' : 'bg-slate-100 hover:bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700 font-mono text-[10px] font-bold tracking-wider px-2 rounded-full border'}>
-                      {item.role}
+                      {item.role === 'ADMIN' ? 'Administrator' : 'Cashier'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground font-mono py-4">
@@ -240,8 +240,8 @@ export default function UsersPage() {
                     <SelectValue placeholder="Select Role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="APPRENTICE">APPRENTICE (Standard Cashier)</SelectItem>
-                    <SelectItem value="ADMIN">ADMIN (Full Operations Bypass)</SelectItem>
+                    <SelectItem value="APPRENTICE">Cashier (Standard Access)</SelectItem>
+                    <SelectItem value="ADMIN">Administrator (Full Access)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

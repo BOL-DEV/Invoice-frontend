@@ -34,6 +34,12 @@ import {
   User,
   Hash,
   Scale,
+  X,
+  Loader2,
+  CheckCircle2,
+  Clock,
+  Building2,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 export default function InvoicesPage() {
@@ -44,6 +50,7 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<string | null>(null);
 
   // Queries
   const { data, isLoading, isError } = useInvoicesList({
@@ -71,6 +78,11 @@ export default function InvoicesPage() {
     setPage(1);
   };
 
+  const formatCurrency = (val: number | string | undefined) => {
+    const num = Number(val || 0);
+    return `₦${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
   const handleDelete = async (id: string) => {
     const isConfirmed = await modal.confirm(
       'Delete Invoice Ledger',
@@ -89,6 +101,7 @@ export default function InvoicesPage() {
   };
 
   const handleExport = async (invoiceId: string, format: 'pdf' | 'excel' | 'image', invoiceNumber: string) => {
+    setExportingFormat(format);
     try {
       if (format === 'image') {
         const response = await apiClient.get(`/api/printing/${invoiceId}/image`, {
@@ -123,7 +136,6 @@ export default function InvoicesPage() {
               window.URL.revokeObjectURL(blobUrl);
             }, 'image/png');
           } else {
-            // Fallback to SVG
             const link = document.createElement('a');
             link.href = blobUrl;
             link.setAttribute('download', `invoice_${invoiceNumber}.svg`);
@@ -132,6 +144,7 @@ export default function InvoicesPage() {
             link.remove();
             window.URL.revokeObjectURL(blobUrl);
           }
+          setExportingFormat(null);
         };
         img.onerror = () => {
           const link = document.createElement('a');
@@ -141,6 +154,7 @@ export default function InvoicesPage() {
           link.click();
           link.remove();
           window.URL.revokeObjectURL(blobUrl);
+          setExportingFormat(null);
         };
         return;
       }
@@ -165,107 +179,180 @@ export default function InvoicesPage() {
       console.error(`Export to ${format} failed:`, error);
       const errMsg = (error as AxiosErrorLike).response?.data?.error?.message || `Failed to export invoice to ${format}`;
       modal.alert('Export Failed', errMsg, 'error');
+    } finally {
+      setExportingFormat(null);
     }
   };
 
   const getStatusBadge = (status: InvoiceStatus) => {
     switch (status) {
       case 'DRAFT':
-        return <Badge className="bg-slate-100 hover:bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">DRAFT</Badge>;
+        return (
+          <Badge className="bg-amber-50 hover:bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 font-mono text-[10px] font-semibold tracking-wider px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-500/25 flex items-center space-x-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            <span>DRAFT</span>
+          </Badge>
+        );
       case 'FINALIZED':
-        return <Badge className="bg-emerald-50 hover:bg-emerald-50 text-[#059669] dark:bg-emerald-500/10 dark:text-[#10B981] font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-500/25">FINALIZED</Badge>;
+        return (
+          <Badge className="bg-sky-50 hover:bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400 font-mono text-[10px] font-semibold tracking-wider px-2.5 py-0.5 rounded-full border border-sky-200 dark:border-sky-500/25 flex items-center space-x-1">
+            <Lock className="h-2.5 w-2.5" />
+            <span>FINALIZED</span>
+          </Badge>
+        );
       case 'PRINTED':
-        return <Badge className="bg-blue-50 hover:bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full border border-blue-100 dark:border-blue-500/25">PRINTED</Badge>;
+        return (
+          <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 font-mono text-[10px] font-semibold tracking-wider px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/25 flex items-center space-x-1">
+            <Printer className="h-2.5 w-2.5" />
+            <span>PRINTED</span>
+          </Badge>
+        );
       case 'ARCHIVED':
-        return <Badge className="bg-slate-100 hover:bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">ARCHIVED</Badge>;
+        return (
+          <Badge className="bg-slate-100 hover:bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 font-mono text-[10px] font-semibold tracking-wider px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+            ARCHIVED
+          </Badge>
+        );
       default:
-        return <Badge className="bg-slate-100 hover:bg-slate-100 text-slate-500 font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full border border-slate-200">{status}</Badge>;
+        return (
+          <Badge className="bg-slate-100 hover:bg-slate-100 text-slate-500 font-mono text-[10px] px-2.5 py-0.5 rounded-full border border-slate-200">
+            {status}
+          </Badge>
+        );
     }
   };
 
+  const filterTabs = [
+    { label: 'All Invoices', value: 'ALL' },
+    { label: 'Finalized', value: 'FINALIZED' },
+    { label: 'Printed', value: 'PRINTED' },
+    { label: 'Drafts', value: 'DRAFT' },
+  ];
+
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto">
-      {/* Header controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6 max-w-[1440px] mx-auto p-3 sm:p-6 lg:p-8 pb-16">
+      
+      {/* ========================================================= */}
+      {/* PAGE HEADER                                               */}
+      {/* ========================================================= */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-2 border-b border-border/60">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC] font-heading">Invoice Ledgers</h2>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading">
+            Invoice Ledgers
+          </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Search, export, or audit digital building material invoices.
+            Search, review, export, and audit official Lao Steel Ventures billing records.
           </p>
         </div>
+        
         <Link href="/invoices/create">
-          <Button className="font-semibold space-x-2 bg-primary hover:bg-primary-hover text-white rounded-xl shadow-premium px-4 py-5">
+          <Button className="h-10 font-semibold space-x-2 bg-gradient-to-r from-emerald-500 to-[#059669] hover:from-emerald-600 hover:to-[#047857] text-white rounded-xl shadow-lg shadow-emerald-500/20 px-4 text-xs cursor-pointer">
             <Plus className="h-4 w-4" />
             <span>Create Invoice</span>
           </Button>
         </Link>
       </div>
 
-      {/* Filters card */}
+      {/* ========================================================= */}
+      {/* SEARCH & SEGMENTED STATUS FILTERS                         */}
+      {/* ========================================================= */}
       <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden">
-        <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-center">
+        <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+          
+          {/* Search bar */}
           <div className="flex-1 w-full relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               type="text"
-              placeholder="Search by invoice number or customer name..."
+              placeholder="Search by invoice number (e.g. INV-0001) or customer name..."
               value={search}
               onChange={handleSearchChange}
-              className="pl-9 bg-background h-10 rounded-xl"
+              className="pl-10 pr-9 bg-card h-10 rounded-xl text-xs border-border focus:ring-2 focus:ring-primary text-foreground"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-md"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
 
-          <div className="w-full md:w-56">
-            <Select value={statusFilter} onValueChange={(val) => handleStatusFilterChange(val || 'ALL')}>
-              <SelectTrigger className="bg-background h-10 rounded-xl">
-                <SelectValue placeholder="Filter status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Statuses</SelectItem>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-                <SelectItem value="FINALIZED">Finalized</SelectItem>
-                <SelectItem value="PRINTED">Printed</SelectItem>
-                <SelectItem value="ARCHIVED">Archived</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Segmented Filter Pills */}
+          <div className="flex items-center space-x-1.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+            {filterTabs.map((tab) => {
+              const isActive = statusFilter === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => handleStatusFilterChange(tab.value)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
+                    isActive
+                      ? 'bg-emerald-500 text-white font-semibold shadow-sm'
+                      : 'bg-secondary text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
 
-      {/* Invoices table card */}
-      <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden">
-        <div className="overflow-x-auto relative">
-          <Table>
-            <TableHeader className="bg-secondary/40 sticky top-0 z-10 border-b border-border">
+      {/* ========================================================= */}
+      {/* INVOICES TABLE                                            */}
+      {/* ========================================================= */}
+      <Card className="border-border bg-card shadow-premium rounded-2xl p-2 sm:p-4 overflow-hidden">
+        <div className="overflow-x-auto relative rounded-xl border border-border/60">
+          <Table className="w-full min-w-[900px]">
+            <TableHeader className="bg-secondary/70 border-b border-border">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="font-semibold w-36 text-[#0F172A] dark:text-[#F8FAFC] py-4 pl-6">Invoice No</TableHead>
-                <TableHead className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4">Customer</TableHead>
-                <TableHead className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4">Date</TableHead>
-                <TableHead className="font-semibold text-right text-[#0F172A] dark:text-[#F8FAFC] py-4">Total Price</TableHead>
-                <TableHead className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4">Cashier</TableHead>
-                <TableHead className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4">Status</TableHead>
-                <TableHead className="font-semibold text-center w-24 text-[#0F172A] dark:text-[#F8FAFC] py-4 pr-6">Details</TableHead>
+                <TableHead className="px-6 py-4 font-bold text-xs text-foreground whitespace-nowrap">
+                  Invoice No
+                </TableHead>
+                <TableHead className="px-6 py-4 font-bold text-xs text-foreground whitespace-nowrap">
+                  Customer
+                </TableHead>
+                <TableHead className="px-6 py-4 font-bold text-xs text-foreground whitespace-nowrap">
+                  Date
+                </TableHead>
+                <TableHead className="px-6 py-4 font-bold text-xs text-foreground whitespace-nowrap">
+                  Total Amount
+                </TableHead>
+                <TableHead className="px-6 py-4 font-bold text-xs text-foreground whitespace-nowrap">
+                  Issued By
+                </TableHead>
+                <TableHead className="px-6 py-4 font-bold text-xs text-center text-foreground whitespace-nowrap">
+                  Status
+                </TableHead>
+                <TableHead className="px-6 py-4 font-bold text-xs text-center text-foreground whitespace-nowrap">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 [1, 2, 3, 4, 5].map((i) => (
                   <TableRow key={i} className="border-b border-border/60">
-                    <TableCell className="py-4 pl-6"><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell className="py-4"><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell className="py-4"><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell className="py-4"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
-                    <TableCell className="py-4"><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell className="py-4"><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
-                    <TableCell className="py-4 pr-6"><Skeleton className="h-8 w-8 rounded-full mx-auto" /></TableCell>
+                    <TableCell className="px-6 py-4"><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell className="px-6 py-4"><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell className="px-6 py-4"><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell className="px-6 py-4"><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell className="px-6 py-4"><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell className="px-6 py-4 text-center"><Skeleton className="h-6 w-16 rounded-full mx-auto" /></TableCell>
+                    <TableCell className="px-6 py-4 text-center"><Skeleton className="h-8 w-14 rounded-xl mx-auto" /></TableCell>
                   </TableRow>
                 ))
               ) : isError || !data?.invoices ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center p-8 text-rose-500 font-medium">
                     <div className="flex flex-col items-center justify-center space-y-2">
-                      <AlertCircle className="h-8 w-8 text-rose-500 animate-bounce" />
-                      <p>Failed to load invoices. Ensure backend connectivity is active.</p>
+                      <AlertCircle className="h-8 w-8 text-rose-500" />
+                      <p className="text-sm">Failed to load invoices. Ensure backend connectivity is active.</p>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -273,168 +360,314 @@ export default function InvoicesPage() {
                 <TableRow>
                   <TableCell colSpan={7} className="text-center p-12 text-muted-foreground">
                     <div className="flex flex-col items-center justify-center space-y-3">
-                      <FileDown className="h-10 w-10 text-muted-foreground/40" />
-                      <div className="space-y-0.5">
-                        <p className="font-semibold text-sm">No ledgers found</p>
-                        <p className="text-xs text-muted-foreground">Try broadening your filters or create a new invoice.</p>
+                      <div className="h-12 w-12 rounded-2xl bg-secondary flex items-center justify-center text-muted-foreground">
+                        <FileDown className="h-6 w-6" />
                       </div>
+                      <div className="space-y-1">
+                        <p className="font-semibold text-sm text-foreground">No invoices found</p>
+                        <p className="text-xs text-muted-foreground">Try clearing your filters or create a new invoice.</p>
+                      </div>
+                      <Link href="/invoices/create">
+                        <Button size="sm" className="mt-2 text-xs bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl">
+                          Create New Invoice
+                        </Button>
+                      </Link>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                data.invoices.map((inv) => {
-                  const isActive = selectedInvoiceId === inv.id && isDetailOpen;
-                  return (
-                    <TableRow
-                      key={inv.id}
-                      onClick={() => handleRowClick(inv.id)}
-                      className={`cursor-pointer group border-b border-border/60 transition-all duration-150 ${
-                        isActive
-                          ? 'active-row-highlight bg-secondary/80'
-                          : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/35'
-                      }`}
-                    >
-                      <TableCell className="font-mono font-bold text-xs text-[#0F172A] dark:text-[#F8FAFC] py-4 pl-6">
-                        #{inv.invoiceNumber}
-                      </TableCell>
-                      <TableCell className="font-medium text-foreground py-4">{inv.customerName}</TableCell>
-                      <TableCell className="text-muted-foreground text-xs py-4">
-                        {new Date(inv.createdAt).toLocaleDateString(undefined, {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-bold text-sm text-[#0F172A] dark:text-[#F8FAFC] py-4">
-                        ₦{inv.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground py-4">
-                        {inv.creator.firstName} {inv.creator.lastName}
-                      </TableCell>
-                      <TableCell className="py-4">{getStatusBadge(inv.status)}</TableCell>
-                      <TableCell className="text-center py-4 pr-6">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-full hover:bg-primary hover:text-white transition-colors"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                data.invoices.map((inv) => (
+                  <TableRow
+                    key={inv.id}
+                    className="border-b border-border/60 hover:bg-secondary/40 transition-colors cursor-pointer"
+                    onClick={() => handleRowClick(inv.id)}
+                  >
+                    {/* Invoice Number */}
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
+                      <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                        {inv.invoiceNumber}
+                      </span>
+                    </TableCell>
+
+                    {/* Customer */}
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
+                      <div className="font-semibold text-xs text-foreground">
+                        {inv.customerName}
+                      </div>
+                      {inv.customerPhone && (
+                        <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                          {inv.customerPhone}
+                        </div>
+                      )}
+                    </TableCell>
+
+                    {/* Date */}
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-1.5 text-xs text-muted-foreground">
+                        <Calendar className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" />
+                        <span>{new Date(inv.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </TableCell>
+
+                    {/* Total Amount */}
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
+                      <span className="font-mono font-bold text-xs text-foreground tabular-nums">
+                        {formatCurrency(inv.total)}
+                      </span>
+                    </TableCell>
+
+                    {/* Issued By */}
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-1.5 text-xs text-muted-foreground">
+                        <User className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" />
+                        <span className="font-medium">{inv.creator ? `${inv.creator.firstName} ${inv.creator.lastName}` : 'System'}</span>
+                      </div>
+                    </TableCell>
+
+                    {/* Status */}
+                    <TableCell className="px-6 py-4 text-center whitespace-nowrap">
+                      {getStatusBadge(inv.status)}
+                    </TableCell>
+
+                    {/* Actions */}
+                    <TableCell className="px-6 py-4 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRowClick(inv.id)}
+                        className="h-8 px-3 rounded-xl text-xs border-border hover:bg-secondary flex items-center space-x-1.5 mx-auto cursor-pointer"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        <span>View</span>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
         </div>
 
-        {/* Pagination controls */}
+        {/* Numbered Interactive Pagination */}
         {data && data.pagination && data.pagination.totalPages > 1 && (
-          <div className="p-4 border-t border-border flex justify-between items-center bg-secondary/15">
-            <span className="text-xs text-muted-foreground">
-              Showing Page {data.pagination.page} of {data.pagination.totalPages} ({data.pagination.total} invoices)
+          <div className="px-6 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+            <span className="font-mono text-[11px]">
+              Showing {((page - 1) * 10) + 1} to {Math.min(page * 10, data.pagination.total)} of {data.pagination.total} invoices
             </span>
-            <div className="flex space-x-1">
+            
+            <div className="flex items-center space-x-1.5">
               <Button
                 variant="outline"
                 size="sm"
+                disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                disabled={page === 1}
-                className="h-8 rounded-lg"
+                className="h-8 rounded-xl text-xs px-2.5 border-border hover:bg-secondary cursor-pointer"
               >
-                <ChevronLeft className="h-4 w-4 mr-0.5" />
-                <span>Prev</span>
+                <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                <span className="hidden sm:inline">Previous</span>
               </Button>
+
+              {/* Number Buttons */}
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: data.pagination.totalPages }, (_, i) => i + 1).map((pageNum) => {
+                  if (
+                    data.pagination.totalPages > 7 &&
+                    pageNum !== 1 &&
+                    pageNum !== data.pagination.totalPages &&
+                    Math.abs(pageNum - page) > 1
+                  ) {
+                    if (pageNum === 2 || pageNum === data.pagination.totalPages - 1) {
+                      return <span key={pageNum} className="px-1 text-muted-foreground">...</span>;
+                    }
+                    return null;
+                  }
+
+                  const isActive = pageNum === page;
+                  return (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      onClick={() => setPage(pageNum)}
+                      className={`h-8 min-w-8 px-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center ${
+                        isActive
+                          ? 'bg-emerald-500 text-white font-bold shadow-sm'
+                          : 'bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary border border-border/50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setPage((p) => Math.min(p + 1, data.pagination.totalPages))}
-                disabled={page === data.pagination.totalPages}
-                className="h-8 rounded-lg"
+                disabled={page >= data.pagination.totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="h-8 rounded-xl text-xs px-2.5 border-border hover:bg-secondary cursor-pointer"
               >
-                <span>Next</span>
-                <ChevronRight className="h-4 w-4 ml-0.5" />
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight className="h-3.5 w-3.5 ml-1" />
               </Button>
             </div>
           </div>
         )}
       </Card>
 
-      {/* Invoice Detail Sheet Dialogue */}
+      {/* ========================================================= */}
+      {/* RESPONSIVE DETAILS & EXPORT MODAL                         */}
+      {/* ========================================================= */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-3xl lg:max-w-5xl xl:max-w-6xl max-h-[90vh] lg:max-h-[95vh] overflow-y-auto bg-card border-border rounded-2xl p-6 shadow-2xl">
-          <DialogHeader className="border-b border-border pb-4">
-            <DialogTitle className="flex justify-between items-center text-lg font-bold font-heading">
-              <span className="font-mono tracking-tight flex items-center space-x-1.5">
-                <Hash className="h-4 w-4 text-muted-foreground" />
-                <span>Invoice #{invoiceDetails?.invoiceNumber}</span>
-              </span>
-              <span>{invoiceDetails && getStatusBadge(invoiceDetails.status)}</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground mt-1">
-              View transaction summary, items, and export formats.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl w-[95vw] lg:max-h-[92vh] overflow-y-auto p-6 rounded-2xl">
+          <DialogHeader className="border-b border-border/80 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-mono text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                    {invoiceDetails?.invoiceNumber}
+                  </span>
+                  {invoiceDetails && getStatusBadge(invoiceDetails.status)}
+                </div>
+                <DialogTitle className="text-lg font-bold mt-1 text-foreground">
+                  Invoice Details & Exports
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Review calculated items, charges, customer data, and download vector documents.
+                </DialogDescription>
+              </div>
 
-          {detailsLoading ? (
-            <div className="space-y-4 py-6">
-              <Skeleton className="h-20 w-full rounded-xl animate-pulse" />
-              <Skeleton className="h-40 w-full rounded-xl animate-pulse" />
-              <Skeleton className="h-16 w-full rounded-xl animate-pulse" />
-            </div>
-          ) : !invoiceDetails ? (
-            <p className="text-rose-500 text-center py-6">Failed to load invoice details.</p>
-          ) : (
-            <div className="space-y-6 pt-4">
-              {/* Customer and Cashier Details cards */}
-              <div className="grid sm:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-border/80 text-xs">
-                <div className="space-y-1">
-                  <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center space-x-1">
-                    <User className="h-3 w-3 mr-0.5" />
-                    <span>Bill To</span>
-                  </h4>
-                  <p className="font-bold text-foreground text-sm">{invoiceDetails.customerName}</p>
-                  {invoiceDetails.customerPhone && (
-                    <p className="text-muted-foreground font-mono">{invoiceDetails.customerPhone}</p>
+              {/* Action Buttons in Header */}
+              {invoiceDetails && (
+                <div className="flex items-center space-x-2">
+                  {/* PNG Image Export */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={exportingFormat === 'image'}
+                    onClick={() => handleExport(invoiceDetails.id, 'image', invoiceDetails.invoiceNumber)}
+                    className="h-9 text-xs rounded-xl border-border flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    {exportingFormat === 'image' ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <ImageIcon className="h-3.5 w-3.5 text-blue-500" />
+                    )}
+                    <span>PNG</span>
+                  </Button>
+
+                  {/* PDF Export */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={exportingFormat === 'pdf'}
+                    onClick={() => handleExport(invoiceDetails.id, 'pdf', invoiceDetails.invoiceNumber)}
+                    className="h-9 text-xs rounded-xl border-border flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    {exportingFormat === 'pdf' ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Printer className="h-3.5 w-3.5 text-emerald-500" />
+                    )}
+                    <span>PDF</span>
+                  </Button>
+
+                  {/* Excel/CSV Export */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={exportingFormat === 'excel'}
+                    onClick={() => handleExport(invoiceDetails.id, 'excel', invoiceDetails.invoiceNumber)}
+                    className="h-9 text-xs rounded-xl border-border flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    {exportingFormat === 'excel' ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <FileSpreadsheet className="h-3.5 w-3.5 text-purple-500" />
+                    )}
+                    <span>Excel</span>
+                  </Button>
+
+                  {/* Admin Delete */}
+                  {isAdmin && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(invoiceDetails.id)}
+                      className="h-9 text-xs rounded-xl flex items-center space-x-1"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Delete</span>
+                    </Button>
                   )}
                 </div>
-                <div className="space-y-1 sm:text-right">
-                  <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center sm:justify-end space-x-1">
-                    <Calendar className="h-3 w-3 mr-0.5" />
-                    <span>Transaction Meta</span>
-                  </h4>
-                  <p className="text-foreground">
-                    Date: <span className="font-semibold">{new Date(invoiceDetails.createdAt).toLocaleDateString()}</span>
-                  </p>
-                  <p className="text-muted-foreground">
-                    Cashier: <span className="font-semibold">{invoiceDetails.creator.firstName} {invoiceDetails.creator.lastName}</span>
-                  </p>
+              )}
+            </div>
+          </DialogHeader>
+
+          {/* Details Content */}
+          {detailsLoading ? (
+            <div className="space-y-4 py-6">
+              <Skeleton className="h-20 w-full rounded-xl" />
+              <Skeleton className="h-40 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </div>
+          ) : !invoiceDetails ? (
+            <p className="text-sm text-rose-500 py-6 text-center">Failed to load invoice details.</p>
+          ) : (
+            <div className="space-y-6 pt-4">
+              
+              {/* Metadata Summary Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-secondary/40 border border-border text-xs">
+                <div>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-mono">Customer</span>
+                  <span className="font-bold text-foreground">{invoiceDetails.customerName}</span>
+                  {invoiceDetails.customerPhone && (
+                    <span className="block text-muted-foreground font-mono text-[11px]">{invoiceDetails.customerPhone}</span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-mono">Date Issued</span>
+                  <span className="font-medium text-foreground">
+                    {new Date(invoiceDetails.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-mono">Cashier</span>
+                  <span className="font-medium text-foreground">
+                    {invoiceDetails.creator ? `${invoiceDetails.creator.firstName} ${invoiceDetails.creator.lastName}` : 'System'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-mono">Grand Total</span>
+                  <span className="font-bold text-sm text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
+                    {formatCurrency(invoiceDetails.total)}
+                  </span>
                 </div>
               </div>
 
-              {/* Items List */}
+              {/* Line Items Table */}
               <div className="space-y-2">
-                <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Line Items</h4>
-                <div className="border border-border/80 rounded-xl overflow-hidden shadow-sm">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Line Items Breakdown</h4>
+                <div className="border border-border rounded-xl overflow-hidden">
                   <Table>
-                    <TableHeader className="bg-slate-50 dark:bg-slate-900">
-                      <TableRow className="hover:bg-transparent border-b border-border/80">
-                        <TableHead className="w-12 text-center text-[10px] uppercase font-bold text-muted-foreground">Pos</TableHead>
-                        <TableHead className="text-[10px] uppercase font-bold text-muted-foreground">Description</TableHead>
-                        <TableHead className="text-right text-[10px] uppercase font-bold text-muted-foreground">Quantity</TableHead>
-                        <TableHead className="text-right text-[10px] uppercase font-bold text-muted-foreground">Price</TableHead>
-                        <TableHead className="text-right text-[10px] uppercase font-bold text-muted-foreground">Line Total</TableHead>
+                    <TableHeader className="bg-secondary/30">
+                      <TableRow>
+                        <TableHead className="text-xs font-semibold">Description</TableHead>
+                        <TableHead className="text-xs font-semibold text-right">Quantity</TableHead>
+                        <TableHead className="text-xs font-semibold text-right">Weight (Tons)</TableHead>
+                        <TableHead className="text-xs font-semibold text-right">Unit Price</TableHead>
+                        <TableHead className="text-xs font-semibold text-right">Total Price</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {invoiceDetails.items.map((item) => (
-                        <TableRow key={item.id} className="border-b border-border/60 hover:bg-transparent text-xs">
-                          <TableCell className="text-center font-mono text-muted-foreground">{item.position}</TableCell>
-                          <TableCell className="font-medium text-foreground">{item.description}</TableCell>
-                          <TableCell className="text-right font-mono font-medium">{Number(item.quantity).toFixed(2)}</TableCell>
-                          <TableCell className="text-right font-mono text-muted-foreground">₦{Number(item.unitPrice).toFixed(2)}</TableCell>
-                          <TableCell className="text-right font-mono font-bold text-foreground">₦{Number(item.totalPrice).toFixed(2)}</TableCell>
+                      {invoiceDetails.items?.map((item: any) => (
+                        <TableRow key={item.id} className="text-xs border-b border-border/50">
+                          <TableCell className="font-medium">{item.description}</TableCell>
+                          <TableCell className="text-right font-mono tabular-nums">{Number(item.quantity).toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-mono tabular-nums">{item.weight ? Number(item.weight).toFixed(3) : '-'}</TableCell>
+                          <TableCell className="text-right font-mono tabular-nums">{formatCurrency(item.unitPrice)}</TableCell>
+                          <TableCell className="text-right font-mono font-bold tabular-nums">{formatCurrency(item.totalPrice)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -442,131 +675,23 @@ export default function InvoicesPage() {
                 </div>
               </div>
 
-              {/* Summary and notes layout */}
-              <div className="grid md:grid-cols-2 gap-6 pt-1">
-                <div>
-                  {invoiceDetails.notes && (
-                    <div className="space-y-1.5">
-                      <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Cashier Notes</h4>
-                      <p className="text-xs bg-slate-50 dark:bg-slate-900 p-3.5 rounded-xl border border-border/60 text-muted-foreground italic leading-relaxed">
-                        {invoiceDetails.notes}
-                      </p>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2.5 text-xs font-mono border border-border p-4 rounded-xl bg-slate-50/50 dark:bg-slate-900/30">
+              {/* Financial Totals */}
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 text-xs font-mono">
+                <div className="w-full sm:w-72 space-y-1.5 p-4 rounded-xl bg-secondary/30 border border-border">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground font-sans">Subtotal:</span>
-                    <span className="font-semibold text-foreground">₦{Number(invoiceDetails.subtotal).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-muted-foreground">Subtotal:</span>
+                    <span className="tabular-nums font-semibold">{formatCurrency(invoiceDetails.subtotal)}</span>
                   </div>
-                  {invoiceDetails.charges.map((charge) => (
-                    <div key={charge.id} className="flex justify-between text-[11px] items-center">
-                      <span className="text-muted-foreground font-sans uppercase">{charge.name}:</span>
-                      <span className={charge.amount < 0 ? 'text-emerald-500 font-semibold' : 'text-foreground'}>
-                        {charge.amount < 0 ? '-' : ''}₦{Math.abs(Number(charge.amount)).toFixed(2)}
-                      </span>
+                  {invoiceDetails.charges?.map((charge: any) => (
+                    <div key={charge.id} className="flex justify-between text-muted-foreground">
+                      <span>{charge.name}:</span>
+                      <span className="tabular-nums">{formatCurrency(charge.amount)}</span>
                     </div>
                   ))}
-                  <div className="flex justify-between border-t border-border pt-2 text-base font-bold text-[#0F172A] dark:text-[#F8FAFC]">
-                    <span className="font-sans">Grand Total:</span>
-                    <span>₦{Number(invoiceDetails.total).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  <div className="border-t border-border pt-2 flex justify-between font-bold text-sm text-emerald-600 dark:text-emerald-400">
+                    <span>Grand Total:</span>
+                    <span className="tabular-nums">{formatCurrency(invoiceDetails.total)}</span>
                   </div>
-                </div>
-              </div>
-
-              {/* Action buttons drawer */}
-              <div className="flex flex-wrap justify-between items-center pt-5 border-t border-border gap-3">
-                {/* Print Exporters */}
-                <div className="flex gap-1.5">
-                  <Button
-                    onClick={() => handleExport(invoiceDetails.id, 'pdf', invoiceDetails.invoiceNumber)}
-                    variant="outline"
-                    size="sm"
-                    className="space-x-1.5 font-semibold text-xs rounded-xl shadow-sm"
-                  >
-                    <Printer className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>PDF</span>
-                  </Button>
-                  <Button
-                    onClick={() => handleExport(invoiceDetails.id, 'excel', invoiceDetails.invoiceNumber)}
-                    variant="outline"
-                    size="sm"
-                    className="space-x-1.5 font-semibold text-xs rounded-xl shadow-sm"
-                  >
-                    <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>CSV</span>
-                  </Button>
-                  <Button
-                    onClick={() => handleExport(invoiceDetails.id, 'image', invoiceDetails.invoiceNumber)}
-                    variant="outline"
-                    size="sm"
-                    className="space-x-1.5 font-semibold text-xs rounded-xl shadow-sm"
-                  >
-                    <FileDown className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>PNG</span>
-                  </Button>
-                </div>
-
-                {/* Operations modifiers */}
-                <div className="flex gap-1.5">
-                  {/* Edit Draft */}
-                  {invoiceDetails.status === 'DRAFT' && (
-                    <Link href={`/invoices/${invoiceDetails.id}`}>
-                      <Button size="sm" className="space-x-1.5 bg-[#0F172A] hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-[#0F172A] font-semibold text-xs rounded-xl">
-                        <Edit className="h-3.5 w-3.5" />
-                        <span>Edit Draft</span>
-                      </Button>
-                    </Link>
-                  )}
-
-                  {/* Request approvals for Apprentice if finalized */}
-                  {invoiceDetails.status === 'FINALIZED' && !isAdmin && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        const reason = await modal.prompt(
-                          'Request Edit Approval',
-                          'Please state your reasoning for editing this finalized invoice:'
-                        );
-                        if (reason) {
-                          apiClient
-                            .post('/api/approvals', {
-                              invoiceId: invoiceDetails.id,
-                              type: 'EDIT',
-                              reason,
-                            })
-                            .then(() => modal.alert('Ticket Requested', 'Edit authorization ticket requested successfully', 'success'))
-                            .catch((err) => modal.alert('Request Failed', err.response?.data?.error?.message || 'Failed to request ticket', 'error'));
-                        }
-                      }}
-                      className="space-x-1.5 font-semibold text-xs rounded-xl border-amber-500/30 text-amber-600 hover:bg-amber-500/5"
-                    >
-                      <Lock className="h-3.5 w-3.5 text-amber-500" />
-                      <span>Request Edit Approval</span>
-                    </Button>
-                  )}
-
-                  {/* Direct Admin Edit/Delete */}
-                  {isAdmin && (
-                    <>
-                      <Link href={`/invoices/${invoiceDetails.id}`}>
-                        <Button size="sm" className="space-x-1.5 bg-[#0F172A] hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-[#0F172A] font-semibold text-xs rounded-xl shadow-sm">
-                          <Edit className="h-3.5 w-3.5" />
-                          <span>Modify Invoice</span>
-                        </Button>
-                      </Link>
-                      <Button
-                        onClick={() => handleDelete(invoiceDetails.id)}
-                        variant="destructive"
-                        size="sm"
-                        className="space-x-1.5 font-semibold text-xs rounded-xl"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        <span>Delete Ledger</span>
-                      </Button>
-                    </>
-                  )}
                 </div>
               </div>
             </div>

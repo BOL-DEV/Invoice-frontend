@@ -17,7 +17,19 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  // Synchronously initialize cached user details from localStorage to prevent role flicker
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('user_details');
+        if (saved) return JSON.parse(saved);
+      } catch (e) {
+        console.error('Error parsing stored user details:', e);
+      }
+    }
+    return null;
+  });
+
   const [isLoading, setIsLoading] = useState(true);
 
   const initAuth = async () => {
@@ -31,11 +43,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(JSON.parse(savedUser));
           }
         }
+      } else {
+        // No refresh token exists -> logged out state
+        setUser(null);
+        localStorage.removeItem('user_details');
+        if (typeof window !== 'undefined') {
+          document.cookie = "session_active=; path=/; max-age=0; SameSite=Lax";
+        }
       }
-    } catch (error) {
-      console.error('Failed to initialize session refresh:', error);
-      tokenStore.clearTokens();
-      localStorage.removeItem('user_details');
+    } catch (error: any) {
+      console.warn('Session refresh warning:', error?.message);
+      const status = error?.response?.status;
+      
+      // ONLY clear tokens and wipe session if server explicitly returned 401 / 403 (Token expired/revoked)
+      if (status === 401 || status === 403) {
+        tokenStore.clearTokens();
+        localStorage.removeItem('user_details');
+        setUser(null);
+        if (typeof window !== 'undefined') {
+          document.cookie = "session_active=; path=/; max-age=0; SameSite=Lax";
+        }
+      } else {
+        // Network error / Server 500 / Offline: DO NOT WIPE USER ROLE!
+        // Preserve cached user details from localStorage so Admin remains Admin
+        const savedUser = localStorage.getItem('user_details');
+        if (savedUser) {
+          try {
+            setUser(JSON.parse(savedUser));
+          } catch (e) {}
+        }
+      }
     } finally {
       setIsLoading(false);
     }

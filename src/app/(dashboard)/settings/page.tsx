@@ -108,7 +108,7 @@ export default function SettingsPage() {
     <div className="space-y-6 max-w-3xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC] font-heading">Company Profile</h2>
+          <h2 className="text-xl font-bold tracking-tight text-foreground font-heading">Company Profile</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Configure default billing address, receipt prefixes, and standard VAT percentages.
           </p>

@@ -1,8 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *, .dark, .dark *));
 
 @theme inline {
   --color-background: var(--background);
@@ -14,8 +13,22 @@
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-light: var(--primary-light);
+  --color-primary-foreground: var(--primary-foreground);
+
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -31,7 +44,7 @@
   --background: #F8FAFC;
   --foreground: #0F172A;
   --card: #FFFFFF;
-  --card-foreground: #334155;
+  --card-foreground: #0F172A;
   --popover: #FFFFFF;
   --popover-foreground: #0F172A;
   
@@ -61,17 +74,17 @@
   
   --radius: 0.75rem;
   
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui;
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular;
-  --font-heading: var(--font-geist-sans), ui-sans-serif, system-ui;
+  --font-heading: var(--font-outfit), ui-sans-serif, system-ui;
 }
 
 .dark {
-  --background: #020617;
+  --background: #0B0F19;
   --foreground: #F8FAFC;
-  --card: #0F172A;
-  --card-foreground: #E2E8F0;
-  --popover: #0F172A;
+  --card: #111827;
+  --card-foreground: #F8FAFC;
+  --popover: #111827;
   --popover-foreground: #F8FAFC;
   
   --primary: #10B981;
@@ -93,7 +106,7 @@
 
 @layer base {
   * {
-    @apply border-border transition-colors duration-150;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground font-sans antialiased selection:bg-primary-light selection:text-primary-hover;
@@ -109,7 +122,7 @@
 }
 
 .dark .shadow-premium {
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
 }
 
 /* Row Focus Highlight Indicators */

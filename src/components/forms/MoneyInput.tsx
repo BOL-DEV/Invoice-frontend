@@ -23,14 +23,14 @@ export const MoneyInput = forwardRef(
 
     return (
       <div className="relative flex items-center w-full">
-        <span className="absolute left-3 text-muted-foreground select-none text-sm font-mono">₦</span>
+        <span className="absolute left-3 text-muted-foreground select-none text-xs font-mono font-bold">₦</span>
         <Input
           {...props}
           ref={ref}
           type="text"
           value={formatValue(value)}
           onChange={handleChange}
-          className={`pl-7 text-right font-mono ${className}`}
+          className={`pl-7 text-right font-mono text-xs tabular-nums ${className}`}
         />
       </div>
     );

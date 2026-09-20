@@ -3,10 +3,13 @@ import axios from 'axios';
 const isServer = typeof window === 'undefined';
 
 export const getBaseURL = () => {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+  // Server-side (SSR/SSG): connect directly to internal backend
+  if (isServer) {
+    return process.env.INTERNAL_BACKEND_URL || 'http://localhost:5000';
   }
-  return 'https://invoice-backend-murex.vercel.app';
+  // Client-side (Browser): use relative URL so Next.js server proxies the request
+  // This completely hides backend domain/IP from client bundles and network inspection
+  return '';
 };
 
 export const apiClient = axios.create({

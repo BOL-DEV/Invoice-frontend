@@ -57,7 +57,7 @@ export default function ActivityPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC] font-heading flex items-center space-x-2">
+          <h2 className="text-xl font-bold tracking-tight text-foreground font-heading flex items-center space-x-2">
             <Activity className="h-5 w-5 text-primary" />
             <span>System Activity Logs</span>
           </h2>
@@ -72,11 +72,11 @@ export default function ActivityPage() {
         <Table>
           <TableHeader className="bg-secondary/40 sticky top-0 z-10 border-b border-border">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-52 font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4 pl-6">Timestamp</TableHead>
-              <TableHead className="w-36 font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4">Action</TableHead>
-              <TableHead className="w-56 font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4">User Email</TableHead>
-              <TableHead className="w-40 font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4">IP Address</TableHead>
-              <TableHead className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4 pr-6">Event Details</TableHead>
+              <TableHead className="w-52 font-semibold text-foreground py-4 pl-6">Timestamp</TableHead>
+              <TableHead className="w-36 font-semibold text-foreground py-4">Action</TableHead>
+              <TableHead className="w-56 font-semibold text-foreground py-4">User Email</TableHead>
+              <TableHead className="w-40 font-semibold text-foreground py-4">IP Address</TableHead>
+              <TableHead className="font-semibold text-foreground py-4 pr-6">Event Details</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

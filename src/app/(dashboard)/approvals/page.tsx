@@ -8,11 +8,23 @@ import { Button } from '../../../components/ui/button';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { Badge } from '../../../components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui/dialog';
 import { Label } from '../../../components/ui/label';
 import { Input } from '../../../components/ui/input';
-import { Check, X, ThumbsUp, ThumbsDown, CheckCircle2, ShieldAlert } from 'lucide-react';
+import {
+  Check,
+  X,
+  ThumbsUp,
+  ThumbsDown,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  ShieldCheck,
+  Calendar,
+  User,
+  Hash,
+  Loader2,
+} from 'lucide-react';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { useModal } from '../../../components/ui/modal-provider';
 
@@ -59,45 +71,75 @@ export default function ApprovalsPage() {
   const getStatusBadge = (status: ApprovalStatus) => {
     switch (status) {
       case 'PENDING':
-        return <Badge className="bg-amber-50 hover:bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border-amber-100 dark:border-amber-500/25 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full">PENDING</Badge>;
+        return (
+          <Badge className="bg-amber-50 hover:bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border-amber-200 dark:border-amber-500/25 font-mono text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full flex items-center space-x-1">
+            <Clock className="h-2.5 w-2.5" />
+            <span>PENDING</span>
+          </Badge>
+        );
       case 'APPROVED':
-        return <Badge className="bg-emerald-50 hover:bg-emerald-50 text-[#059669] dark:bg-emerald-500/10 dark:text-[#10B981] border-emerald-100 dark:border-emerald-500/25 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full">APPROVED</Badge>;
+        return (
+          <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/25 font-mono text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full flex items-center space-x-1">
+            <Check className="h-2.5 w-2.5" />
+            <span>APPROVED</span>
+          </Badge>
+        );
       case 'REJECTED':
-        return <Badge variant="destructive" className="bg-rose-50 hover:bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border-rose-100 dark:border-rose-500/25 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full">REJECTED</Badge>;
+        return (
+          <Badge variant="destructive" className="bg-rose-50 hover:bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border-rose-200 dark:border-rose-500/25 font-mono text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full flex items-center space-x-1">
+            <X className="h-2.5 w-2.5" />
+            <span>REJECTED</span>
+          </Badge>
+        );
     }
   };
 
+  const filterTabs = [
+    { label: 'Pending Action', value: 'PENDING' },
+    { label: 'Approved', value: 'APPROVED' },
+    { label: 'Rejected', value: 'REJECTED' },
+    { label: 'All Requests', value: 'ALL' },
+  ];
+
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto">
+    <div className="space-y-6 max-w-[1400px] mx-auto pb-10">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-2 border-b border-border/60">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC] font-heading flex items-center space-x-2">
-            <CheckCircle2 className="h-5 w-5 text-primary" />
-            <span>Authorization Approvals</span>
-          </h2>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading flex items-center space-x-2">
+            <ShieldCheck className="h-6 w-6 text-emerald-500" />
+            <span>Reprint & Override Approvals</span>
+          </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Audit and approve cashier overrides, edits, or document deletes.
+            Audit and approve cashier reprint requests, adjustments, or deletions.
           </p>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Segmented Filters */}
       <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden">
-        <CardContent className="p-4 flex flex-row justify-between items-center gap-4">
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Ticket Status Filter</span>
-          <div className="w-56">
-            <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'PENDING')}>
-              <SelectTrigger className="bg-background h-10 rounded-xl">
-                <SelectValue placeholder="Select Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Requests</SelectItem>
-                <SelectItem value="PENDING">Pending Action</SelectItem>
-                <SelectItem value="APPROVED">Approved</SelectItem>
-                <SelectItem value="REJECTED">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
+        <CardContent className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+            Filter Requests
+          </span>
+          <div className="flex items-center space-x-1.5 overflow-x-auto w-full sm:w-auto">
+            {filterTabs.map((tab) => {
+              const isActive = statusFilter === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setStatusFilter(tab.value)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
+                    isActive
+                      ? 'bg-emerald-500 text-white font-semibold shadow-sm'
+                      : 'bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -105,16 +147,16 @@ export default function ApprovalsPage() {
       {/* Approvals Table */}
       <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden">
         <Table>
-          <TableHeader className="bg-secondary/40 sticky top-0 z-10 border-b border-border">
+          <TableHeader className="bg-slate-50/75 dark:bg-slate-900/50 border-b border-border">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-36 font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4 pl-6">Invoice No</TableHead>
-              <TableHead className="w-48 font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4">Cashier</TableHead>
-              <TableHead className="w-28 font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4">Type</TableHead>
-              <TableHead className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4">Reasoning Details</TableHead>
-              <TableHead className="w-32 font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4">Date</TableHead>
-              <TableHead className="w-32 font-semibold text-[#0F172A] dark:text-[#F8FAFC] py-4">Status</TableHead>
+              <TableHead className="w-36 font-bold text-xs text-foreground py-4 pl-6">Invoice No</TableHead>
+              <TableHead className="w-44 font-bold text-xs text-foreground py-4">Cashier</TableHead>
+              <TableHead className="w-24 font-bold text-xs text-foreground py-4">Type</TableHead>
+              <TableHead className="font-bold text-xs text-foreground py-4">Reason / Details</TableHead>
+              <TableHead className="w-32 font-bold text-xs text-foreground py-4">Date</TableHead>
+              <TableHead className="w-32 font-bold text-xs text-foreground py-4 text-center">Status</TableHead>
               {isAdmin && statusFilter === 'PENDING' && (
-                <TableHead className="w-32 font-semibold text-center text-[#0F172A] dark:text-[#F8FAFC] py-4 pr-6">Actions</TableHead>
+                <TableHead className="w-40 font-bold text-xs text-center text-foreground py-4 pr-6">Action</TableHead>
               )}
             </TableRow>
           </TableHeader>
@@ -127,7 +169,7 @@ export default function ApprovalsPage() {
                   <TableCell className="py-4"><Skeleton className="h-6 w-12 rounded-full" /></TableCell>
                   <TableCell className="py-4"><Skeleton className="h-4 w-60" /></TableCell>
                   <TableCell className="py-4"><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell className="py-4"><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                  <TableCell className="py-4 text-center"><Skeleton className="h-6 w-16 rounded-full mx-auto" /></TableCell>
                   {isAdmin && statusFilter === 'PENDING' && (
                     <TableCell className="py-4 pr-6"><Skeleton className="h-8 w-24 rounded-xl mx-auto" /></TableCell>
                   )}
@@ -135,56 +177,67 @@ export default function ApprovalsPage() {
               ))
             ) : isError || !tickets ? (
               <TableRow>
-                <TableCell colSpan={isAdmin && statusFilter === 'PENDING' ? 7 : 6} className="text-center p-8 text-rose-500 font-medium">
-                  Failed to fetch approvals list.
+                <TableCell colSpan={7} className="text-center p-8 text-rose-500 font-medium">
+                  Failed to load authorization queue. Ensure backend is active.
                 </TableCell>
               </TableRow>
             ) : tickets.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdmin && statusFilter === 'PENDING' ? 7 : 6} className="text-center p-12 text-muted-foreground italic">
-                  No authorization requests recorded for this status filter.
+                <TableCell colSpan={7} className="text-center p-12 text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center space-y-2">
+                    <CheckCircle2 className="h-8 w-8 text-emerald-500/50" />
+                    <p className="font-semibold text-sm text-foreground">No tickets found</p>
+                    <p className="text-xs text-muted-foreground">All reprint and override queues are currently clear.</p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
-              tickets.map((ticket) => (
-                <TableRow key={ticket.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/35 border-b border-border/60">
-                  <TableCell className="font-mono font-bold text-xs py-4 pl-6">
-                    #{ticket.invoice?.invoiceNumber || 'N/A'}
+              tickets.map((item) => (
+                <TableRow key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/35 border-b border-border/60 transition-colors">
+                  <TableCell className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400 py-4 pl-6">
+                    {item.invoice?.invoiceNumber || '-'}
                   </TableCell>
-                  <TableCell className="font-medium text-foreground py-4">
-                    {ticket.requester?.firstName} {ticket.requester?.lastName}
+                  <TableCell className="py-4 text-xs font-medium text-foreground">
+                    {item.requester ? `${item.requester.firstName} ${item.requester.lastName}` : 'System User'}
                   </TableCell>
                   <TableCell className="py-4">
-                    <Badge variant="secondary" className="font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                      {ticket.type}
+                    <Badge variant="outline" className="font-mono text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-lg border-border">
+                      {item.type}
                     </Badge>
                   </TableCell>
-                  <TableCell className="max-w-xs truncate text-muted-foreground text-xs py-4" title={ticket.reason}>
-                    {ticket.reason}
+                  <TableCell className="text-xs py-4 text-muted-foreground max-w-sm truncate">
+                    <span className="text-foreground font-medium">{item.reason}</span>
+                    {item.adminNotes && (
+                      <span className="block text-[11px] text-muted-foreground mt-0.5 italic">
+                        Note: {item.adminNotes}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground font-mono py-4">
-                    {new Date(ticket.createdAt).toLocaleDateString()}
+                    {new Date(item.createdAt).toLocaleDateString()}
                   </TableCell>
-                  <TableCell className="py-4">{getStatusBadge(ticket.status)}</TableCell>
-                  
-                  {isAdmin && statusFilter === 'PENDING' && ticket.status === 'PENDING' && (
+                  <TableCell className="py-4 text-center">
+                    {getStatusBadge(item.status)}
+                  </TableCell>
+                  {isAdmin && statusFilter === 'PENDING' && (
                     <TableCell className="text-center py-4 pr-6">
-                      <div className="flex justify-center space-x-1">
+                      <div className="flex items-center justify-center space-x-1.5">
                         <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleActionClick(ticket, 'APPROVED')}
-                          className="h-8 w-8 rounded-full text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 transition-colors"
+                          size="sm"
+                          onClick={() => handleActionClick(item, 'APPROVED')}
+                          className="h-8 px-2.5 rounded-xl text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-semibold flex items-center space-x-1 shadow-sm"
                         >
-                          <Check className="h-4 w-4" />
+                          <Check className="h-3.5 w-3.5" />
+                          <span>Approve</span>
                         </Button>
                         <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleActionClick(ticket, 'REJECTED')}
-                          className="h-8 w-8 rounded-full text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition-colors"
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleActionClick(item, 'REJECTED')}
+                          className="h-8 px-2.5 rounded-xl text-xs flex items-center space-x-1 shadow-sm"
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-3.5 w-3.5" />
+                          <span>Reject</span>
                         </Button>
                       </div>
                     </TableCell>
@@ -196,47 +249,78 @@ export default function ApprovalsPage() {
         </Table>
       </Card>
 
-      {/* Actions Admin Notes dialog */}
+      {/* Action Dialog */}
       <Dialog open={isActionModalOpen} onOpenChange={setIsActionModalOpen}>
-        <DialogContent className="bg-card border-border rounded-2xl p-6 shadow-2xl">
+        <DialogContent className="bg-card border-border rounded-2xl p-6 shadow-2xl max-w-md">
           <DialogHeader className="border-b border-border pb-4">
-            <DialogTitle className="flex items-center space-x-2.5 font-bold font-heading">
+            <DialogTitle className="font-heading font-bold text-base flex items-center space-x-2">
               {actionType === 'APPROVED' ? (
-                <ThumbsUp className="h-5 w-5 text-emerald-500 animate-bounce" />
+                <>
+                  <ThumbsUp className="h-5 w-5 text-emerald-500" />
+                  <span>Approve Ticket</span>
+                </>
               ) : (
-                <ThumbsDown className="h-5 w-5 text-rose-500 animate-bounce" />
+                <>
+                  <ThumbsDown className="h-5 w-5 text-rose-500" />
+                  <span>Reject Ticket</span>
+                </>
               )}
-              <span>{actionType === 'APPROVED' ? 'Approve Ticket request' : 'Reject Ticket request'}</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground mt-1">
-              Assign notes to verify the authorization audit trail.
+              {actionType === 'APPROVED'
+                ? `Grant permission for ${selectedTicket?.type.toLowerCase()} operation on invoice ${selectedTicket?.invoice?.invoiceNumber}.`
+                : `Decline cashier request for invoice ${selectedTicket?.invoice?.invoiceNumber}.`}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 text-xs">
+            <div className="p-3 bg-secondary/50 rounded-xl space-y-1">
+              <span className="text-[10px] text-muted-foreground uppercase font-mono font-bold">Requester Reason</span>
+              <p className="text-foreground font-medium">{selectedTicket?.reason}</p>
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="admin-notes" className="text-xs font-semibold text-muted-foreground">
-                Administrator Notes / Remarks
+                Administrative Notes (Optional)
               </Label>
               <Input
                 id="admin-notes"
+                type="text"
                 value={adminNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
-                placeholder="e.g. Approved single print override / Rejected due to missing reason details..."
-                className="bg-background h-10 rounded-xl"
+                placeholder="Reasoning for audit log..."
+                className="bg-background h-10 rounded-xl text-xs"
               />
             </div>
           </div>
 
-          <DialogFooter className="border-t border-border pt-4 gap-2">
-            <Button type="button" variant="outline" onClick={() => setIsActionModalOpen(false)} className="rounded-xl h-10 text-xs px-4">
+          <DialogFooter className="flex justify-end space-x-2 pt-2 border-t border-border">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsActionModalOpen(false)}
+              className="rounded-xl text-xs h-9 px-4"
+            >
               Cancel
             </Button>
             <Button
+              size="sm"
+              disabled={actionMutation.isPending}
               onClick={handleActionSubmit}
-              className={actionType === 'APPROVED' ? 'bg-[#10B981] hover:bg-[#059669] text-white rounded-xl h-10 text-xs px-5 shadow-premium font-semibold' : 'bg-rose-600 hover:bg-rose-700 text-white rounded-xl h-10 text-xs px-5 shadow-premium font-semibold'}
+              className={`rounded-xl text-xs h-9 px-4 text-white font-semibold flex items-center space-x-1.5 ${
+                actionType === 'APPROVED'
+                  ? 'bg-emerald-500 hover:bg-emerald-600 shadow-sm'
+                  : 'bg-rose-500 hover:bg-rose-600 shadow-sm'
+              }`}
             >
-              Confirm Update
+              {actionMutation.isPending ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Confirm {actionType === 'APPROVED' ? 'Approval' : 'Rejection'}</span>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

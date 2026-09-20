@@ -28,6 +28,7 @@ import { apiClient } from '../../../services/api/axios';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import {
   Trash2,
+  X,
   Plus,
   ArrowLeft,
   Loader2,
@@ -651,9 +652,10 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                           <button
                             type="button"
                             onClick={() => deleteCharge(idx)}
-                            className="text-rose-500 hover:text-rose-600 mr-1.5 p-0.5 rounded text-sm leading-none font-bold"
+                            className="text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 mr-1.5 p-0.5 rounded transition-colors"
+                            aria-label="Remove charge"
                           >
-                            ×
+                            <X className="h-3 w-3" />
                           </button>
                           <span>{charge.name}</span>
                         </span>
