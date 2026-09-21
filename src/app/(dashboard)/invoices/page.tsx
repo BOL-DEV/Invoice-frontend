@@ -75,14 +75,19 @@ export default function InvoicesPage() {
   const [shareNotes, setShareNotes] = useState<string>('');
   const [isSharing, setIsSharing] = useState(false);
 
+  const getEligibleRecipients = (invoice: Invoice | null) => {
+    if (!invoice) return [];
+    return staffList.filter(
+      (u) => !u.isDeleted && !u.isSuspended && u.id !== invoice.creatorId && u.id !== user?.id
+    );
+  };
+
   const openShareModal = (invoice: Invoice, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setInvoiceToShare(invoice);
     setShareNotes('');
-    const eligibleApprentices = staffList.filter(
-      (u) => u.role === 'APPRENTICE' && u.id !== invoice.creatorId && u.id !== user?.id
-    );
-    setTargetUserId(eligibleApprentices.length > 0 ? eligibleApprentices[0].id : '');
+    const eligible = getEligibleRecipients(invoice);
+    setTargetUserId(eligible.length > 0 ? eligible[0].id : '');
     setIsShareModalOpen(true);
   };
 
@@ -1165,10 +1170,20 @@ export default function InvoicesPage() {
                 <label className="text-xs font-semibold text-foreground">
                   Select Recipient Cashier <span className="text-rose-500">*</span>
                 </label>
-                {staffList.filter((u) => u.role === 'APPRENTICE' && u.id !== invoiceToShare.creatorId && u.id !== user?.id).length === 0 ? (
-                  <p className="text-xs text-amber-600 bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
-                    No other active apprentice cashiers are available to receive this invoice.
-                  </p>
+                {getEligibleRecipients(invoiceToShare).length === 0 ? (
+                  <div className="text-xs text-amber-600 bg-amber-500/10 p-3.5 rounded-xl border border-amber-500/20 space-y-1.5">
+                    <p className="font-semibold">No other active cashier accounts available</p>
+                    <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80">
+                      To share invoices, there must be at least one other active cashier account registered in the system.
+                    </p>
+                    {isAdmin && (
+                      <Link href="/users">
+                        <Button type="button" size="sm" variant="outline" className="mt-1 h-7 text-xs border-amber-500/30 text-amber-700 dark:text-amber-300">
+                          Create Cashier Account &rarr;
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
                 ) : (
                   <div className="relative">
                     <select
@@ -1178,13 +1193,11 @@ export default function InvoicesPage() {
                       className="w-full h-10 px-3 pr-8 bg-secondary border border-border rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/30 cursor-pointer font-medium appearance-none"
                     >
                       <option value="" disabled>Choose an apprentice cashier...</option>
-                      {staffList
-                        .filter((u) => u.role === 'APPRENTICE' && u.id !== invoiceToShare.creatorId && u.id !== user?.id)
-                        .map((cashier) => (
-                          <option key={cashier.id} value={cashier.id}>
-                            {cashier.firstName} {cashier.lastName} ({cashier.email})
-                          </option>
-                        ))}
+                      {getEligibleRecipients(invoiceToShare).map((cashier) => (
+                        <option key={cashier.id} value={cashier.id}>
+                          {cashier.firstName} {cashier.lastName} ({cashier.role === 'ADMIN' ? 'Admin' : 'Cashier'}) &mdash; {cashier.email}
+                        </option>
+                      ))}
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   </div>
