@@ -24,6 +24,7 @@ import {
   Building2,
   ChevronDown,
   User as UserIcon,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
@@ -163,6 +164,22 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
     return null;
   };
+
+  // When auth is resolving or user is unauthenticated/logging out, render clean loading screen
+  // This prevents child routes from rendering in an unauthorized state
+  if (isLoading || !user) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background text-foreground space-y-4">
+        <div className="h-10 w-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg animate-pulse">
+          <Building2 className="h-6 w-6" />
+        </div>
+        <div className="flex items-center space-x-2 text-xs text-muted-foreground font-mono">
+          <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
+          <span>Authenticating session...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-background text-foreground flex">

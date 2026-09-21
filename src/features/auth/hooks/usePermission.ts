@@ -30,7 +30,7 @@ const ROLE_PERMISSIONS: Record<Role, PermissionKey[]> = {
 };
 
 export const usePermission = () => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
 
   const hasPermission = (permission: PermissionKey): boolean => {
     if (!user) return false;
@@ -46,5 +46,7 @@ export const usePermission = () => {
     hasPermission,
     role: user?.role || null,
     isAdmin: user?.role === 'ADMIN',
+    isLoading,
+    isAuthenticated: !!user,
   };
 };

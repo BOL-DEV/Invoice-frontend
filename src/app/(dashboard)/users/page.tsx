@@ -19,7 +19,7 @@ import { Skeleton } from '../../../components/ui/skeleton';
 import { useModal } from '../../../components/ui/modal-provider';
 
 export default function UsersPage() {
-  const { isAdmin } = usePermission();
+  const { isAdmin, isLoading: isAuthLoading } = usePermission();
   const modal = useModal();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -48,6 +48,14 @@ export default function UsersPage() {
       lastName: '',
     },
   });
+
+  if (isAuthLoading) {
+    return (
+      <div className="flex items-center justify-center p-16">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
 
   if (!isAdmin) {
     return (

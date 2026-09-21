@@ -7,15 +7,23 @@ import { Card } from '../../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
-import { ShieldAlert, ChevronLeft, ChevronRight, Activity } from 'lucide-react';
+import { ShieldAlert, ChevronLeft, ChevronRight, Activity, Loader2 } from 'lucide-react';
 import { Skeleton } from '../../../components/ui/skeleton';
 
 export default function ActivityPage() {
-  const { isAdmin } = usePermission();
+  const { isAdmin, isLoading: isAuthLoading } = usePermission();
   const [page, setPage] = useState(1);
 
   // Query paginated activity logs
   const { data, isLoading, isError } = useActivityLogs(page, 20);
+
+  if (isAuthLoading) {
+    return (
+      <div className="flex items-center justify-center p-16">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
 
   if (!isAdmin) {
     return (

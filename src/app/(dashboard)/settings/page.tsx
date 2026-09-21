@@ -13,7 +13,7 @@ import { useModal } from '../../../components/ui/modal-provider';
 import { BusinessSettings, AxiosErrorLike } from '../../../types/api';
 
 export default function SettingsPage() {
-  const { isAdmin } = usePermission();
+  const { isAdmin, isLoading: isAuthLoading } = usePermission();
   const modal = useModal();
   const { data: settings, isLoading, isError, refetch } = useBusinessSettings();
   const updateMutation = useUpdateBusinessSettings(settings?.id || '');
@@ -49,6 +49,14 @@ export default function SettingsPage() {
       });
     }
   }, [settings, reset]);
+
+  if (isAuthLoading) {
+    return (
+      <div className="flex items-center justify-center p-16">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
 
   if (!isAdmin) {
     return (
