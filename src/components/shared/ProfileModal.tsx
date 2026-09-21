@@ -11,7 +11,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
-import { User, Lock, Shield, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
+import { User, Shield, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { AxiosErrorLike } from '../../types/api';
 
 interface ProfileModalProps {
@@ -25,8 +25,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
   
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
 
   const {
     register,
@@ -62,26 +60,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
     setErrorMsg(null);
     setSuccessMsg(null);
     try {
-      const payload: {
-        firstName: string;
-        lastName: string;
-        currentPassword?: string;
-        newPassword?: string;
-      } = {
+      const payload = {
         firstName: data.firstName,
         lastName: data.lastName,
       };
-
-      if (data.newPassword) {
-        payload.currentPassword = data.currentPassword;
-        payload.newPassword = data.newPassword;
-      }
 
       const updatedUser = await updateProfileMutation.mutateAsync(payload);
       updateCurrentUser(updatedUser);
       setSuccessMsg('Profile details updated successfully!');
       
-      // Clear password fields
       reset({
         firstName: updatedUser.firstName,
         lastName: updatedUser.lastName,
@@ -103,21 +90,23 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border rounded-2xl p-6 shadow-2xl max-w-lg w-full">
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <DialogHeader className="border-b border-border pb-4">
-            <DialogTitle className="flex items-center space-x-2.5 font-bold font-heading text-lg">
-              <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                <User className="h-4 w-4" />
-              </div>
-              <span>My Account Profile</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground mt-1">
-              Manage your personal identification details and account security credentials.
-            </DialogDescription>
-          </DialogHeader>
+      <DialogContent className="max-w-md bg-card border-border shadow-2xl rounded-2xl p-6">
+        <DialogHeader className="space-y-1 pb-2 border-b border-border">
+          <div className="flex items-center space-x-2 text-foreground">
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
+              <User className="h-5 w-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-base font-bold font-heading">Personal Profile</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Manage your user account details and credentials.
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
 
-          <div className="space-y-5 py-5 max-h-[70vh] overflow-y-auto px-1">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-2">
+          <div className="space-y-4">
             {/* Feedback Alerts */}
             {errorMsg && (
               <div className="flex items-center space-x-2 text-xs text-rose-500 bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl">
@@ -174,86 +163,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                     className="bg-background h-10 rounded-xl text-xs"
                   />
                   {errors.lastName && <p className="text-[11px] text-rose-500">{errors.lastName.message}</p>}
-                </div>
-              </div>
-            </div>
-
-            {/* Password Change Section */}
-            <div className="space-y-3 pt-2 border-t border-border">
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center space-x-1.5">
-                  <Lock className="h-3.5 w-3.5" />
-                  <span>Security & Password</span>
-                </h4>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Leave password fields blank if you do not wish to change your password.
-                </p>
-              </div>
-
-              {/* Current Password */}
-              <div className="space-y-1.5">
-                <Label htmlFor="currentPassword" className="text-xs font-semibold text-muted-foreground">
-                  Current Password
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="currentPassword"
-                    type={showCurrentPassword ? 'text' : 'password'}
-                    placeholder="Required only when changing password"
-                    {...register('currentPassword')}
-                    className="bg-background h-10 rounded-xl text-xs pr-10"
-                  />
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => setShowCurrentPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
-                  >
-                    {showCurrentPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                  </button>
-                </div>
-                {errors.currentPassword && <p className="text-[11px] text-rose-500">{errors.currentPassword.message}</p>}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {/* New Password */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="newPassword" className="text-xs font-semibold text-muted-foreground">
-                    New Password
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="newPassword"
-                      type={showNewPassword ? 'text' : 'password'}
-                      placeholder="Min 6 characters"
-                      {...register('newPassword')}
-                      className="bg-background h-10 rounded-xl text-xs pr-10"
-                    />
-                    <button
-                      type="button"
-                      tabIndex={-1}
-                      onClick={() => setShowNewPassword((prev) => !prev)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
-                    >
-                      {showNewPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                    </button>
-                  </div>
-                  {errors.newPassword && <p className="text-[11px] text-rose-500">{errors.newPassword.message}</p>}
-                </div>
-
-                {/* Confirm New Password */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="confirmPassword" className="text-xs font-semibold text-muted-foreground">
-                    Confirm New Password
-                  </Label>
-                  <Input
-                    id="confirmPassword"
-                    type={showNewPassword ? 'text' : 'password'}
-                    placeholder="Repeat new password"
-                    {...register('confirmPassword')}
-                    className="bg-background h-10 rounded-xl text-xs"
-                  />
-                  {errors.confirmPassword && <p className="text-[11px] text-rose-500">{errors.confirmPassword.message}</p>}
                 </div>
               </div>
             </div>
