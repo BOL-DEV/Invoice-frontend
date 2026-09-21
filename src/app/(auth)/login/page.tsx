@@ -57,18 +57,7 @@ function LoginForm() {
     setErrorState(null);
     try {
       await login(data);
-      // Retrieve role to determine redirection path
-      const savedUser = localStorage.getItem('user_details');
-      if (savedUser) {
-        const userObj = JSON.parse(savedUser);
-        if (userObj.role === 'ADMIN') {
-          router.push('/');
-        } else {
-          router.push('/invoices');
-        }
-      } else {
-        router.push('/invoices');
-      }
+      router.push('/');
     } catch (err) {
       console.error('Login failure:', err);
       const normalized = normalizeApiError(err);

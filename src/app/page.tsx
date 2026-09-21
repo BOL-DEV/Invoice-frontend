@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { useDashboardStats } from '../features/dashboard/hooks/useDashboardStats';
 import { AppLayout } from '../components/layout/AppLayout';
@@ -20,22 +19,16 @@ import {
   ArrowRight,
   BarChart3,
   CheckCircle2,
-} from 'lucide-react';
+  FileEdit,
+  } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
 import { Button } from '../components/ui/button';
 
 export default function Home() {
-  const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const { data: stats, isLoading: statsLoading, isError, refetch } = useDashboardStats();
 
-  useEffect(() => {
-    if (!authLoading && user && user.role !== 'ADMIN') {
-      router.replace('/invoices');
-    }
-  }, [user, authLoading, router]);
-
-  if (authLoading || (user && user.role !== 'ADMIN')) {
+  if (authLoading || !user) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#030712] flex items-center justify-center">
         <div className="flex flex-col items-center justify-center space-y-3">
@@ -47,6 +40,8 @@ export default function Home() {
       </div>
     );
   }
+
+  const isAdmin = user.role === 'ADMIN';
 
   const formatCurrency = (amount: number) => {
     return `₦${Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -79,13 +74,21 @@ export default function Home() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span>Lao Steel Ventures • Management Hub</span>
+              <span>
+                {isAdmin
+                  ? 'Lao Steel Ventures • Management Hub'
+                  : 'Lao Steel Ventures • Cashier Station Terminal'}
+              </span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading">
-              Depot Operations Overview
+              {isAdmin
+                ? 'Depot Operations Overview'
+                : `Welcome back, ${user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Cashier'}`}
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Live sales performance, cashier activity, and pending approval workflows.
+              {isAdmin
+                ? 'Live sales performance, cashier activity, and pending approval workflows.'
+                : 'Monitor your shift receipts, active draft orders, and pending approval requests.'}
             </p>
           </div>
 
@@ -147,13 +150,13 @@ export default function Home() {
             }}
             className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
           >
-            {/* Total Revenue */}
+            {/* Metric 1: Revenue */}
             <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
               <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden relative group hover:border-emerald-500/40 transition-all duration-200">
                 <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-teal-400" />
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-6 pt-4">
                   <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Aggregate Revenue
+                    {isAdmin ? 'Aggregate Revenue' : 'My Shift Revenue'}
                   </CardTitle>
                   <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
                     <TrendingUp className="h-4 w-4" />
@@ -165,13 +168,15 @@ export default function Home() {
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center space-x-1">
                     <CheckCircle2 className="h-3 w-3 text-emerald-500 inline" />
-                    <span>Computed from finalized invoices</span>
+                    <span>
+                      {isAdmin ? 'Computed from finalized invoices' : 'From your finalized receipts'}
+                    </span>
                   </p>
                 </CardContent>
               </Card>
             </motion.div>
 
-            {/* Pending Approvals */}
+            {/* Metric 2: Pending Approvals */}
             <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
               <Link href="/approvals" className="block">
                 <Card className={`border-border bg-card shadow-premium rounded-2xl overflow-hidden relative group transition-all duration-200 hover:border-amber-500/50 ${(stats?.pendingApprovalsCount || 0) > 0 ? 'ring-1 ring-amber-500/30' : ''}`}>
@@ -191,11 +196,11 @@ export default function Home() {
                     <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center space-x-1">
                       {(stats?.pendingApprovalsCount || 0) > 0 ? (
                         <span className="text-amber-500 font-semibold flex items-center space-x-1">
-                          <span>Action required</span>
+                          <span>{isAdmin ? 'Action required' : 'Awaiting admin sign-off'}</span>
                           <ArrowRight className="h-3 w-3 inline" />
                         </span>
                       ) : (
-                        <span>All queues clear</span>
+                        <span>{isAdmin ? 'All queues clear' : 'No pending tickets'}</span>
                       )}
                     </p>
                   </CardContent>
@@ -203,14 +208,14 @@ export default function Home() {
               </Link>
             </motion.div>
 
-            {/* Invoices Count */}
+            {/* Metric 3: Total Invoices */}
             <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
               <Link href="/invoices" className="block">
                 <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden relative group hover:border-indigo-500/40 transition-all duration-200">
                   <div className="h-1 w-full bg-indigo-500" />
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-6 pt-4">
                     <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Total Invoices
+                      {isAdmin ? 'Total Invoices' : 'My Invoices'}
                     </CardTitle>
                     <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500">
                       <FileSpreadsheet className="h-4 w-4" />
@@ -230,27 +235,49 @@ export default function Home() {
               </Link>
             </motion.div>
 
-            {/* Active Cashiers */}
+            {/* Metric 4: Admin: Cashiers | Apprentice: Draft Invoices */}
             <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
-              <Link href="/users" className="block">
-                <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden relative group hover:border-blue-500/40 transition-all duration-200">
-                  <div className="h-1 w-full bg-blue-500" />
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-6 pt-4">
-                    <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Staff / Cashiers
-                    </CardTitle>
-                    <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
-                      <UserCheck className="h-4 w-4" />
-                    </div>
-                  </CardHeader>
-                  <CardContent className="px-6 pb-5">
-                    <div className="text-2xl font-bold font-mono tracking-tight text-foreground tabular-nums">
-                      {stats?.cashiersCount || 0}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-1.5">Registered depot operators</p>
-                  </CardContent>
-                </Card>
-              </Link>
+              {isAdmin ? (
+                <Link href="/users" className="block">
+                  <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden relative group hover:border-blue-500/40 transition-all duration-200">
+                    <div className="h-1 w-full bg-blue-500" />
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-6 pt-4">
+                      <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Staff / Cashiers
+                      </CardTitle>
+                      <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
+                        <UserCheck className="h-4 w-4" />
+                      </div>
+                    </CardHeader>
+                    <CardContent className="px-6 pb-5">
+                      <div className="text-2xl font-bold font-mono tracking-tight text-foreground tabular-nums">
+                        {stats?.cashiersCount || 0}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-1.5">Registered depot operators</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ) : (
+                <Link href="/invoices" className="block">
+                  <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden relative group hover:border-amber-500/40 transition-all duration-200">
+                    <div className="h-1 w-full bg-amber-500" />
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-6 pt-4">
+                      <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Drafts In Progress
+                      </CardTitle>
+                      <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500">
+                        <FileEdit className="h-4 w-4" />
+                      </div>
+                    </CardHeader>
+                    <CardContent className="px-6 pb-5">
+                      <div className="text-2xl font-bold font-mono tracking-tight text-foreground tabular-nums">
+                        {stats?.invoiceCounts?.draft || 0}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-1.5">Pending completion & billing</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              )}
             </motion.div>
           </motion.div>
         )}
@@ -272,11 +299,13 @@ export default function Home() {
                   <div className="flex items-center space-x-2">
                     <BarChart3 className="h-4 w-4 text-emerald-500" />
                     <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      30-Day Revenue Trend
+                      {isAdmin ? '30-Day Depot Revenue Trend' : 'My 30-Day Sales Trend'}
                     </CardTitle>
                   </div>
                   <CardDescription className="text-xs mt-1">
-                    Daily volume generated from finalized steel receipts.
+                    {isAdmin
+                      ? 'Daily aggregate volume generated across all depot sales.'
+                      : 'Your daily sales volume generated from finalized steel receipts.'}
                   </CardDescription>
                 </div>
                 <div className="text-right">
@@ -327,8 +356,12 @@ export default function Home() {
             <div className="lg:col-span-4 space-y-4">
               <Card className="border-border bg-card shadow-premium rounded-2xl p-6 space-y-4">
                 <div className="space-y-1">
-                  <h3 className="font-bold text-sm text-foreground">Quick Depot Shortcuts</h3>
-                  <p className="text-xs text-muted-foreground">Direct navigational access to critical modules.</p>
+                  <h3 className="font-bold text-sm text-foreground">
+                    {isAdmin ? 'Quick Depot Shortcuts' : 'Cashier Actions'}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Direct access to billing and workflow operations.
+                  </p>
                 </div>
 
                 <div className="space-y-2.5">
@@ -355,7 +388,7 @@ export default function Home() {
                         </div>
                         <div>
                           <p className="text-xs font-semibold text-foreground">Invoices Ledger</p>
-                          <p className="text-[10px] text-muted-foreground">Filter, print and export records</p>
+                          <p className="text-[10px] text-muted-foreground">Filter, print and search records</p>
                         </div>
                       </div>
                       <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all" />
@@ -370,7 +403,9 @@ export default function Home() {
                         </div>
                         <div>
                           <p className="text-xs font-semibold text-foreground">Reprint Approvals</p>
-                          <p className="text-[10px] text-muted-foreground">Review cashier reprint tickets</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {isAdmin ? 'Review cashier reprint tickets' : 'Track status of your reprint tickets'}
+                          </p>
                         </div>
                       </div>
                       <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all" />
@@ -379,14 +414,16 @@ export default function Home() {
                 </div>
               </Card>
 
-              {/* Depot Information Card */}
+              {/* Station Guidance / Security Card */}
               <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 text-white border border-slate-800 space-y-2 shadow-premium">
                 <div className="flex items-center space-x-2">
                   <Building2 className="h-4 w-4 text-emerald-400" />
                   <span className="text-xs font-bold">Lao Steel Ventures</span>
                 </div>
                 <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Dual-tier security protocol is active. Reprints and ledger revisions require designated admin authorization.
+                  {isAdmin
+                    ? 'Dual-tier security protocol is active. Reprints and ledger revisions require designated admin authorization.'
+                    : 'Terminal operational guide: Invoices saved as draft can be modified. Finalized receipts require manager approval for reprinting.'}
                 </p>
               </div>
             </div>

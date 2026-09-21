@@ -2,7 +2,6 @@
 
 import { useIdleTimeout } from '../../features/auth/hooks/useIdleTimeout';
 import { SessionTimeoutModal } from '../shared/SessionTimeoutModal';
-import { ProfileModal } from '../shared/ProfileModal';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -23,7 +22,6 @@ import {
   Moon,
   Building2,
   ChevronDown,
-  User as UserIcon,
   Loader2,
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -65,8 +63,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const { isWarningOpen, secondsRemaining, stayLoggedIn, logOutNow } = useIdleTimeout();
   const { theme, setTheme } = useTheme();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -89,18 +86,16 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   // Strictly role-based navigation: NEVER default to Apprentice links if user is null or unauthenticated
   const navItems = user
     ? [
-        ...(user.role === 'ADMIN'
-          ? [{ href: '/', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' }]
-          : []),
+        { href: '/', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' },
         { href: '/invoices', icon: <FileText className="h-5 w-5" />, label: 'Invoices' },
         { href: '/approvals', icon: <CheckSquare className="h-5 w-5" />, label: 'Approvals' },
         ...(user.role === 'ADMIN'
           ? [
               { href: '/users', icon: <Users className="h-5 w-5" />, label: 'Cashiers' },
-              { href: '/settings', icon: <SettingsIcon className="h-5 w-5" />, label: 'Settings' },
               { href: '/activity', icon: <Activity className="h-5 w-5" />, label: 'Activity Logs' },
             ]
           : []),
+        { href: '/settings', icon: <SettingsIcon className="h-5 w-5" />, label: 'Settings' },
       ]
     : [];
 
@@ -277,8 +272,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       </AnimatePresence>
 
       {/* Session Inactivity Timeout Modal */}
-      <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
-      <SessionTimeoutModal
+            <SessionTimeoutModal
         isOpen={isWarningOpen}
         secondsRemaining={secondsRemaining}
         onStayLoggedIn={stayLoggedIn}
@@ -357,18 +351,6 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                       </div>
 
                       <div className="py-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsUserMenuOpen(false);
-                            setIsProfileOpen(true);
-                          }}
-                          className="w-full flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-xs text-foreground hover:bg-secondary transition-colors cursor-pointer"
-                        >
-                          <UserIcon className="h-4 w-4 text-emerald-500" />
-                          <span>View & Edit Profile</span>
-                        </button>
-
                         <button
                           type="button"
                           onClick={() => {

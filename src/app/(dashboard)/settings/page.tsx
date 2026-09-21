@@ -1,28 +1,127 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useBusinessSettings, useUpdateBusinessSettings } from '../../../features/business/hooks/useBusinessSettings';
-import { usePermission } from '../../../features/auth/hooks/usePermission';
 import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useBusinessSettings, useUpdateBusinessSettings } from '../../../features/business/hooks/useBusinessSettings';
+import { useUpdateProfile } from '../../../features/users/hooks/useUsers';
+import { updateProfileSchema, UpdateProfileInput } from '../../../features/users/schemas';
+import { usePermission } from '../../../features/auth/hooks/usePermission';
+import { useAuth } from '../../../features/auth/context/AuthContext';
 import { Button } from '../../../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '../../../components/ui/card';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
-import { ShieldAlert, Loader2, Save, Building2 } from 'lucide-react';
+import { Badge } from '../../../components/ui/badge';
+import {
+  Loader2,
+  Save,
+  Building2,
+  User,
+  Lock,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
+  Settings as SettingsIcon,
+  ShieldCheck,
+} from 'lucide-react';
 import { useModal } from '../../../components/ui/modal-provider';
 import { BusinessSettings, AxiosErrorLike } from '../../../types/api';
 
 export default function SettingsPage() {
+  const { user, updateCurrentUser } = useAuth();
   const { isAdmin, isLoading: isAuthLoading } = usePermission();
   const modal = useModal();
-  const { data: settings, isLoading, isError, refetch } = useBusinessSettings();
-  const updateMutation = useUpdateBusinessSettings(settings?.id || '');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Active Tab state: 'profile' (all users) or 'business' (admin only)
+  const [activeTab, setActiveTab] = useState<'profile' | 'business'>('profile');
+
+  // --- Profile & Security Form State ---
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
+  const updateProfileMutation = useUpdateProfile();
 
   const {
-    register,
-    handleSubmit,
-    reset,
+    register: registerProfile,
+    handleSubmit: handleProfileSubmit,
+    reset: resetProfile,
+    formState: { errors: profileErrors, isSubmitting: isProfileSubmitting },
+  } = useForm<UpdateProfileInput>({
+    resolver: zodResolver(updateProfileSchema),
+    defaultValues: {
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+  });
+
+  useEffect(() => {
+    if (user) {
+      resetProfile({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+    }
+  }, [user, resetProfile]);
+
+  const onProfileSubmit = async (data: UpdateProfileInput) => {
+    setProfileError(null);
+    setProfileSuccess(null);
+    try {
+      const payload: {
+        firstName: string;
+        lastName: string;
+        currentPassword?: string;
+        newPassword?: string;
+      } = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+      };
+
+      if (data.newPassword) {
+        payload.currentPassword = data.currentPassword;
+        payload.newPassword = data.newPassword;
+      }
+
+      const updatedUser = await updateProfileMutation.mutateAsync(payload);
+      updateCurrentUser(updatedUser);
+      setProfileSuccess('Profile and security credentials updated successfully!');
+
+      resetProfile({
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+
+      setTimeout(() => {
+        setProfileSuccess(null);
+      }, 5000);
+    } catch (err) {
+      const msg = (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to update profile details';
+      setProfileError(msg);
+    }
+  };
+
+  // --- Company Settings (Admin Only) ---
+  const { data: settings, isLoading: isSettingsLoading, isError: isSettingsError, refetch: refetchSettings } = useBusinessSettings();
+  const updateBusinessMutation = useUpdateBusinessSettings(settings?.id || '');
+  const [isBusinessSubmitting, setIsBusinessSubmitting] = useState(false);
+
+  const {
+    register: registerBusiness,
+    handleSubmit: handleBusinessSubmit,
+    reset: resetBusiness,
   } = useForm<Partial<BusinessSettings>>({
     defaultValues: {
       businessName: '',
@@ -35,10 +134,9 @@ export default function SettingsPage() {
     },
   });
 
-  // Hydrate settings on query load
   useEffect(() => {
     if (settings) {
-      reset({
+      resetBusiness({
         businessName: settings.businessName,
         address: settings.address,
         phone: settings.phone,
@@ -48,7 +146,24 @@ export default function SettingsPage() {
         defaultWhtPercentage: settings.defaultWhtPercentage,
       });
     }
-  }, [settings, reset]);
+  }, [settings, resetBusiness]);
+
+  const onBusinessSubmit = async (data: Partial<BusinessSettings>) => {
+    setIsBusinessSubmitting(true);
+    try {
+      const payload = {
+        ...data,
+        defaultVatPercentage: Number(data.defaultVatPercentage) || 0,
+        defaultWhtPercentage: Number(data.defaultWhtPercentage) || 0,
+      };
+      await updateBusinessMutation.mutateAsync(payload);
+      modal.alert('Success', 'Business configurations saved successfully', 'success');
+    } catch (err) {
+      modal.alert('Update Failed', (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to update configurations', 'error');
+    } finally {
+      setIsBusinessSubmitting(false);
+    }
+  };
 
   if (isAuthLoading) {
     return (
@@ -58,150 +173,339 @@ export default function SettingsPage() {
     );
   }
 
-  if (!isAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center max-w-sm mx-auto space-y-3">
-        <div className="p-3.5 bg-rose-500/10 text-rose-500 rounded-full">
-          <ShieldAlert className="h-10 w-10" />
-        </div>
-        <div className="space-y-1">
-          <h3 className="text-lg font-bold text-foreground font-heading">Access Denied</h3>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Only Administrators are authorized to view or manage company billing profile settings.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const onSubmit = async (data: Partial<BusinessSettings>) => {
-    setIsSubmitting(true);
-    try {
-      // Ensure percentages are numeric
-      const payload = {
-        ...data,
-        defaultVatPercentage: Number(data.defaultVatPercentage) || 0,
-        defaultWhtPercentage: Number(data.defaultWhtPercentage) || 0,
-      };
-      await updateMutation.mutateAsync(payload);
-      modal.alert('Success', 'Business configurations saved successfully', 'success');
-    } catch (err) {
-      modal.alert('Update Failed', (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to update configurations', 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-        <p className="text-sm text-muted-foreground">Loading configurations...</p>
-      </div>
-    );
-  }
-
-  if (isError || !settings) {
-    return (
-      <div className="bg-rose-500/10 border border-rose-500/20 text-rose-500 p-6 rounded-2xl text-center max-w-md mx-auto space-y-3">
-        <p className="font-semibold text-sm">Failed to fetch company profile settings.</p>
-        <Button onClick={() => refetch()} variant="outline" className="border-rose-500/25 hover:bg-rose-500/5 text-rose-600 rounded-xl text-xs px-4 h-9">
-          Retry Connection
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground font-heading">Company Profile</h2>
+          <h2 className="text-xl font-bold tracking-tight text-foreground font-heading flex items-center space-x-2">
+            <SettingsIcon className="h-5 w-5 text-primary" />
+            <span>Settings & Account</span>
+          </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Configure default billing address, receipt prefixes, and standard VAT percentages.
+            Manage your personal profile, security credentials, and system configurations.
           </p>
         </div>
       </div>
 
-      <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden">
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <CardHeader className="flex flex-row items-center space-x-3.5 space-y-0 border-b border-border py-4 px-6 bg-slate-50 dark:bg-slate-900/35">
-            <div className="bg-primary text-white p-2 rounded-xl">
-              <Building2 className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle className="text-sm text-foreground font-bold">Lagos Iron & Steel Ltd</CardTitle>
-              <CardDescription className="text-xs">Default invoice templates configuration.</CardDescription>
+      {/* Tabs Selection */}
+      <div className="flex items-center space-x-2 border-b border-border pb-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab('profile')}
+          className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center space-x-2 ${
+            activeTab === 'profile'
+              ? 'bg-primary text-white shadow-sm'
+              : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+          }`}
+        >
+          <User className="h-4 w-4" />
+          <span>My Profile & Security</span>
+        </button>
+
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('business')}
+            className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center space-x-2 ${
+              activeTab === 'business'
+                ? 'bg-primary text-white shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+            }`}
+          >
+            <Building2 className="h-4 w-4" />
+            <span>Company Profile & Billing</span>
+          </button>
+        )}
+      </div>
+
+      {/* ========================================================= */}
+      {/* TAB 1: PERSONAL PROFILE & SECURITY (ALL USERS)            */}
+      {/* ========================================================= */}
+      {activeTab === 'profile' && user && (
+        <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden">
+          <CardHeader className="p-4 sm:p-6 border-b border-border/80 bg-slate-50/50 dark:bg-slate-900/30">
+            <div className="flex items-center space-x-3">
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500">
+                <User className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-bold text-foreground">Personal Information & Security</CardTitle>
+                <CardDescription className="text-xs">
+                  Update your identity details and change account login password.
+                </CardDescription>
+              </div>
             </div>
           </CardHeader>
-          
-          <CardContent className="space-y-4 p-6">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="businessName" className="text-xs font-semibold text-muted-foreground">
-                  Registered Business Name
-                </Label>
-                <Input id="businessName" {...register('businessName', { required: true })} className="bg-background font-medium h-10 rounded-xl" />
-              </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground">
-                  Company Billing Email Address
-                </Label>
-                <Input id="email" type="email" {...register('email', { required: true })} className="bg-background h-10 rounded-xl" />
-              </div>
-            </div>
-
-            <div className="grid sm:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground">
-                  Contact Phone Number
-                </Label>
-                <Input id="phone" {...register('phone', { required: true })} className="bg-background h-10 rounded-xl" />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="defaultVatPercentage" className="text-xs font-semibold text-muted-foreground">
-                  Standard VAT Rate (%)
-                </Label>
-                <Input id="defaultVatPercentage" type="number" step="0.01" {...register('defaultVatPercentage', { required: true })} className="bg-background font-mono h-10 rounded-xl" />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="defaultWhtPercentage" className="text-xs font-semibold text-muted-foreground">
-                  Standard WHT Rate (%)
-                </Label>
-                <Input id="defaultWhtPercentage" type="number" step="0.01" {...register('defaultWhtPercentage', { required: true })} className="bg-background font-mono h-10 rounded-xl" />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="address" className="text-xs font-semibold text-muted-foreground">
-                Physical Office Address
-              </Label>
-              <Input id="address" {...register('address', { required: true })} className="bg-background h-10 rounded-xl" />
-            </div>
-
-            <div className="w-1/2 space-y-1.5">
-              <Label htmlFor="receiptPrefix" className="text-xs font-semibold text-muted-foreground">
-                Default Receipt Prefix
-              </Label>
-              <Input id="receiptPrefix" {...register('receiptPrefix', { required: true })} className="bg-background font-mono uppercase h-10 rounded-xl" />
-            </div>
-          </CardContent>
-
-          <CardFooter className="border-t border-border py-4 px-6 justify-end bg-slate-50 dark:bg-slate-900/35">
-            <Button type="submit" disabled={isSubmitting} className="font-semibold space-x-1.5 bg-[#10B981] hover:bg-[#059669] text-white rounded-xl h-10 px-5 shadow-premium text-xs">
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
+          <form onSubmit={handleProfileSubmit(onProfileSubmit)}>
+            <CardContent className="p-4 sm:p-6 space-y-5">
+              {/* Status feedback alerts */}
+              {profileError && (
+                <div className="flex items-center space-x-2 text-xs text-rose-500 bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{profileError}</span>
+                </div>
               )}
-              <span>Save Configurations</span>
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
+
+              {profileSuccess && (
+                <div className="flex items-center space-x-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                  <span>{profileSuccess}</span>
+                </div>
+              )}
+
+              {/* Account Overview Pill */}
+              <div className="p-4 rounded-xl bg-secondary/50 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground">Registered Email</span>
+                  <p className="text-xs font-semibold text-foreground font-mono">{user.email}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Badge className={user.role === 'ADMIN' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20 font-mono text-[10px] font-bold' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-mono text-[10px] font-bold'}>
+                    {user.role === 'ADMIN' ? 'Administrator' : 'Cashier (Apprentice)'}
+                  </Badge>
+                  <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    <span>Active Account</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Name Details (Fully responsive: 1 col on mobile, 2 col on sm+) */}
+              <div className="space-y-3 pt-1">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center space-x-1.5">
+                  <span>Name Identification</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="settings-firstName" className="text-xs font-semibold text-muted-foreground">
+                      First Name
+                    </Label>
+                    <Input
+                      id="settings-firstName"
+                      {...registerProfile('firstName')}
+                      className="bg-background h-10 rounded-xl text-xs"
+                    />
+                    {profileErrors.firstName && <p className="text-[11px] text-rose-500">{profileErrors.firstName.message}</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="settings-lastName" className="text-xs font-semibold text-muted-foreground">
+                      Last Name
+                    </Label>
+                    <Input
+                      id="settings-lastName"
+                      {...registerProfile('lastName')}
+                      className="bg-background h-10 rounded-xl text-xs"
+                    />
+                    {profileErrors.lastName && <p className="text-[11px] text-rose-500">{profileErrors.lastName.message}</p>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Security & Password Change */}
+              <div className="space-y-3 pt-4 border-t border-border">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center space-x-1.5">
+                    <Lock className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>Security & Password</span>
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Leave password fields blank if you only wish to change your profile name.
+                  </p>
+                </div>
+
+                {/* Current Password */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="settings-currentPassword" className="text-xs font-semibold text-muted-foreground">
+                    Current Password
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="settings-currentPassword"
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      placeholder="Required only when setting a new password"
+                      {...registerProfile('currentPassword')}
+                      className="bg-background h-10 rounded-xl text-xs pr-10"
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setShowCurrentPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                    >
+                      {showCurrentPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                  {profileErrors.currentPassword && <p className="text-[11px] text-rose-500">{profileErrors.currentPassword.message}</p>}
+                </div>
+
+                {/* New Password & Confirm Password (1 col on mobile, 2 col on sm+) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="settings-newPassword" className="text-xs font-semibold text-muted-foreground">
+                      New Password
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="settings-newPassword"
+                        type={showNewPassword ? 'text' : 'password'}
+                        placeholder="Minimum 6 characters"
+                        {...registerProfile('newPassword')}
+                        className="bg-background h-10 rounded-xl text-xs pr-10"
+                      />
+                      <button
+                        type="button"
+                        tabIndex={-1}
+                        onClick={() => setShowNewPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                      >
+                        {showNewPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                    {profileErrors.newPassword && <p className="text-[11px] text-rose-500">{profileErrors.newPassword.message}</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="settings-confirmPassword" className="text-xs font-semibold text-muted-foreground">
+                      Confirm New Password
+                    </Label>
+                    <Input
+                      id="settings-confirmPassword"
+                      type={showNewPassword ? 'text' : 'password'}
+                      placeholder="Repeat new password"
+                      {...registerProfile('confirmPassword')}
+                      className="bg-background h-10 rounded-xl text-xs"
+                    />
+                    {profileErrors.confirmPassword && <p className="text-[11px] text-rose-500">{profileErrors.confirmPassword.message}</p>}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+
+            <CardFooter className="p-4 sm:p-6 border-t border-border bg-slate-50/50 dark:bg-slate-900/30 flex justify-end">
+              <Button
+                type="submit"
+                disabled={isProfileSubmitting || updateProfileMutation.isPending}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-10 px-5 text-xs font-semibold cursor-pointer shadow-premium"
+              >
+                {isProfileSubmitting || updateProfileMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    <span>Save Profile Changes</span>
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      )}
+
+      {/* ========================================================= */}
+      {/* TAB 2: COMPANY PROFILE & BILLING (ADMIN ONLY)             */}
+      {/* ========================================================= */}
+      {activeTab === 'business' && isAdmin && (
+        <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden">
+          {isSettingsLoading ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+              <p className="text-xs text-muted-foreground">Loading configurations...</p>
+            </div>
+          ) : isSettingsError || !settings ? (
+            <div className="bg-rose-500/10 border border-rose-500/20 text-rose-500 p-6 rounded-2xl text-center max-w-md mx-auto my-8 space-y-3">
+              <p className="font-semibold text-xs">Failed to fetch company profile settings.</p>
+              <Button onClick={() => refetchSettings()} variant="outline" className="border-rose-500/25 hover:bg-rose-500/5 text-rose-600 rounded-xl text-xs px-4 h-9">
+                Retry Connection
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleBusinessSubmit(onBusinessSubmit)}>
+              <CardHeader className="flex flex-row items-center space-x-3.5 space-y-0 border-b border-border py-4 px-6 bg-slate-50 dark:bg-slate-900/35">
+                <div className="bg-primary text-white p-2 rounded-xl">
+                  <Building2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm text-foreground font-bold">{settings.businessName || 'Company Profile'}</CardTitle>
+                  <CardDescription className="text-xs">Default invoice templates configuration.</CardDescription>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="space-y-4 p-4 sm:p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="businessName" className="text-xs font-semibold text-muted-foreground">
+                      Registered Business Name
+                    </Label>
+                    <Input id="businessName" {...registerBusiness('businessName', { required: true })} className="bg-background font-medium h-10 rounded-xl text-xs" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground">
+                      Company Billing Email Address
+                    </Label>
+                    <Input id="email" type="email" {...registerBusiness('email', { required: true })} className="bg-background h-10 rounded-xl text-xs" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground">
+                      Contact Phone Number
+                    </Label>
+                    <Input id="phone" {...registerBusiness('phone', { required: true })} className="bg-background h-10 rounded-xl text-xs" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="defaultVatPercentage" className="text-xs font-semibold text-muted-foreground">
+                      Standard VAT Rate (%)
+                    </Label>
+                    <Input id="defaultVatPercentage" type="number" step="0.01" {...registerBusiness('defaultVatPercentage', { required: true })} className="bg-background font-mono h-10 rounded-xl text-xs" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="defaultWhtPercentage" className="text-xs font-semibold text-muted-foreground">
+                      Standard WHT Rate (%)
+                    </Label>
+                    <Input id="defaultWhtPercentage" type="number" step="0.01" {...registerBusiness('defaultWhtPercentage', { required: true })} className="bg-background font-mono h-10 rounded-xl text-xs" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="address" className="text-xs font-semibold text-muted-foreground">
+                    Physical Office Address
+                  </Label>
+                  <Input id="address" {...registerBusiness('address', { required: true })} className="bg-background h-10 rounded-xl text-xs" />
+                </div>
+
+                <div className="w-full sm:w-1/2 space-y-1.5">
+                  <Label htmlFor="receiptPrefix" className="text-xs font-semibold text-muted-foreground">
+                    Default Receipt Prefix
+                  </Label>
+                  <Input id="receiptPrefix" {...registerBusiness('receiptPrefix', { required: true })} className="bg-background font-mono uppercase h-10 rounded-xl text-xs" />
+                </div>
+              </CardContent>
+
+              <CardFooter className="border-t border-border py-4 px-6 justify-end bg-slate-50 dark:bg-slate-900/35">
+                <Button type="submit" disabled={isBusinessSubmitting} className="font-semibold space-x-1.5 bg-[#10B981] hover:bg-[#059669] text-white rounded-xl h-10 px-5 shadow-premium text-xs cursor-pointer">
+                  {isBusinessSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  <span>Save Configurations</span>
+                </Button>
+              </CardFooter>
+            </form>
+          )}
+        </Card>
+      )}
     </div>
   );
 }
