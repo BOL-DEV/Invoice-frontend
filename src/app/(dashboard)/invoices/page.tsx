@@ -9,10 +9,9 @@ import { InvoiceStatus, AxiosErrorLike } from '../../../types/api';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
-import { Card, CardContent } from '../../../components/ui/card';
+import { Card } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { apiClient } from '../../../services/api/axios';
 import { useModal } from '../../../components/ui/modal-provider';
@@ -26,6 +25,7 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   AlertCircle,
   FileSpreadsheet,
   Calendar,
@@ -42,10 +42,11 @@ export default function InvoicesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [cashierFilter, setCashierFilter] = useState<string>('ALL');
-  const [dateFilter, setDateFilter] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
 
   const { data: usersData } = useUsersList();
-  const cashiersList = usersData?.filter((u) => u.role === 'APPRENTICE') || [];
+  const staffList = usersData || [];
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<string | null>(null);
@@ -57,8 +58,8 @@ export default function InvoicesPage() {
     search: search || undefined,
     status: statusFilter === 'ALL' ? undefined : (statusFilter as InvoiceStatus),
     issuedBy: isAdmin && cashierFilter !== 'ALL' ? cashierFilter : undefined,
-    startDate: isAdmin && dateFilter ? dateFilter : undefined,
-    endDate: isAdmin && dateFilter ? dateFilter : undefined,
+    startDate: isAdmin && startDate ? startDate : undefined,
+    endDate: isAdmin && endDate ? endDate : undefined,
   });
 
   const { data: invoiceDetails, isLoading: detailsLoading } = useInvoiceDetails(selectedInvoiceId);
@@ -255,115 +256,13 @@ export default function InvoicesPage() {
       </div>
 
       {/* ========================================================= */}
-      {/* ADMIN SPECIFIC FILTERS: ISSUED BY & DATE                  */}
+      {/* FILTER CONTROLS: STATUS TABS & ADMIN FILTERS              */}
       {/* ========================================================= */}
-      {isAdmin && (
-        <div className="flex flex-wrap items-center gap-3 p-3.5 bg-card border border-border rounded-2xl shadow-sm text-xs">
-          <div className="flex items-center space-x-1.5 font-semibold text-muted-foreground mr-1">
-            <User className="h-4 w-4 text-emerald-500" />
-            <span>Filter By:</span>
-          </div>
-
-          {/* Cashier / Issued By Filter */}
-          <div className="flex items-center space-x-2">
-            <span className="text-muted-foreground text-[11px] font-medium">Issued By:</span>
-            <Select
-              value={cashierFilter}
-              onValueChange={(val) => {
-                if (val) setCashierFilter(val);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="w-[170px] h-9 bg-secondary border-border rounded-xl text-xs">
-                <SelectValue placeholder="All Cashiers" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Cashiers</SelectItem>
-                {cashiersList.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.firstName} {c.lastName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Date Filter */}
-          <div className="flex items-center space-x-2">
-            <span className="text-muted-foreground text-[11px] font-medium">Date:</span>
-            <div className="flex items-center space-x-1">
-              <Input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => {
-                  setDateFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="w-[145px] h-9 bg-secondary border-border rounded-xl text-xs cursor-pointer"
-              />
-              {dateFilter && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDateFilter('');
-                    setPage(1);
-                  }}
-                  className="p-1 rounded-md text-muted-foreground hover:text-foreground"
-                  title="Clear date"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Reset button */}
-          {(cashierFilter !== 'ALL' || dateFilter) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setCashierFilter('ALL');
-                setDateFilter('');
-                setPage(1);
-              }}
-              className="h-8 px-2.5 rounded-xl text-xs text-rose-500 hover:bg-rose-500/10 ml-auto cursor-pointer"
-            >
-              Clear Filters
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* ========================================================= */}
-      {/* SEARCH & SEGMENTED STATUS FILTERS                         */}
-      {/* ========================================================= */}
-      <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden">
-        <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="bg-card border border-border rounded-2xl p-3 sm:p-4 shadow-sm space-y-3">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
           
-          {/* Search bar */}
-          <div className="flex-1 w-full relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              type="text"
-              placeholder="Search by invoice number (e.g. INV-0001) or customer name..."
-              value={search}
-              onChange={handleSearchChange}
-              className="pl-10 pr-9 bg-card h-10 rounded-xl text-xs border-border focus:ring-2 focus:ring-primary text-foreground"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-md"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Segmented Filter Pills */}
-          <div className="flex items-center space-x-1.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+          {/* Status Tabs (Moved to Filter Section) */}
+          <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 lg:pb-0 w-full lg:w-auto">
             {filterTabs.map((tab) => {
               const isActive = statusFilter === tab.value;
               return (
@@ -371,10 +270,10 @@ export default function InvoicesPage() {
                   key={tab.value}
                   type="button"
                   onClick={() => handleStatusFilterChange(tab.value)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                     isActive
-                      ? 'bg-emerald-500 text-white font-semibold shadow-sm'
-                      : 'bg-secondary text-muted-foreground hover:text-foreground'
+                      ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/20'
+                      : 'bg-secondary/70 text-muted-foreground hover:text-foreground hover:bg-secondary'
                   }`}
                 >
                   {tab.label}
@@ -382,14 +281,125 @@ export default function InvoicesPage() {
               );
             })}
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Admin Specific Filters: Issued By & Date Range */}
+          {isAdmin && (
+            <div className="flex flex-wrap items-center gap-3 text-xs w-full lg:w-auto">
+              
+              {/* Cashier / Staff Filter (Showing real name, not UUID) */}
+              <div className="flex items-center space-x-1.5">
+                <span className="text-muted-foreground text-[11px] font-medium">Issued By:</span>
+                <div className="relative">
+                  <select
+                    value={cashierFilter}
+                    onChange={(e) => {
+                      setCashierFilter(e.target.value);
+                      setPage(1);
+                    }}
+                    className="h-9 pl-3 pr-8 bg-secondary border border-border rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/30 cursor-pointer font-medium appearance-none transition-colors max-w-[200px] truncate"
+                  >
+                    <option value="ALL">All Staff</option>
+                    {staffList.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.firstName} {u.lastName} ({u.role === 'ADMIN' ? 'Admin' : 'Cashier'})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Date Range Filter (From / To) */}
+              <div className="flex items-center space-x-1.5">
+                <span className="text-muted-foreground text-[11px] font-medium">Date:</span>
+                <div className="flex items-center space-x-1">
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setPage(1);
+                    }}
+                    className="w-[125px] h-9 bg-secondary border-border rounded-xl text-xs cursor-pointer"
+                    title="From date"
+                  />
+                  <span className="text-muted-foreground text-[11px]">—</span>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setPage(1);
+                    }}
+                    className="w-[125px] h-9 bg-secondary border-border rounded-xl text-xs cursor-pointer"
+                    title="To date"
+                  />
+                </div>
+              </div>
+
+              {/* Reset Filters */}
+              {(cashierFilter !== 'ALL' || startDate || endDate || statusFilter !== 'ALL') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setCashierFilter('ALL');
+                    setStartDate('');
+                    setEndDate('');
+                    setStatusFilter('ALL');
+                    setPage(1);
+                  }}
+                  className="h-8 px-2.5 rounded-xl text-xs text-rose-500 hover:bg-rose-500/10 cursor-pointer font-medium ml-auto lg:ml-0"
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* ========================================================= */}
-      {/* INVOICES TABLE                                            */}
+      {/* INVOICES TABLE WITH ATTACHED SEARCH BAR                   */}
       {/* ========================================================= */}
-      <Card className="border-border bg-card shadow-premium rounded-2xl p-2 sm:p-4 overflow-hidden">
-        <div className="overflow-x-auto relative rounded-xl border border-border/60">
+      <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden">
+        
+        {/* Attached Search Bar (directly on top of table) */}
+        <div className="p-3 sm:p-4 border-b border-border/80 bg-secondary/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="relative w-full sm:max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Search by invoice number (e.g. INV-0001) or customer name..."
+              value={search}
+              onChange={handleSearchChange}
+              className="pl-10 pr-9 bg-background h-10 rounded-xl text-xs border-border focus:ring-2 focus:ring-emerald-500/30 text-foreground"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  setPage(1);
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-md"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="text-xs text-muted-foreground flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-3">
+            {data?.pagination && (
+              <span>
+                Total: <strong className="text-foreground font-semibold font-mono">{data.pagination.total}</strong> invoices
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Table content directly follows */}
+        <div className="overflow-x-auto relative">
           <Table className="w-full min-w-[900px]">
             <TableHeader className="bg-secondary/70 border-b border-border">
               <TableRow className="hover:bg-transparent">
