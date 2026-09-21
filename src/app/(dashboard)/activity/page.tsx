@@ -38,13 +38,15 @@ export default function ActivityPage() {
       case 'LOGIN':
         return <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-[#10B981] border-emerald-100 dark:border-emerald-500/25 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full">LOGIN</Badge>;
       case 'LOGOUT':
-        return <Badge variant="secondary" className="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full">LOGOUT</Badge>;
+        return <Badge className="bg-slate-100 hover:bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full">LOGOUT</Badge>;
+      case 'USER_CREATED':
+        return <Badge className="bg-blue-50 hover:bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border-blue-100 dark:border-blue-500/25 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full">USER_CREATED</Badge>;
+      case 'USER_SUSPENDED':
+        return <Badge className="bg-rose-50 hover:bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border-rose-100 dark:border-rose-500/25 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full">USER_SUSPENDED</Badge>;
+      case 'USER_ACTIVATED':
+        return <Badge className="bg-amber-50 hover:bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border-amber-100 dark:border-amber-500/25 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full">USER_ACTIVATED</Badge>;
       case 'INVOICE_CREATED':
-        return <Badge className="bg-blue-50 hover:bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border-blue-100 dark:border-blue-500/25 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full">CREATED</Badge>;
-      case 'INVOICE_UPDATED':
-        return <Badge className="bg-amber-50 hover:bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border-amber-100 dark:border-amber-500/25 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full">UPDATED</Badge>;
-      case 'INVOICE_PRINTED':
-        return <Badge className="bg-purple-50 hover:bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 border-purple-100 dark:border-purple-500/25 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full">PRINTED</Badge>;
+        return <Badge className="bg-purple-50 hover:bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 border-purple-100 dark:border-purple-500/25 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full">INVOICE_CREATED</Badge>;
       case 'INVOICE_DOWNLOADED':
         return <Badge className="bg-indigo-50 hover:bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 border-indigo-100 dark:border-indigo-500/25 font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full">DOWNLOAD</Badge>;
       default:
@@ -67,64 +69,93 @@ export default function ActivityPage() {
         </div>
       </div>
 
-      {/* Logs Table */}
+      {/* Logs Table Card (Styled identically to Invoice Table) */}
       <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden">
-        <Table>
-          <TableHeader className="bg-secondary/40 sticky top-0 z-10 border-b border-border">
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="w-56 font-semibold text-foreground py-4 pl-6">Timestamp</TableHead>
-              <TableHead className="w-40 font-semibold text-foreground py-4">Action</TableHead>
-              <TableHead className="font-semibold text-foreground py-4">User Email</TableHead>
-              <TableHead className="w-48 font-semibold text-foreground py-4 pr-6">IP Address</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              [1, 2, 3, 4, 5].map((i) => (
-                <TableRow key={i} className="border-b border-border/60">
-                  <TableCell className="py-4 pl-6"><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell className="py-4"><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
-                  <TableCell className="py-4"><Skeleton className="h-4 w-40" /></TableCell>
-                  <TableCell className="py-4 pr-6"><Skeleton className="h-4 w-24" /></TableCell>
-                </TableRow>
-              ))
-            ) : isError || !data?.logs ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center p-8 text-rose-500 font-medium">
-                  Failed to fetch audit trails.
-                </TableCell>
-              </TableRow>
-            ) : data.logs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center p-12 text-muted-foreground italic">
-                  No activity log history recorded.
-                </TableCell>
-              </TableRow>
-            ) : (
-              data.logs.map((log) => (
-                <TableRow key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/35 border-b border-border/60">
-                  <TableCell className="text-xs text-muted-foreground font-mono py-4 pl-6">
-                    {new Date(log.createdAt).toLocaleString(undefined, {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                    })}
-                  </TableCell>
-                  <TableCell className="py-4">{getActionBadge(log.action)}</TableCell>
-                  <TableCell className="font-bold text-foreground text-xs py-4">
-                    {log.user?.email || `User ID: ${log.userId.slice(0, 8)}...`}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground py-4 pr-6">
-                    {log.ipAddress || 'Unknown'}
-                  </TableCell>
-                </TableRow>
-              ))
+        {/* Attached Toolbar on top of table */}
+        <div className="p-3 sm:p-4 border-b border-border/80 bg-secondary/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+            <Activity className="h-4 w-4 text-emerald-500" />
+            <span className="font-medium text-foreground">Audit Log History</span>
+          </div>
+
+          <div className="text-xs text-muted-foreground flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-3">
+            {data?.pagination && (
+              <span>
+                Total: <strong className="text-foreground font-semibold font-mono">{data.pagination.total}</strong> records
+              </span>
             )}
-          </TableBody>
-        </Table>
+          </div>
+        </div>
+
+        {/* Table content */}
+        <div className="overflow-x-auto relative">
+          <Table className="w-full min-w-[800px] table-fixed">
+            <TableHeader className="bg-secondary/70 border-b border-border">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-[30%] px-6 py-4 font-bold text-xs text-foreground whitespace-nowrap">
+                  Timestamp
+                </TableHead>
+                <TableHead className="w-[20%] px-6 py-4 font-bold text-xs text-foreground whitespace-nowrap">
+                  Action
+                </TableHead>
+                <TableHead className="w-[30%] px-6 py-4 font-bold text-xs text-foreground whitespace-nowrap">
+                  User Email
+                </TableHead>
+                <TableHead className="w-[20%] px-6 py-4 font-bold text-xs text-foreground whitespace-nowrap">
+                  IP Address
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                [1, 2, 3, 4, 5].map((i) => (
+                  <TableRow key={i} className="border-b border-border/60">
+                    <TableCell className="px-6 py-4"><Skeleton className="h-4 w-36" /></TableCell>
+                    <TableCell className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+                    <TableCell className="px-6 py-4"><Skeleton className="h-4 w-40" /></TableCell>
+                    <TableCell className="px-6 py-4"><Skeleton className="h-4 w-24" /></TableCell>
+                  </TableRow>
+                ))
+              ) : isError || !data?.logs ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center p-8 text-rose-500 font-medium">
+                    Failed to fetch audit trails.
+                  </TableCell>
+                </TableRow>
+              ) : data.logs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center p-12 text-muted-foreground italic">
+                    No activity log history recorded.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                data.logs.map((log) => (
+                  <TableRow key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/35 border-b border-border/60 transition-colors">
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-xs text-muted-foreground font-mono">
+                      {new Date(log.createdAt).toLocaleString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                      })}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
+                      {getActionBadge(log.action)}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap font-medium text-foreground text-xs">
+                      {log.user?.email || `User ID: ${log.userId.slice(0, 8)}...`}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap font-mono text-xs text-muted-foreground">
+                      {log.ipAddress || 'Unknown'}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
 
         {/* Numbered Interactive Pagination */}
         {data && data.pagination && data.pagination.totalPages > 1 && (
