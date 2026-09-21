@@ -1,6 +1,6 @@
 import { apiClient } from './api/axios';
 import { API_ENDPOINTS } from './api/endpoints';
-import { ApiResponse, Invoice, InvoiceStatus } from '../types/api';
+import { ApiResponse, Invoice, InvoiceStatus, InvoiceRevenueSummary } from '../types/api';
 import { InvoiceFormInput } from '../features/invoices/schemas';
 
 interface ListInvoicesParams {
@@ -24,6 +24,14 @@ interface ListInvoicesResponse {
 }
 
 export const invoiceService = {
+  getSummary: async (issuedBy?: string): Promise<InvoiceRevenueSummary> => {
+    const response = await apiClient.get<ApiResponse<InvoiceRevenueSummary>>(
+      API_ENDPOINTS.INVOICES.SUMMARY,
+      { params: issuedBy ? { issuedBy } : undefined }
+    );
+    return response.data.data;
+  },
+
   list: async (params?: ListInvoicesParams): Promise<ListInvoicesResponse> => {
     const response = await apiClient.get<ApiResponse<ListInvoicesResponse>>(
       API_ENDPOINTS.INVOICES.BASE,

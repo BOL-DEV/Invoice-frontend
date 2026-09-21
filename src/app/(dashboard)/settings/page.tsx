@@ -99,14 +99,14 @@ export default function SettingsPage() {
       }
 
       const res = await updateProfileMutation.mutateAsync(payload);
-      if (res?.data) {
-        updateCurrentUser(res.data);
+      if (res) {
+        updateCurrentUser(res);
       }
 
       setProfileSuccess('Profile details and security preferences updated successfully!');
       resetProfile({
-        firstName: res?.data?.firstName || data.firstName || '',
-        lastName: res?.data?.lastName || data.lastName || '',
+        firstName: res?.firstName || data.firstName || '',
+        lastName: res?.lastName || data.lastName || '',
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
@@ -117,7 +117,7 @@ export default function SettingsPage() {
       const axiosErr = err as AxiosErrorLike;
       const msg =
         axiosErr.response?.data?.error?.message ||
-        axiosErr.response?.data?.message ||
+        axiosErr.message ||
         'Failed to update profile settings. Please verify your current password.';
       setProfileError(msg);
       modal.alert('Update Failed', msg, 'error');
@@ -126,7 +126,7 @@ export default function SettingsPage() {
 
   // --- Company Settings (Admin Only) ---
   const { data: settings, isLoading: isSettingsLoading, isError: isSettingsError, refetch: refetchSettings } = useBusinessSettings();
-  const updateBusinessMutation = useUpdateBusinessSettings();
+  const updateBusinessMutation = useUpdateBusinessSettings(settings?.id || '');
   const [isBusinessSubmitting, setIsBusinessSubmitting] = useState(false);
 
   const {

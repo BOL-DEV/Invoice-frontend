@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useInvoicesList, useInvoiceDetails, useDeleteInvoice } from '../../../features/invoices/hooks/useInvoices';
+import { useInvoicesList, useInvoiceDetails, useDeleteInvoice, useInvoiceRevenueSummary } from '../../../features/invoices/hooks/useInvoices';
 import { useUsersList } from '../../../features/users/hooks/useUsers';
 import { usePermission } from '../../../features/auth/hooks/usePermission';
 import { InvoiceStatus, AxiosErrorLike } from '../../../types/api';
@@ -29,6 +29,9 @@ import {
   AlertCircle,
   FileSpreadsheet,
   Calendar,
+  CalendarDays,
+  TrendingUp,
+  Clock,
   User,
   X,
   Loader2,
@@ -51,6 +54,10 @@ export default function InvoicesPage() {
   const [exportingFormat, setExportingFormat] = useState<string | null>(null);
 
   // Queries
+  const { data: summary, isLoading: isSummaryLoading } = useInvoiceRevenueSummary(
+    isAdmin && cashierFilter !== 'ALL' ? cashierFilter : undefined
+  );
+
   const { data, isLoading, isError } = useInvoicesList({
     page,
     limit: 10,
@@ -196,6 +203,103 @@ export default function InvoicesPage() {
             <span>Create Invoice</span>
           </Button>
         </Link>
+      </div>
+
+      {/* ========================================================= */}
+      {/* REVENUE SUMMARY METRICS (TODAY, THIS WEEK, MONTH, YEAR)   */}
+      {/* ========================================================= */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Today */}
+        <Card className="border-border bg-card shadow-sm rounded-2xl overflow-hidden relative group hover:border-emerald-500/40 transition-all">
+          <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-teal-400" />
+          <div className="p-3.5 sm:p-4 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground truncate">
+                Today&apos;s Revenue
+              </span>
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 shrink-0">
+                <TrendingUp className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            {isSummaryLoading ? (
+              <Skeleton className="h-6 w-24 rounded-md" />
+            ) : (
+              <div className="text-base sm:text-xl font-bold font-mono tracking-tight text-foreground tabular-nums truncate">
+                {formatCurrency(summary?.today)}
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground truncate">Finalized today</p>
+          </div>
+        </Card>
+
+        {/* This Week */}
+        <Card className="border-border bg-card shadow-sm rounded-2xl overflow-hidden relative group hover:border-blue-500/40 transition-all">
+          <div className="h-1 w-full bg-gradient-to-r from-blue-500 to-cyan-400" />
+          <div className="p-3.5 sm:p-4 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground truncate">
+                This Week
+              </span>
+              <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 shrink-0">
+                <Clock className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            {isSummaryLoading ? (
+              <Skeleton className="h-6 w-24 rounded-md" />
+            ) : (
+              <div className="text-base sm:text-xl font-bold font-mono tracking-tight text-foreground tabular-nums truncate">
+                {formatCurrency(summary?.thisWeek)}
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground truncate">Mon &ndash; Today</p>
+          </div>
+        </Card>
+
+        {/* This Month */}
+        <Card className="border-border bg-card shadow-sm rounded-2xl overflow-hidden relative group hover:border-indigo-500/40 transition-all">
+          <div className="h-1 w-full bg-gradient-to-r from-indigo-500 to-purple-400" />
+          <div className="p-3.5 sm:p-4 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground truncate">
+                This Month
+              </span>
+              <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-500 shrink-0">
+                <Calendar className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            {isSummaryLoading ? (
+              <Skeleton className="h-6 w-24 rounded-md" />
+            ) : (
+              <div className="text-base sm:text-xl font-bold font-mono tracking-tight text-foreground tabular-nums truncate">
+                {formatCurrency(summary?.thisMonth)}
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground truncate">Current month volume</p>
+          </div>
+        </Card>
+
+        {/* This Year */}
+        <Card className="border-border bg-card shadow-sm rounded-2xl overflow-hidden relative group hover:border-amber-500/40 transition-all">
+          <div className="h-1 w-full bg-gradient-to-r from-amber-500 to-orange-400" />
+          <div className="p-3.5 sm:p-4 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground truncate">
+                This Year
+              </span>
+              <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
+                <CalendarDays className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            {isSummaryLoading ? (
+              <Skeleton className="h-6 w-24 rounded-md" />
+            ) : (
+              <div className="text-base sm:text-xl font-bold font-mono tracking-tight text-foreground tabular-nums truncate">
+                {formatCurrency(summary?.thisYear)}
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground truncate">Year-to-date total</p>
+          </div>
+        </Card>
       </div>
 
       {/* ========================================================= */}

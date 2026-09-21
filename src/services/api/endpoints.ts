@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
   INVOICES: {
     BASE: '/api/invoices',
     DETAIL: (id: string) => `/api/invoices/${id}`,
+    SUMMARY: '/api/invoices/summary',
   },
   CUSTOMERS: {
     AUTOCOMPLETE: '/api/customers/autocomplete',

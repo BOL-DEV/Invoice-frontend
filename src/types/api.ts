@@ -169,6 +169,7 @@ export interface DashboardStats {
 }
 
 export interface AxiosErrorLike {
+  message?: string;
   response?: {
     data?: {
       error?: {
@@ -176,4 +177,11 @@ export interface AxiosErrorLike {
       };
     };
   };
+}
+
+export interface InvoiceRevenueSummary {
+  today: number;
+  thisWeek: number;
+  thisMonth: number;
+  thisYear: number;
 }

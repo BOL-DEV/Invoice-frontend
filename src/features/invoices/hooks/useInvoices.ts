@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { invoiceService } from '../../../services/invoice.service';
-import { Invoice, InvoiceStatus } from '../../../types/api';
+import { Invoice, InvoiceStatus, InvoiceRevenueSummary } from '../../../types/api';
 import { InvoiceFormInput } from '../schemas';
 
 interface ListParams {
@@ -59,5 +59,13 @@ export const useDeleteInvoice = () => {
       queryClient.invalidateQueries({ queryKey: ['invoices', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
     },
+  });
+};
+
+export const useInvoiceRevenueSummary = (issuedBy?: string) => {
+  return useQuery<InvoiceRevenueSummary>({
+    queryKey: ['invoices', 'summary', issuedBy],
+    queryFn: () => invoiceService.getSummary(issuedBy),
+    refetchInterval: 30000,
   });
 };
