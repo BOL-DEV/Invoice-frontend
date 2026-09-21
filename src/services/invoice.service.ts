@@ -8,6 +8,9 @@ interface ListInvoicesParams {
   limit?: number;
   search?: string;
   status?: InvoiceStatus;
+  issuedBy?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 interface ListInvoicesResponse {

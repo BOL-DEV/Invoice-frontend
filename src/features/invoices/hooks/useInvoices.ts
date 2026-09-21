@@ -8,6 +8,9 @@ interface ListParams {
   limit?: number;
   search?: string;
   status?: InvoiceStatus;
+  issuedBy?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export const useInvoicesList = (params: ListParams) => {
@@ -40,7 +43,7 @@ export const useUpdateInvoice = (id: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: InvoiceFormInput) => invoiceService.update(id, payload),
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['invoices', 'details', id] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });

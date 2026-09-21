@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useInvoice, FocusTarget } from '../context/InvoiceContext';
+import { useInvoice } from '../context/InvoiceContext';
 import { useInvoiceRows } from '../hooks/useInvoiceRows';
 import { useInvoiceCalculations } from '../hooks/useInvoiceCalculations';
 import { useInvoiceDetails, useCreateInvoice, useUpdateInvoice } from '../hooks/useInvoices';
@@ -21,7 +21,7 @@ import { Label } from '../../../components/ui/label';
 import { Button } from '../../../components/ui/button';
 import { Textarea } from '../../../components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '../../../components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui/dialog';
 import { AxiosErrorLike } from '../../../types/api';
 import { apiClient } from '../../../services/api/axios';
@@ -114,8 +114,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
   // Receipt Preview state
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [createdInvoiceId, setCreatedInvoiceId] = useState<string | null>(null);
-  const [createdInvoiceNumber, setCreatedInvoiceNumber] = useState('');
+  const [createdInvoiceId, _setCreatedInvoiceId] = useState<string | null>(null);
+  const [createdInvoiceNumber, _setCreatedInvoiceNumber] = useState('');
   
   const isSubmitting = useRef(false);
 

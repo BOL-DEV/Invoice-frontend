@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginInput } from '../../../features/auth/schemas';
@@ -12,6 +12,7 @@ import { Label } from '../../../components/ui/label';
 import { normalizeApiError, applyApiFieldErrors, NormalizedError } from '../../../lib/api-error';
 import {
   Building2,
+  Clock,
   Loader2,
   Mail,
   Lock,
@@ -27,8 +28,10 @@ import {
   X,
 } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isExpired = searchParams.get('reason') === 'expired';
   const { login } = useAuth();
   const [errorState, setErrorState] = useState<NormalizedError | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,6 +48,7 @@ export default function LoginPage() {
     defaultValues: {
       email: '',
       password: '',
+      rememberMe: false,
     },
   });
 
@@ -195,6 +199,19 @@ export default function LoginPage() {
             </p>
           </div>
 
+          {/* Session Expired Notice */}
+          {isExpired && !errorState && (
+            <div className="p-4 rounded-xl border flex items-start space-x-3 text-xs bg-amber-500/10 border-amber-500/25 text-amber-600 dark:text-amber-400">
+              <Clock className="h-5 w-5 shrink-0 mt-0.5" />
+              <div className="space-y-1 flex-1">
+                <p className="font-bold text-xs">Session Expired</p>
+                <p className="text-[11px] leading-relaxed opacity-95">
+                  Your previous session timed out due to 30 minutes of inactivity. Please sign in again.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Error Banner */}
           {errorState && (
             <div className="p-4 rounded-xl border flex items-start space-x-3 text-xs animate-in fade-in slide-in-from-top-2 duration-200 bg-rose-500/10 border-rose-500/25 text-rose-600 dark:text-rose-400">
@@ -277,6 +294,24 @@ export default function LoginPage() {
               )}
             </div>
 
+            {/* Remember Me Checkbox */}
+            <div className="flex items-center justify-between pt-1">
+              <label htmlFor="rememberMe" className="flex items-center space-x-2.5 cursor-pointer select-none">
+                <input
+                  id="rememberMe"
+                  type="checkbox"
+                  {...register('rememberMe')}
+                  className="h-4 w-4 rounded-md border-border text-emerald-500 focus:ring-emerald-500/40 bg-card transition-colors cursor-pointer"
+                />
+                <span className="text-xs text-muted-foreground hover:text-foreground transition-colors font-medium">
+                  Remember me for 7 days
+                </span>
+              </label>
+              <span className="text-[11px] text-muted-foreground/70">
+                (Standard: 8h shift)
+              </span>
+            </div>
+
             {/* Submit Button */}
             <Button
               type="submit"
@@ -350,5 +385,20 @@ export default function LoginPage() {
         </div>
       )}
     </div>
+  );
+}
+
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

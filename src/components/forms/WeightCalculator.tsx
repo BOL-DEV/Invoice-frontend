@@ -2,11 +2,10 @@
 
 import React, { useState } from 'react';
 import { Button } from '../ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { X, Scale, Calculator, ArrowRight } from 'lucide-react';
+import { X, Scale, Calculator } from 'lucide-react';
 import { basicCalculator } from '../../features/calculators/basic';
 
 interface WeightCalculatorProps {

@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { InvoiceStatus } from '../../../types/api';
 
 export const itemSchema = z.object({
   position: z.number().int().min(1),

@@ -28,6 +28,20 @@ export const useCreateUser = () => {
   });
 };
 
+export const useToggleSuspendUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.patch<ApiResponse<User>>(API_ENDPOINTS.USERS.TOGGLE_SUSPEND(id));
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+    },
+  });
+};
+
 export const useDeleteUser = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -37,6 +51,24 @@ export const useDeleteUser = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+    },
+  });
+};
+
+export const useUpdateProfile = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      firstName?: string;
+      lastName?: string;
+      currentPassword?: string;
+      newPassword?: string;
+    }) => {
+      const response = await apiClient.patch<ApiResponse<User>>(API_ENDPOINTS.USERS.ME, payload);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
     },
   });
 };

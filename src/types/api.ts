@@ -6,6 +6,7 @@ export interface User {
   role: Role;
   firstName: string;
   lastName: string;
+  isSuspended?: boolean;
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;

@@ -9,7 +9,7 @@ export const authService = {
       API_ENDPOINTS.AUTH.LOGIN,
       input
     );
-    const { accessToken, refreshToken, user } = response.data.data;
+    const { accessToken, refreshToken } = response.data.data;
     
     // Store tokens
     tokenStore.setAccessToken(accessToken);

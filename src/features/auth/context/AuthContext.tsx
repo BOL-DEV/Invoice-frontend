@@ -12,6 +12,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (input: LoginInput) => Promise<void>;
   logout: () => Promise<void>;
+  updateCurrentUser: (updated: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -51,9 +52,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           document.cookie = "session_active=; path=/; max-age=0; SameSite=Lax";
         }
       }
-    } catch (error: any) {
-      console.warn('Session refresh warning:', error?.message);
-      const status = error?.response?.status;
+    } catch (error: unknown) {
+      console.warn('Session refresh warning:', (error as Error)?.message);
+      const status = (error as { response?: { status?: number } })?.response?.status;
       
       // ONLY clear tokens and wipe session if server explicitly returned 401 / 403 (Token expired/revoked)
       if (status === 401 || status === 403) {
@@ -70,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (savedUser) {
           try {
             setUser(JSON.parse(savedUser));
-          } catch (e) {}
+          } catch (_e) {}
         }
       }
     } finally {
@@ -86,8 +87,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const result = await authService.login(input);
     setUser(result.user);
     localStorage.setItem('user_details', JSON.stringify(result.user));
+    
+    // Set cookie duration: 7 days if rememberMe, 8 hours (28800s) by default
+    const maxAge = input.rememberMe ? 604800 : 28800;
     if (typeof window !== 'undefined') {
-      document.cookie = "session_active=true; path=/; max-age=604800; SameSite=Lax";
+      document.cookie = `session_active=true; path=/; max-age=${maxAge}; SameSite=Lax`;
     }
   };
 
@@ -100,6 +104,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await authService.logout();
   };
 
+  const updateCurrentUser = (updated: User) => {
+    setUser(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user_details', JSON.stringify(updated));
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -108,6 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         logout,
+        updateCurrentUser,
       }}
     >
       {children}

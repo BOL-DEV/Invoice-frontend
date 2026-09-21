@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useInvoicesList, useInvoiceDetails, useDeleteInvoice } from '../../../features/invoices/hooks/useInvoices';
+import { useUsersList } from '../../../features/users/hooks/useUsers';
 import { usePermission } from '../../../features/auth/hooks/usePermission';
 import { InvoiceStatus, AxiosErrorLike } from '../../../types/api';
 import { Button } from '../../../components/ui/button';
@@ -15,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Skeleton } from '../../../components/ui/skeleton';
 import { apiClient } from '../../../services/api/axios';
 import { useModal } from '../../../components/ui/modal-provider';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
   Plus,
@@ -23,22 +23,15 @@ import {
   Printer,
   Trash2,
   Lock,
-  Edit,
   Eye,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck,
   AlertCircle,
   FileSpreadsheet,
   Calendar,
   User,
-  Hash,
-  Scale,
   X,
   Loader2,
-  CheckCircle2,
-  Clock,
-  Building2,
   Image as ImageIcon,
 } from 'lucide-react';
 
@@ -48,6 +41,11 @@ export default function InvoicesPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [cashierFilter, setCashierFilter] = useState<string>('ALL');
+  const [dateFilter, setDateFilter] = useState<string>('');
+
+  const { data: usersData } = useUsersList();
+  const cashiersList = usersData?.filter((u) => u.role === 'APPRENTICE') || [];
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<string | null>(null);
@@ -58,6 +56,9 @@ export default function InvoicesPage() {
     limit: 10,
     search: search || undefined,
     status: statusFilter === 'ALL' ? undefined : (statusFilter as InvoiceStatus),
+    issuedBy: isAdmin && cashierFilter !== 'ALL' ? cashierFilter : undefined,
+    startDate: isAdmin && dateFilter ? dateFilter : undefined,
+    endDate: isAdmin && dateFilter ? dateFilter : undefined,
   });
 
   const { data: invoiceDetails, isLoading: detailsLoading } = useInvoiceDetails(selectedInvoiceId);
@@ -252,6 +253,87 @@ export default function InvoicesPage() {
           </Button>
         </Link>
       </div>
+
+      {/* ========================================================= */}
+      {/* ADMIN SPECIFIC FILTERS: ISSUED BY & DATE                  */}
+      {/* ========================================================= */}
+      {isAdmin && (
+        <div className="flex flex-wrap items-center gap-3 p-3.5 bg-card border border-border rounded-2xl shadow-sm text-xs">
+          <div className="flex items-center space-x-1.5 font-semibold text-muted-foreground mr-1">
+            <User className="h-4 w-4 text-emerald-500" />
+            <span>Filter By:</span>
+          </div>
+
+          {/* Cashier / Issued By Filter */}
+          <div className="flex items-center space-x-2">
+            <span className="text-muted-foreground text-[11px] font-medium">Issued By:</span>
+            <Select
+              value={cashierFilter}
+              onValueChange={(val) => {
+                if (val) setCashierFilter(val);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[170px] h-9 bg-secondary border-border rounded-xl text-xs">
+                <SelectValue placeholder="All Cashiers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Cashiers</SelectItem>
+                {cashiersList.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.firstName} {c.lastName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Date Filter */}
+          <div className="flex items-center space-x-2">
+            <span className="text-muted-foreground text-[11px] font-medium">Date:</span>
+            <div className="flex items-center space-x-1">
+              <Input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => {
+                  setDateFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="w-[145px] h-9 bg-secondary border-border rounded-xl text-xs cursor-pointer"
+              />
+              {dateFilter && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDateFilter('');
+                    setPage(1);
+                  }}
+                  className="p-1 rounded-md text-muted-foreground hover:text-foreground"
+                  title="Clear date"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Reset button */}
+          {(cashierFilter !== 'ALL' || dateFilter) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setCashierFilter('ALL');
+                setDateFilter('');
+                setPage(1);
+              }}
+              className="h-8 px-2.5 rounded-xl text-xs text-rose-500 hover:bg-rose-500/10 ml-auto cursor-pointer"
+            >
+              Clear Filters
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* ========================================================= */}
       {/* SEARCH & SEGMENTED STATUS FILTERS                         */}
@@ -661,7 +743,7 @@ export default function InvoicesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {invoiceDetails.items?.map((item: any) => (
+                      {invoiceDetails.items?.map((item) => (
                         <TableRow key={item.id} className="text-xs border-b border-border/50">
                           <TableCell className="font-medium">{item.description}</TableCell>
                           <TableCell className="text-right font-mono tabular-nums">{Number(item.quantity).toLocaleString()}</TableCell>
@@ -682,7 +764,7 @@ export default function InvoicesPage() {
                     <span className="text-muted-foreground">Subtotal:</span>
                     <span className="tabular-nums font-semibold">{formatCurrency(invoiceDetails.subtotal)}</span>
                   </div>
-                  {invoiceDetails.charges?.map((charge: any) => (
+                  {invoiceDetails.charges?.map((charge) => (
                     <div key={charge.id} className="flex justify-between text-muted-foreground">
                       <span>{charge.name}:</span>
                       <span className="tabular-nums">{formatCurrency(charge.amount)}</span>

@@ -1,10 +1,13 @@
 'use client';
 
+import { useIdleTimeout } from '../../features/auth/hooks/useIdleTimeout';
+import { SessionTimeoutModal } from '../shared/SessionTimeoutModal';
+import { ProfileModal } from '../shared/ProfileModal';
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../../features/auth/context/AuthContext';
-import { usePermission } from '../../features/auth/hooks/usePermission';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -19,6 +22,8 @@ import {
   Sun,
   Moon,
   Building2,
+  ChevronDown,
+  User as UserIcon,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
@@ -56,9 +61,11 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, label, active, on
 export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const pathname = usePathname();
   const { user, logout, isLoading } = useAuth();
-  const { isAdmin } = usePermission();
+  const { isWarningOpen, secondsRemaining, stayLoggedIn, logOutNow } = useIdleTimeout();
   const { theme, setTheme } = useTheme();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -252,6 +259,15 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
         )}
       </AnimatePresence>
 
+      {/* Session Inactivity Timeout Modal */}
+      <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+      <SessionTimeoutModal
+        isOpen={isWarningOpen}
+        secondsRemaining={secondsRemaining}
+        onStayLoggedIn={stayLoggedIn}
+        onLogOutNow={logOutNow}
+      />
+
       {/* Main Panel Content Container */}
       <div className="flex-1 flex flex-col h-screen min-w-0 overflow-y-auto overflow-x-hidden">
         {/* Header toolbar */}
@@ -291,13 +307,66 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             </Button>
 
             {user && (
-              <div className="hidden sm:flex items-center space-x-2.5 px-3 py-1.5 rounded-full bg-secondary border border-border text-xs shadow-sm">
-                <div className="h-6 w-6 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold flex items-center justify-center text-[10px] uppercase font-mono">
-                  {user.firstName?.[0] || 'U'}{user.lastName?.[0] || ''}
-                </div>
-                <span className="font-semibold text-foreground text-xs">
-                  {user.firstName} {user.lastName}
-                </span>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                  className="flex items-center space-x-2.5 px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 border border-border text-xs shadow-sm transition-colors cursor-pointer select-none focus:outline-none"
+                >
+                  <div className="h-6 w-6 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold flex items-center justify-center text-[10px] uppercase font-mono">
+                    {user.firstName?.[0] || 'U'}{user.lastName?.[0] || ''}
+                  </div>
+                  <span className="hidden sm:inline font-semibold text-foreground text-xs">
+                    {user.firstName} {user.lastName}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+
+                {isUserMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setIsUserMenuOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-card border border-border shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                      <div className="p-2.5 border-b border-border/80">
+                        <p className="text-xs font-bold text-foreground truncate">{user.firstName} {user.lastName}</p>
+                        <p className="text-[11px] text-muted-foreground font-mono truncate">{user.email}</p>
+                        <div className="mt-1.5">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold font-mono tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            {user.role === 'ADMIN' ? 'ADMINISTRATOR' : 'CASHIER'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="py-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            setIsProfileOpen(true);
+                          }}
+                          className="w-full flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-xs text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                        >
+                          <UserIcon className="h-4 w-4 text-emerald-500" />
+                          <span>View & Edit Profile</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            logout();
+                          }}
+                          className="w-full flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-xs text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          <span>Log Out</span>
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>

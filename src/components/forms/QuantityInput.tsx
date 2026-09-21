@@ -10,7 +10,7 @@ interface QuantityInputProps extends Omit<React.ComponentProps<'input'>, 'value'
 }
 
 export const QuantityInput = forwardRef(
-  ({ value, onChange, decimals = 4, className, ...props }: QuantityInputProps, ref: ForwardedRef<HTMLInputElement>) => {
+  ({ value, onChange, decimals: _decimals = 4, className, ...props }: QuantityInputProps, ref: ForwardedRef<HTMLInputElement>) => {
     const formatValue = (val: number) => {
       if (isNaN(val)) return '';
       return val === 0 ? '' : val.toString();

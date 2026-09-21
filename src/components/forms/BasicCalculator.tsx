@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '../ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { X, GripVertical } from 'lucide-react';
 
 interface BasicCalculatorProps {

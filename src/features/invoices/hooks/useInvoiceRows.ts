@@ -14,8 +14,8 @@ export const useInvoiceRows = () => {
 
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
-    rowIndex: number,
-    fieldName: FocusableField
+    _rowIndex: number,
+    _fieldName: FocusableField
   ) => {
     if (e.key === 'Enter') {
       e.preventDefault();

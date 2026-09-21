@@ -18,11 +18,7 @@ import {
   ThumbsDown,
   CheckCircle2,
   Clock,
-  AlertCircle,
   ShieldCheck,
-  Calendar,
-  User,
-  Hash,
   Loader2,
 } from 'lucide-react';
 import { Skeleton } from '../../../components/ui/skeleton';

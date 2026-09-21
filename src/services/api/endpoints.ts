@@ -7,6 +7,8 @@ export const API_ENDPOINTS = {
   USERS: {
     BASE: '/api/users',
     DETAIL: (id: string) => `/api/users/${id}`,
+    TOGGLE_SUSPEND: (id: string) => `/api/users/${id}/toggle-suspend`,
+    ME: '/api/users/me',
   },
   INVOICES: {
     BASE: '/api/invoices',

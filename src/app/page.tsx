@@ -18,9 +18,7 @@ import {
   Loader2,
   Plus,
   ArrowRight,
-  ShieldAlert,
   BarChart3,
-  Calendar,
   CheckCircle2,
 } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
