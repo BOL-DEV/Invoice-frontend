@@ -372,7 +372,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
         </header>
 
         {/* Content body */}
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+        <main className="flex-1 p-3.5 sm:p-6 md:p-8 pb-32 sm:pb-12 md:pb-8 overflow-y-auto">
           {children}
         </main>
       </div>

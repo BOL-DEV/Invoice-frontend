@@ -25,6 +25,11 @@ import {
   AlertCircle,
   Settings as SettingsIcon,
   ShieldCheck,
+  Percent,
+  Phone,
+  Mail,
+  MapPin,
+  FileCode,
 } from 'lucide-react';
 import { useModal } from '../../../components/ui/modal-provider';
 import { BusinessSettings, AxiosErrorLike } from '../../../types/api';
@@ -61,11 +66,12 @@ export default function SettingsPage() {
     },
   });
 
+  // Re-sync form default values when user details finish loading or change
   useEffect(() => {
     if (user) {
       resetProfile({
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
@@ -76,46 +82,51 @@ export default function SettingsPage() {
   const onProfileSubmit = async (data: UpdateProfileInput) => {
     setProfileError(null);
     setProfileSuccess(null);
-    try {
-      const payload: {
-        firstName: string;
-        lastName: string;
-        currentPassword?: string;
-        newPassword?: string;
-      } = {
-        firstName: data.firstName,
-        lastName: data.lastName,
-      };
 
-      if (data.newPassword) {
+    try {
+      const payload: { firstName?: string; lastName?: string; currentPassword?: string; newPassword?: string } = {};
+
+      if (data.firstName && data.firstName !== user?.firstName) payload.firstName = data.firstName;
+      if (data.lastName && data.lastName !== user?.lastName) payload.lastName = data.lastName;
+      if (data.newPassword && data.newPassword.trim() !== '') {
         payload.currentPassword = data.currentPassword;
         payload.newPassword = data.newPassword;
       }
 
-      const updatedUser = await updateProfileMutation.mutateAsync(payload);
-      updateCurrentUser(updatedUser);
-      setProfileSuccess('Profile and security credentials updated successfully!');
+      if (Object.keys(payload).length === 0) {
+        setProfileError('No changes were made to your profile or credentials.');
+        return;
+      }
 
+      const res = await updateProfileMutation.mutateAsync(payload);
+      if (res?.data) {
+        updateCurrentUser(res.data);
+      }
+
+      setProfileSuccess('Profile details and security preferences updated successfully!');
       resetProfile({
-        firstName: updatedUser.firstName,
-        lastName: updatedUser.lastName,
+        firstName: res?.data?.firstName || data.firstName || '',
+        lastName: res?.data?.lastName || data.lastName || '',
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
       });
 
-      setTimeout(() => {
-        setProfileSuccess(null);
-      }, 5000);
+      modal.alert('Success', 'Your profile and security credentials have been updated.', 'success');
     } catch (err) {
-      const msg = (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to update profile details';
+      const axiosErr = err as AxiosErrorLike;
+      const msg =
+        axiosErr.response?.data?.error?.message ||
+        axiosErr.response?.data?.message ||
+        'Failed to update profile settings. Please verify your current password.';
       setProfileError(msg);
+      modal.alert('Update Failed', msg, 'error');
     }
   };
 
   // --- Company Settings (Admin Only) ---
   const { data: settings, isLoading: isSettingsLoading, isError: isSettingsError, refetch: refetchSettings } = useBusinessSettings();
-  const updateBusinessMutation = useUpdateBusinessSettings(settings?.id || '');
+  const updateBusinessMutation = useUpdateBusinessSettings();
   const [isBusinessSubmitting, setIsBusinessSubmitting] = useState(false);
 
   const {
@@ -123,28 +134,12 @@ export default function SettingsPage() {
     handleSubmit: handleBusinessSubmit,
     reset: resetBusiness,
   } = useForm<Partial<BusinessSettings>>({
-    defaultValues: {
-      businessName: '',
-      address: '',
-      phone: '',
-      email: '',
-      receiptPrefix: '',
-      defaultVatPercentage: 7.5,
-      defaultWhtPercentage: 2.0,
-    },
+    defaultValues: settings || {},
   });
 
   useEffect(() => {
     if (settings) {
-      resetBusiness({
-        businessName: settings.businessName,
-        address: settings.address,
-        phone: settings.phone,
-        email: settings.email,
-        receiptPrefix: settings.receiptPrefix,
-        defaultVatPercentage: settings.defaultVatPercentage,
-        defaultWhtPercentage: settings.defaultWhtPercentage,
-      });
+      resetBusiness(settings);
     }
   }, [settings, resetBusiness]);
 
@@ -174,63 +169,68 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-1 border-b border-border/60">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground font-heading flex items-center space-x-2">
-            <SettingsIcon className="h-5 w-5 text-primary" />
-            <span>Settings & Account</span>
-          </h2>
+          <div className="inline-flex items-center space-x-2 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-medium mb-1">
+            <SettingsIcon className="h-3 w-3" />
+            <span>Account Preferences</span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-heading">
+            Settings & Security
+          </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Manage your personal profile, security credentials, and system configurations.
+            Manage your personal profile, account credentials, and depot configurations.
           </p>
         </div>
       </div>
 
-      {/* Tabs Selection */}
-      <div className="flex items-center space-x-2 border-b border-border pb-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab('profile')}
-          className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center space-x-2 ${
-            activeTab === 'profile'
-              ? 'bg-primary text-white shadow-sm'
-              : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-          }`}
-        >
-          <User className="h-4 w-4" />
-          <span>My Profile & Security</span>
-        </button>
+      {/* Tabs Selection (Modern Segmented Control) */}
+      {isAdmin && (
+        <div className="p-1 rounded-xl bg-secondary/70 dark:bg-slate-900/80 border border-border/80 grid grid-cols-2 gap-1 w-full sm:max-w-md">
+          <button
+            type="button"
+            onClick={() => setActiveTab('profile')}
+            className={`flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'profile'
+                ? 'bg-card text-foreground shadow-sm border border-border/60 text-emerald-600 dark:text-emerald-400 font-bold'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+            }`}
+          >
+            <User className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">Profile & Security</span>
+          </button>
 
-        {isAdmin && (
           <button
             type="button"
             onClick={() => setActiveTab('business')}
-            className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center space-x-2 ${
+            className={`flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'business'
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                ? 'bg-card text-foreground shadow-sm border border-border/60 text-emerald-600 dark:text-emerald-400 font-bold'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
             }`}
           >
-            <Building2 className="h-4 w-4" />
-            <span>Company Profile & Billing</span>
+            <Building2 className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">Company & Billing</span>
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ========================================================= */}
       {/* TAB 1: PERSONAL PROFILE & SECURITY (ALL USERS)            */}
       {/* ========================================================= */}
       {activeTab === 'profile' && user && (
-        <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden">
+        <Card className="border-border/80 bg-card shadow-premium rounded-2xl overflow-hidden">
           <CardHeader className="p-4 sm:p-6 border-b border-border/80 bg-slate-50/50 dark:bg-slate-900/30">
             <div className="flex items-center space-x-3">
-              <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500">
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
                 <User className="h-5 w-5" />
               </div>
               <div>
-                <CardTitle className="text-sm font-bold text-foreground">Personal Information & Security</CardTitle>
+                <CardTitle className="text-sm sm:text-base font-bold text-foreground">
+                  Personal Information & Security
+                </CardTitle>
                 <CardDescription className="text-xs">
                   Update your identity details and change account login password.
                 </CardDescription>
@@ -256,29 +256,37 @@ export default function SettingsPage() {
               )}
 
               {/* Account Overview Pill */}
-              <div className="p-4 rounded-xl bg-secondary/50 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-border/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-0.5">
-                  <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground">Registered Email</span>
-                  <p className="text-xs font-semibold text-foreground font-mono">{user.email}</p>
+                  <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground">
+                    Registered Email
+                  </span>
+                  <p className="text-xs font-semibold text-foreground font-mono break-all">{user.email}</p>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Badge className={user.role === 'ADMIN' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20 font-mono text-[10px] font-bold' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-mono text-[10px] font-bold'}>
+                <div className="flex items-center space-x-2 pt-1 sm:pt-0">
+                  <Badge
+                    className={
+                      user.role === 'ADMIN'
+                        ? 'bg-blue-500/10 text-blue-500 border-blue-500/20 font-mono text-[10px] font-bold'
+                        : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-mono text-[10px] font-bold'
+                    }
+                  >
                     {user.role === 'ADMIN' ? 'Administrator' : 'Cashier (Apprentice)'}
                   </Badge>
                   <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
                     <ShieldCheck className="h-3.5 w-3.5" />
-                    <span>Active Account</span>
+                    <span>Active</span>
                   </span>
                 </div>
               </div>
 
-              {/* Name Details (Fully responsive: 1 col on mobile, 2 col on sm+) */}
+              {/* Name Details */}
               <div className="space-y-3 pt-1">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center space-x-1.5">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center space-x-1.5">
                   <span>Name Identification</span>
                 </h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="settings-firstName" className="text-xs font-semibold text-muted-foreground">
                       First Name
@@ -286,7 +294,7 @@ export default function SettingsPage() {
                     <Input
                       id="settings-firstName"
                       {...registerProfile('firstName')}
-                      className="bg-background h-10 rounded-xl text-xs"
+                      className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs"
                     />
                     {profileErrors.firstName && <p className="text-[11px] text-rose-500">{profileErrors.firstName.message}</p>}
                   </div>
@@ -298,7 +306,7 @@ export default function SettingsPage() {
                     <Input
                       id="settings-lastName"
                       {...registerProfile('lastName')}
-                      className="bg-background h-10 rounded-xl text-xs"
+                      className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs"
                     />
                     {profileErrors.lastName && <p className="text-[11px] text-rose-500">{profileErrors.lastName.message}</p>}
                   </div>
@@ -306,9 +314,9 @@ export default function SettingsPage() {
               </div>
 
               {/* Security & Password Change */}
-              <div className="space-y-3 pt-4 border-t border-border">
+              <div className="space-y-3 pt-4 border-t border-border/70">
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center space-x-1.5">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center space-x-1.5">
                     <Lock className="h-3.5 w-3.5 text-emerald-500" />
                     <span>Security & Password</span>
                   </h4>
@@ -328,13 +336,13 @@ export default function SettingsPage() {
                       type={showCurrentPassword ? 'text' : 'password'}
                       placeholder="Required only when setting a new password"
                       {...registerProfile('currentPassword')}
-                      className="bg-background h-10 rounded-xl text-xs pr-10"
+                      className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs pr-10"
                     />
                     <button
                       type="button"
                       tabIndex={-1}
                       onClick={() => setShowCurrentPassword((prev) => !prev)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 cursor-pointer"
                     >
                       {showCurrentPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                     </button>
@@ -342,8 +350,8 @@ export default function SettingsPage() {
                   {profileErrors.currentPassword && <p className="text-[11px] text-rose-500">{profileErrors.currentPassword.message}</p>}
                 </div>
 
-                {/* New Password & Confirm Password (1 col on mobile, 2 col on sm+) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* New Password & Confirm Password */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="settings-newPassword" className="text-xs font-semibold text-muted-foreground">
                       New Password
@@ -354,13 +362,13 @@ export default function SettingsPage() {
                         type={showNewPassword ? 'text' : 'password'}
                         placeholder="Minimum 6 characters"
                         {...registerProfile('newPassword')}
-                        className="bg-background h-10 rounded-xl text-xs pr-10"
+                        className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs pr-10"
                       />
                       <button
                         type="button"
                         tabIndex={-1}
                         onClick={() => setShowNewPassword((prev) => !prev)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 cursor-pointer"
                       >
                         {showNewPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                       </button>
@@ -377,7 +385,7 @@ export default function SettingsPage() {
                       type={showNewPassword ? 'text' : 'password'}
                       placeholder="Repeat new password"
                       {...registerProfile('confirmPassword')}
-                      className="bg-background h-10 rounded-xl text-xs"
+                      className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs"
                     />
                     {profileErrors.confirmPassword && <p className="text-[11px] text-rose-500">{profileErrors.confirmPassword.message}</p>}
                   </div>
@@ -385,20 +393,20 @@ export default function SettingsPage() {
               </div>
             </CardContent>
 
-            <CardFooter className="p-4 sm:p-6 border-t border-border bg-slate-50/50 dark:bg-slate-900/30 flex justify-end">
+            <CardFooter className="p-4 sm:p-6 border-t border-border/80 bg-slate-50/50 dark:bg-slate-900/30 flex justify-end">
               <Button
                 type="submit"
                 disabled={isProfileSubmitting || updateProfileMutation.isPending}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-10 px-5 text-xs font-semibold cursor-pointer shadow-premium"
+                className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-10 px-6 text-xs font-semibold cursor-pointer shadow-lg shadow-emerald-500/20 flex items-center justify-center space-x-2"
               >
                 {isProfileSubmitting || updateProfileMutation.isPending ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     <span>Saving...</span>
                   </>
                 ) : (
                   <>
-                    <Save className="h-4 w-4 mr-2" />
+                    <Save className="h-4 w-4" />
                     <span>Save Profile Changes</span>
                   </>
                 )}
@@ -412,10 +420,10 @@ export default function SettingsPage() {
       {/* TAB 2: COMPANY PROFILE & BILLING (ADMIN ONLY)             */}
       {/* ========================================================= */}
       {activeTab === 'business' && isAdmin && (
-        <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden">
+        <Card className="border-border/80 bg-card shadow-premium rounded-2xl overflow-hidden">
           {isSettingsLoading ? (
             <div className="flex flex-col items-center justify-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+              <Loader2 className="h-8 w-8 animate-spin text-emerald-500 mb-2" />
               <p className="text-xs text-muted-foreground">Loading configurations...</p>
             </div>
           ) : isSettingsError || !settings ? (
@@ -427,79 +435,141 @@ export default function SettingsPage() {
             </div>
           ) : (
             <form onSubmit={handleBusinessSubmit(onBusinessSubmit)}>
-              <CardHeader className="flex flex-row items-center space-x-3.5 space-y-0 border-b border-border py-4 px-6 bg-slate-50 dark:bg-slate-900/35">
-                <div className="bg-primary text-white p-2 rounded-xl">
-                  <Building2 className="h-5 w-5" />
-                </div>
-                <div>
-                  <CardTitle className="text-sm text-foreground font-bold">{settings.businessName || 'Company Profile'}</CardTitle>
-                  <CardDescription className="text-xs">Default invoice templates configuration.</CardDescription>
+              <CardHeader className="p-4 sm:p-6 border-b border-border/80 bg-slate-50/50 dark:bg-slate-900/30">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-sm sm:text-base font-bold text-foreground">
+                      {settings.businessName || 'Company Profile'}
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Default invoice template and tax rates configuration.
+                    </CardDescription>
+                  </div>
                 </div>
               </CardHeader>
               
-              <CardContent className="space-y-4 p-4 sm:p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <CardContent className="p-4 sm:p-6 space-y-4">
+                {/* Business Name & Email */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="businessName" className="text-xs font-semibold text-muted-foreground">
-                      Registered Business Name
+                    <Label htmlFor="businessName" className="text-xs font-semibold text-muted-foreground flex items-center space-x-1.5">
+                      <Building2 className="h-3 w-3 text-emerald-500" />
+                      <span>Registered Business Name</span>
                     </Label>
-                    <Input id="businessName" {...registerBusiness('businessName', { required: true })} className="bg-background font-medium h-10 rounded-xl text-xs" />
+                    <Input
+                      id="businessName"
+                      {...registerBusiness('businessName', { required: true })}
+                      className="bg-background border-border/80 focus:border-emerald-500/60 font-medium h-10 rounded-xl text-xs"
+                    />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground">
-                      Company Billing Email Address
+                    <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground flex items-center space-x-1.5">
+                      <Mail className="h-3 w-3 text-emerald-500" />
+                      <span>Billing Email Address</span>
                     </Label>
-                    <Input id="email" type="email" {...registerBusiness('email', { required: true })} className="bg-background h-10 rounded-xl text-xs" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground">
-                      Contact Phone Number
-                    </Label>
-                    <Input id="phone" {...registerBusiness('phone', { required: true })} className="bg-background h-10 rounded-xl text-xs" />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="defaultVatPercentage" className="text-xs font-semibold text-muted-foreground">
-                      Standard VAT Rate (%)
-                    </Label>
-                    <Input id="defaultVatPercentage" type="number" step="0.01" {...registerBusiness('defaultVatPercentage', { required: true })} className="bg-background font-mono h-10 rounded-xl text-xs" />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="defaultWhtPercentage" className="text-xs font-semibold text-muted-foreground">
-                      Standard WHT Rate (%)
-                    </Label>
-                    <Input id="defaultWhtPercentage" type="number" step="0.01" {...registerBusiness('defaultWhtPercentage', { required: true })} className="bg-background font-mono h-10 rounded-xl text-xs" />
+                    <Input
+                      id="email"
+                      type="email"
+                      {...registerBusiness('email', { required: true })}
+                      className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs"
+                    />
                   </div>
                 </div>
 
+                {/* Phone & Tax Rates */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4">
+                  <div className="space-y-1.5 sm:col-span-1">
+                    <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground flex items-center space-x-1.5">
+                      <Phone className="h-3 w-3 text-emerald-500" />
+                      <span>Contact Phone</span>
+                    </Label>
+                    <Input
+                      id="phone"
+                      {...registerBusiness('phone', { required: true })}
+                      className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs"
+                    />
+                  </div>
+
+                  {/* VAT & WHT in side-by-side subgrid on mobile */}
+                  <div className="sm:col-span-2 grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="defaultVatPercentage" className="text-xs font-semibold text-muted-foreground flex items-center space-x-1">
+                        <Percent className="h-3 w-3 text-emerald-500" />
+                        <span>VAT Rate (%)</span>
+                      </Label>
+                      <Input
+                        id="defaultVatPercentage"
+                        type="number"
+                        step="0.01"
+                        {...registerBusiness('defaultVatPercentage', { required: true })}
+                        className="bg-background border-border/80 focus:border-emerald-500/60 font-mono h-10 rounded-xl text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="defaultWhtPercentage" className="text-xs font-semibold text-muted-foreground flex items-center space-x-1">
+                        <Percent className="h-3 w-3 text-emerald-500" />
+                        <span>WHT Rate (%)</span>
+                      </Label>
+                      <Input
+                        id="defaultWhtPercentage"
+                        type="number"
+                        step="0.01"
+                        {...registerBusiness('defaultWhtPercentage', { required: true })}
+                        className="bg-background border-border/80 focus:border-emerald-500/60 font-mono h-10 rounded-xl text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Physical Office Address */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="address" className="text-xs font-semibold text-muted-foreground">
-                    Physical Office Address
+                  <Label htmlFor="address" className="text-xs font-semibold text-muted-foreground flex items-center space-x-1.5">
+                    <MapPin className="h-3 w-3 text-emerald-500" />
+                    <span>Physical Office Address</span>
                   </Label>
-                  <Input id="address" {...registerBusiness('address', { required: true })} className="bg-background h-10 rounded-xl text-xs" />
+                  <Input
+                    id="address"
+                    {...registerBusiness('address', { required: true })}
+                    className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs"
+                  />
                 </div>
 
+                {/* Default Receipt Prefix */}
                 <div className="w-full sm:w-1/2 space-y-1.5">
-                  <Label htmlFor="receiptPrefix" className="text-xs font-semibold text-muted-foreground">
-                    Default Receipt Prefix
+                  <Label htmlFor="receiptPrefix" className="text-xs font-semibold text-muted-foreground flex items-center space-x-1.5">
+                    <FileCode className="h-3 w-3 text-emerald-500" />
+                    <span>Default Receipt Prefix</span>
                   </Label>
-                  <Input id="receiptPrefix" {...registerBusiness('receiptPrefix', { required: true })} className="bg-background font-mono uppercase h-10 rounded-xl text-xs" />
+                  <Input
+                    id="receiptPrefix"
+                    {...registerBusiness('receiptPrefix', { required: true })}
+                    className="bg-background border-border/80 focus:border-emerald-500/60 font-mono uppercase h-10 rounded-xl text-xs"
+                  />
                 </div>
               </CardContent>
 
-              <CardFooter className="border-t border-border py-4 px-6 justify-end bg-slate-50 dark:bg-slate-900/35">
-                <Button type="submit" disabled={isBusinessSubmitting} className="font-semibold space-x-1.5 bg-[#10B981] hover:bg-[#059669] text-white rounded-xl h-10 px-5 shadow-premium text-xs cursor-pointer">
+              <CardFooter className="p-4 sm:p-6 border-t border-border/80 bg-slate-50/50 dark:bg-slate-900/30 flex justify-end">
+                <Button
+                  type="submit"
+                  disabled={isBusinessSubmitting}
+                  className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-10 px-6 text-xs font-semibold cursor-pointer shadow-lg shadow-emerald-500/20 flex items-center justify-center space-x-2"
+                >
                   {isBusinessSubmitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Saving...</span>
+                    </>
                   ) : (
-                    <Save className="h-4 w-4" />
+                    <>
+                      <Save className="h-4 w-4" />
+                      <span>Save Configurations</span>
+                    </>
                   )}
-                  <span>Save Configurations</span>
                 </Button>
               </CardFooter>
             </form>
