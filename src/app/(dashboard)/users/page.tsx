@@ -13,7 +13,7 @@ import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Badge } from '../../../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui/dialog';
-import { Plus, ShieldAlert, UserCheck, UserX, Loader2, Mail, Lock as LockIcon } from 'lucide-react';
+import { Plus, ShieldAlert, UserCheck, UserX, Loader2, Mail, Lock as LockIcon, Eye, EyeOff } from 'lucide-react';
 import { AxiosErrorLike } from '../../../types/api';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { useModal } from '../../../components/ui/modal-provider';
@@ -23,6 +23,7 @@ export default function UsersPage() {
   const modal = useModal();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Queries & Mutations
   const { data: users, isLoading, isError } = useUsersList();
@@ -274,12 +275,31 @@ export default function UsersPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-xs font-semibold text-muted-foreground">
+                                <Label htmlFor="password" className="text-xs font-semibold text-muted-foreground">
                   Access Password
                 </Label>
                 <div className="relative">
-                  <LockIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="password" type="password" placeholder="Min 6 characters..." {...register('password')} className="bg-background pl-9 h-10 rounded-xl" />
+                  <LockIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Min 6 characters..."
+                    {...register('password')}
+                    className="bg-background pl-10 pr-10 h-10 rounded-xl text-xs"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-md transition-colors"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
                 </div>
                 {errors.password && <p className="text-xs text-rose-500">{errors.password.message}</p>}
               </div>
