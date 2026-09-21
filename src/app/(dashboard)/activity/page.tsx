@@ -72,11 +72,10 @@ export default function ActivityPage() {
         <Table>
           <TableHeader className="bg-secondary/40 sticky top-0 z-10 border-b border-border">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-52 font-semibold text-foreground py-4 pl-6">Timestamp</TableHead>
-              <TableHead className="w-36 font-semibold text-foreground py-4">Action</TableHead>
-              <TableHead className="w-56 font-semibold text-foreground py-4">User Email</TableHead>
-              <TableHead className="w-40 font-semibold text-foreground py-4">IP Address</TableHead>
-              <TableHead className="font-semibold text-foreground py-4 pr-6">Event Details</TableHead>
+              <TableHead className="w-56 font-semibold text-foreground py-4 pl-6">Timestamp</TableHead>
+              <TableHead className="w-40 font-semibold text-foreground py-4">Action</TableHead>
+              <TableHead className="font-semibold text-foreground py-4">User Email</TableHead>
+              <TableHead className="w-48 font-semibold text-foreground py-4 pr-6">IP Address</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -86,8 +85,7 @@ export default function ActivityPage() {
                   <TableCell className="py-4 pl-6"><Skeleton className="h-4 w-32" /></TableCell>
                   <TableCell className="py-4"><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
                   <TableCell className="py-4"><Skeleton className="h-4 w-40" /></TableCell>
-                  <TableCell className="py-4"><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell className="py-4 pr-6"><Skeleton className="h-4 w-60" /></TableCell>
+                  <TableCell className="py-4 pr-6"><Skeleton className="h-4 w-24" /></TableCell>
                 </TableRow>
               ))
             ) : isError || !data?.logs ? (
@@ -119,11 +117,8 @@ export default function ActivityPage() {
                   <TableCell className="font-bold text-foreground text-xs py-4">
                     {log.user?.email || `User ID: ${log.userId.slice(0, 8)}...`}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground py-4">
+                  <TableCell className="font-mono text-xs text-muted-foreground py-4 pr-6">
                     {log.ipAddress || 'Unknown'}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground font-mono truncate max-w-md py-4 pr-6" title={JSON.stringify(log.details)}>
-                    {log.details ? JSON.stringify(log.details) : '—'}
                   </TableCell>
                 </TableRow>
               ))
