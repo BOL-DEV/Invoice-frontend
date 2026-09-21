@@ -32,7 +32,6 @@ import {
   User,
   X,
   Loader2,
-  Image as ImageIcon,
 } from 'lucide-react';
 
 export default function InvoicesPage() {
@@ -102,65 +101,9 @@ export default function InvoicesPage() {
     }
   };
 
-  const handleExport = async (invoiceId: string, format: 'pdf' | 'excel' | 'image', invoiceNumber: string) => {
+  const handleExport = async (invoiceId: string, format: 'pdf' | 'excel', invoiceNumber: string) => {
     setExportingFormat(format);
     try {
-      if (format === 'image') {
-        const response = await apiClient.get(`/api/printing/${invoiceId}/image`, {
-          responseType: 'blob',
-        });
-        const blobUrl = window.URL.createObjectURL(response.data);
-        
-        const img = new Image();
-        img.src = blobUrl;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const scale = 2; // Scale for high-resolution PNG
-          canvas.width = 600 * scale;
-          canvas.height = (img.naturalHeight || 800) * scale;
-          
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.scale(scale, scale);
-            ctx.drawImage(img, 0, 0);
-            
-            canvas.toBlob((pngBlob) => {
-              if (pngBlob) {
-                const pngUrl = window.URL.createObjectURL(pngBlob);
-                const link = document.createElement('a');
-                link.href = pngUrl;
-                link.setAttribute('download', `invoice_${invoiceNumber}.png`);
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                window.URL.revokeObjectURL(pngUrl);
-              }
-              window.URL.revokeObjectURL(blobUrl);
-            }, 'image/png');
-          } else {
-            const link = document.createElement('a');
-            link.href = blobUrl;
-            link.setAttribute('download', `invoice_${invoiceNumber}.svg`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(blobUrl);
-          }
-          setExportingFormat(null);
-        };
-        img.onerror = () => {
-          const link = document.createElement('a');
-          link.href = blobUrl;
-          link.setAttribute('download', `invoice_${invoiceNumber}.svg`);
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-          window.URL.revokeObjectURL(blobUrl);
-          setExportingFormat(null);
-        };
-        return;
-      }
-
       const extension = format === 'pdf' ? 'pdf' : 'csv';
       const contentType = format === 'pdf' ? 'application/pdf' : 'text/csv';
       
@@ -632,21 +575,7 @@ export default function InvoicesPage() {
               {/* Action Buttons in Header */}
               {invoiceDetails && (
                 <div className="flex items-center space-x-2">
-                  {/* PNG Image Export */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={exportingFormat === 'image'}
-                    onClick={() => handleExport(invoiceDetails.id, 'image', invoiceDetails.invoiceNumber)}
-                    className="h-9 text-xs rounded-xl border-border flex items-center space-x-1.5 cursor-pointer"
-                  >
-                    {exportingFormat === 'image' ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <ImageIcon className="h-3.5 w-3.5 text-blue-500" />
-                    )}
-                    <span>PNG</span>
-                  </Button>
+                  
 
                   {/* PDF Export */}
                   <Button

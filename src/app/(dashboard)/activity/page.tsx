@@ -92,13 +92,13 @@ export default function ActivityPage() {
               ))
             ) : isError || !data?.logs ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center p-8 text-rose-500 font-medium">
+                <TableCell colSpan={4} className="text-center p-8 text-rose-500 font-medium">
                   Failed to fetch audit trails.
                 </TableCell>
               </TableRow>
             ) : data.logs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center p-12 text-muted-foreground italic">
+                <TableCell colSpan={4} className="text-center p-12 text-muted-foreground italic">
                   No activity log history recorded.
                 </TableCell>
               </TableRow>
@@ -131,32 +131,67 @@ export default function ActivityPage() {
           </TableBody>
         </Table>
 
-        {/* Pagination controls */}
+        {/* Numbered Interactive Pagination */}
         {data && data.pagination && data.pagination.totalPages > 1 && (
-          <div className="p-4 border-t border-border flex justify-between items-center bg-secondary/15">
-            <span className="text-xs text-muted-foreground">
-              Showing Page {data.pagination.page} of {data.pagination.totalPages} ({data.pagination.total} records)
+          <div className="px-6 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground bg-secondary/15">
+            <span className="font-mono text-[11px]">
+              Showing {((page - 1) * 20) + 1} to {Math.min(page * 20, data.pagination.total)} of {data.pagination.total} records
             </span>
-            <div className="flex space-x-1">
+            
+            <div className="flex items-center space-x-1.5">
               <Button
                 variant="outline"
                 size="sm"
+                disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                disabled={page === 1}
-                className="h-8 rounded-lg"
+                className="h-8 rounded-xl text-xs px-2.5 border-border hover:bg-secondary cursor-pointer"
               >
-                <ChevronLeft className="h-4 w-4 mr-0.5" />
-                <span>Prev</span>
+                <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                <span className="hidden sm:inline">Previous</span>
               </Button>
+
+              {/* Number Buttons */}
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: data.pagination.totalPages }, (_, i) => i + 1).map((pageNum) => {
+                  if (
+                    data.pagination.totalPages > 7 &&
+                    pageNum !== 1 &&
+                    pageNum !== data.pagination.totalPages &&
+                    Math.abs(pageNum - page) > 1
+                  ) {
+                    if (pageNum === 2 || pageNum === data.pagination.totalPages - 1) {
+                      return <span key={pageNum} className="px-1 text-muted-foreground">...</span>;
+                    }
+                    return null;
+                  }
+
+                  const isActive = pageNum === page;
+                  return (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      onClick={() => setPage(pageNum)}
+                      className={`h-8 min-w-8 px-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center ${
+                        isActive
+                          ? 'bg-emerald-500 text-white font-bold shadow-sm'
+                          : 'bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary border border-border/50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setPage((p) => Math.min(p + 1, data.pagination.totalPages))}
-                disabled={page === data.pagination.totalPages}
-                className="h-8 rounded-lg"
+                disabled={page >= data.pagination.totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="h-8 rounded-xl text-xs px-2.5 border-border hover:bg-secondary cursor-pointer"
               >
-                <span>Next</span>
-                <ChevronRight className="h-4 w-4 ml-0.5" />
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight className="h-3.5 w-3.5 ml-1" />
               </Button>
             </div>
           </div>
