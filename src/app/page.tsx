@@ -88,7 +88,7 @@ export default function Home() {
             <p className="text-xs text-muted-foreground mt-0.5">
               {isAdmin
                 ? 'Live sales performance, cashier activity, and pending approval workflows.'
-                : 'Monitor your shift receipts, active draft orders, and pending approval requests.'}
+                : 'Monitor your finalized receipts, active draft orders, and pending approval requests.'}
             </p>
           </div>
 
@@ -133,9 +133,7 @@ export default function Home() {
           <div className="p-6 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-500 text-center space-y-3">
             <p className="font-semibold text-sm">Failed to fetch server statistics.</p>
             <p className="text-xs text-muted-foreground">
-              {((error as any)?.response?.data?.error?.message) ||
-                ((error as any)?.message) ||
-                'Ensure your backend service is running and accessible.'}
+              {error instanceof Error ? error.message : 'Ensure your backend service is running and accessible.'}
             </p>
             <Button onClick={() => refetch()} variant="outline" className="border-rose-500/25 hover:bg-rose-500/5 text-rose-600 rounded-xl h-9 text-xs px-4">
               Retry Connection
@@ -160,7 +158,7 @@ export default function Home() {
                 <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-teal-400" />
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-6 pt-4">
                   <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                    {isAdmin ? 'Aggregate Revenue' : 'My Shift Revenue'}
+                    Total Revenue
                   </CardTitle>
                   <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
                     <TrendingUp className="h-4 w-4" />
@@ -173,7 +171,7 @@ export default function Home() {
                   <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center space-x-1">
                     <CheckCircle2 className="h-3 w-3 text-emerald-500 inline" />
                     <span>
-                      {isAdmin ? 'Computed from finalized invoices' : 'From your finalized receipts'}
+                      Computed from finalized invoices
                     </span>
                   </p>
                 </CardContent>
