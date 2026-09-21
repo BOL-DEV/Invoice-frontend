@@ -26,7 +26,7 @@ import { Button } from '../components/ui/button';
 
 export default function Home() {
   const { user, isLoading: authLoading } = useAuth();
-  const { data: stats, isLoading: statsLoading, isError, refetch } = useDashboardStats();
+  const { data: stats, isLoading: statsLoading, isError, error, refetch } = useDashboardStats();
 
   if (authLoading || !user) {
     return (
@@ -132,7 +132,11 @@ export default function Home() {
         ) : isError ? (
           <div className="p-6 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-500 text-center space-y-3">
             <p className="font-semibold text-sm">Failed to fetch server statistics.</p>
-            <p className="text-xs text-muted-foreground">Ensure your backend service is running and accessible.</p>
+            <p className="text-xs text-muted-foreground">
+              {((error as any)?.response?.data?.error?.message) ||
+                ((error as any)?.message) ||
+                'Ensure your backend service is running and accessible.'}
+            </p>
             <Button onClick={() => refetch()} variant="outline" className="border-rose-500/25 hover:bg-rose-500/5 text-rose-600 rounded-xl h-9 text-xs px-4">
               Retry Connection
             </Button>
