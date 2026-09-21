@@ -1,6 +1,6 @@
 import { apiClient } from './api/axios';
 import { API_ENDPOINTS } from './api/endpoints';
-import { ApiResponse, Invoice, InvoiceStatus, InvoiceRevenueSummary } from '../types/api';
+import { ApiResponse, Invoice, InvoiceStatus, InvoiceRevenueSummary, InvoiceShare } from '../types/api';
 import { InvoiceFormInput } from '../features/invoices/schemas';
 
 interface ListInvoicesParams {
@@ -65,5 +65,17 @@ export const invoiceService = {
 
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(API_ENDPOINTS.INVOICES.DETAIL(id));
+  },
+
+  share: async (id: string, targetUserId: string, notes?: string): Promise<InvoiceShare> => {
+    const response = await apiClient.post<ApiResponse<InvoiceShare>>(
+      API_ENDPOINTS.INVOICES.SHARE(id),
+      { targetUserId, notes }
+    );
+    return response.data.data;
+  },
+
+  revokeShare: async (id: string, targetUserId: string): Promise<void> => {
+    await apiClient.delete(API_ENDPOINTS.INVOICES.REVOKE_SHARE(id, targetUserId));
   },
 };

@@ -69,3 +69,27 @@ export const useInvoiceRevenueSummary = (issuedBy?: string) => {
     refetchInterval: 30000,
   });
 };
+
+export const useShareInvoice = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ invoiceId, targetUserId, notes }: { invoiceId: string; targetUserId: string; notes?: string }) =>
+      invoiceService.share(invoiceId, targetUserId, notes),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['invoices', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices', 'details', variables.invoiceId] });
+    },
+  });
+};
+
+export const useRevokeShareInvoice = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ invoiceId, targetUserId }: { invoiceId: string; targetUserId: string }) =>
+      invoiceService.revokeShare(invoiceId, targetUserId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['invoices', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices', 'details', variables.invoiceId] });
+    },
+  });
+};

@@ -14,6 +14,8 @@ export const API_ENDPOINTS = {
     BASE: '/api/invoices',
     DETAIL: (id: string) => `/api/invoices/${id}`,
     SUMMARY: '/api/invoices/summary',
+    SHARE: (id: string) => `/api/invoices/${id}/share`,
+    REVOKE_SHARE: (id: string, targetUserId: string) => `/api/invoices/${id}/share/${targetUserId}`,
   },
   CUSTOMERS: {
     AUTOCOMPLETE: '/api/customers/autocomplete',

@@ -97,6 +97,25 @@ export interface InvoiceCharge {
   updatedAt: string;
 }
 
+export interface InvoiceShare {
+  id: string;
+  invoiceId: string;
+  sharedWithId: string;
+  sharedWith: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  sharedById: string;
+  sharedBy: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  notes: string | null;
+  createdAt: string;
+}
+
 export interface Invoice {
   id: string;
   invoiceNumber: string;
@@ -118,6 +137,7 @@ export interface Invoice {
     firstName: string;
     lastName: string;
   };
+  shares?: InvoiceShare[];
 }
 
 export type ApprovalType = 'EDIT' | 'PRINT' | 'DELETE';

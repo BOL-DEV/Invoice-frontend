@@ -2,10 +2,19 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useInvoicesList, useInvoiceDetails, useDeleteInvoice, useInvoiceRevenueSummary } from '../../../features/invoices/hooks/useInvoices';
+import {
+  useInvoicesList,
+  useInvoiceDetails,
+  useDeleteInvoice,
+  useInvoiceRevenueSummary,
+  useShareInvoice,
+  useRevokeShareInvoice,
+} from '../../../features/invoices/hooks/useInvoices';
+import { useCreateApproval } from '../../../features/approvals/hooks/useApprovals';
+import { useAuth } from '../../../features/auth/context/AuthContext';
 import { useUsersList } from '../../../features/users/hooks/useUsers';
 import { usePermission } from '../../../features/auth/hooks/usePermission';
-import { InvoiceStatus, AxiosErrorLike } from '../../../types/api';
+import { Invoice, InvoiceStatus, AxiosErrorLike } from '../../../types/api';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
@@ -35,9 +44,11 @@ import {
   User,
   X,
   Loader2,
+  Share2,
 } from 'lucide-react';
 
 export default function InvoicesPage() {
+  const { user } = useAuth();
   const { isAdmin } = usePermission();
   const modal = useModal();
   const [page, setPage] = useState(1);
@@ -52,6 +63,72 @@ export default function InvoicesPage() {
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<string | null>(null);
+
+  // Sharing state & mutations
+  const shareMutation = useShareInvoice();
+  const revokeShareMutation = useRevokeShareInvoice();
+  const createApprovalMutation = useCreateApproval();
+
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [invoiceToShare, setInvoiceToShare] = useState<Invoice | null>(null);
+  const [targetUserId, setTargetUserId] = useState<string>('');
+  const [shareNotes, setShareNotes] = useState<string>('');
+  const [isSharing, setIsSharing] = useState(false);
+
+  const openShareModal = (invoice: Invoice, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setInvoiceToShare(invoice);
+    setShareNotes('');
+    const eligibleApprentices = staffList.filter(
+      (u) => u.role === 'APPRENTICE' && u.id !== invoice.creatorId && u.id !== user?.id
+    );
+    setTargetUserId(eligibleApprentices.length > 0 ? eligibleApprentices[0].id : '');
+    setIsShareModalOpen(true);
+  };
+
+  const handleShareSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!invoiceToShare || !targetUserId) {
+      modal.alert('Select Cashier', 'Please select an apprentice cashier to share with.', 'warning');
+      return;
+    }
+
+    setIsSharing(true);
+    try {
+      await shareMutation.mutateAsync({
+        invoiceId: invoiceToShare.id,
+        targetUserId,
+        notes: shareNotes.trim() || undefined,
+      });
+      setIsShareModalOpen(false);
+      modal.alert(
+        'Invoice Shared',
+        `Invoice ${invoiceToShare.invoiceNumber} has been successfully shared. The cashier can now view and print it from their dashboard.`,
+        'success'
+      );
+    } catch (err) {
+      const errorMsg = (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to share invoice';
+      modal.alert('Sharing Failed', errorMsg, 'error');
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleRevokeShare = async (invoiceId: string, targetUserId: string, targetName: string) => {
+    const isConfirmed = await modal.confirm(
+      'Revoke Access',
+      `Are you sure you want to revoke access for ${targetName}? They will no longer be able to view or print this invoice.`
+    );
+    if (isConfirmed) {
+      try {
+        await revokeShareMutation.mutateAsync({ invoiceId, targetUserId });
+        modal.alert('Access Revoked', `Sharing with ${targetName} has been revoked.`, 'success');
+      } catch (err) {
+        const errorMsg = (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to revoke access';
+        modal.alert('Revocation Failed', errorMsg, 'error');
+      }
+    }
+  };
 
   // Queries
   const { data: summary, isLoading: isSummaryLoading } = useInvoiceRevenueSummary(
@@ -109,6 +186,41 @@ export default function InvoicesPage() {
   };
 
   const handleExport = async (invoiceId: string, format: 'pdf' | 'excel', invoiceNumber: string) => {
+    // If apprentice trying to print a PRINTED invoice, check if they need approval
+    if (!isAdmin && format === 'pdf' && invoiceDetails?.status === 'PRINTED') {
+      const shouldRequest = await modal.confirm(
+        'Reprint Approval Required',
+        'This invoice has already been printed. Administrative authorization is required to reprint official documents. Would you like to request approval now?',
+        'Request Approval',
+        'Cancel'
+      );
+      if (shouldRequest) {
+        const reason = await modal.prompt(
+          'Reprint Reason',
+          'Please enter the reason for this reprint request (e.g. Printer paper jam, customer copy replacement):',
+          'Customer requested reprint'
+        );
+        if (reason) {
+          try {
+            await createApprovalMutation.mutateAsync({
+              invoiceId,
+              type: 'PRINT',
+              reason,
+            });
+            modal.alert(
+              'Request Submitted',
+              'Your reprint authorization request has been submitted to the administrators. You will be able to print once approved.',
+              'success'
+            );
+          } catch (approvalErr) {
+            const msg = (approvalErr as AxiosErrorLike).response?.data?.error?.message || 'Failed to submit approval request';
+            modal.alert('Submission Error', msg, 'error');
+          }
+        }
+      }
+      return;
+    }
+
     setExportingFormat(format);
     try {
       const extension = format === 'pdf' ? 'pdf' : 'csv';
@@ -130,7 +242,41 @@ export default function InvoicesPage() {
     } catch (error) {
       console.error(`Export to ${format} failed:`, error);
       const errMsg = (error as AxiosErrorLike).response?.data?.error?.message || `Failed to export invoice to ${format}`;
-      modal.alert('Export Failed', errMsg, 'error');
+      
+      if (!isAdmin && errMsg.toLowerCase().includes('approval')) {
+        const shouldRequest = await modal.confirm(
+          'Authorization Required',
+          `${errMsg}. Would you like to send a reprint approval request to the administrators now?`,
+          'Request Approval',
+          'Dismiss'
+        );
+        if (shouldRequest) {
+          const reason = await modal.prompt(
+            'Reprint Reason',
+            'Please enter the reason for this reprint request:',
+            'Reprint requested'
+          );
+          if (reason) {
+            try {
+              await createApprovalMutation.mutateAsync({
+                invoiceId,
+                type: 'PRINT',
+                reason,
+              });
+              modal.alert(
+                'Request Submitted',
+                'Your authorization request has been submitted to the administrators.',
+                'success'
+              );
+            } catch (aErr) {
+              const m = (aErr as AxiosErrorLike).response?.data?.error?.message || 'Failed to submit approval request';
+              modal.alert('Submission Error', m, 'error');
+            }
+          }
+        }
+      } else {
+        modal.alert('Export Failed', errMsg, 'error');
+      }
     } finally {
       setExportingFormat(null);
     }
@@ -523,9 +669,33 @@ export default function InvoicesPage() {
                   >
                     {/* Invoice Number */}
                     <TableCell className="px-6 py-4 whitespace-nowrap">
-                      <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
-                        {inv.invoiceNumber}
-                      </span>
+                      <div className="flex flex-col space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                            {inv.invoiceNumber}
+                          </span>
+                          {/* Received Badge for Cashier */}
+                          {user && inv.creatorId !== user.id && (
+                            <span
+                              className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
+                              title={`Originally issued by ${inv.creator?.firstName} ${inv.creator?.lastName}`}
+                            >
+                              <Share2 className="h-2.5 w-2.5" />
+                              <span>Received</span>
+                            </span>
+                          )}
+                          {/* Shared Badge for Creator or Admin */}
+                          {inv.shares && inv.shares.length > 0 && (isAdmin || (user && inv.creatorId === user.id)) && (
+                            <span
+                              className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                              title={`Shared with: ${inv.shares.map((s) => `${s.sharedWith.firstName} ${s.sharedWith.lastName}`).join(', ')}`}
+                            >
+                              <Share2 className="h-2.5 w-2.5" />
+                              <span>Shared ({inv.shares.length})</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </TableCell>
 
                     {/* Customer */}
@@ -557,9 +727,18 @@ export default function InvoicesPage() {
 
                     {/* Issued By */}
                     <TableCell className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-1.5 text-xs text-muted-foreground">
-                        <User className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" />
-                        <span className="font-medium">{inv.creator ? `${inv.creator.firstName} ${inv.creator.lastName}` : 'System'}</span>
+                      <div className="flex flex-col space-y-0.5">
+                        <div className="flex items-center space-x-1.5 text-xs text-muted-foreground">
+                          <User className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" />
+                          <span className="font-medium text-foreground">
+                            {inv.creator ? `${inv.creator.firstName} ${inv.creator.lastName}` : 'System'}
+                          </span>
+                        </div>
+                        {inv.shares && inv.shares.length > 0 && (
+                          <div className="text-[10px] text-muted-foreground pl-5 font-mono">
+                            w/ {inv.shares.map((s) => s.sharedWith.firstName).join(', ')}
+                          </div>
+                        )}
                       </div>
                     </TableCell>
 
@@ -570,15 +749,30 @@ export default function InvoicesPage() {
 
                     {/* Actions */}
                     <TableCell className="px-6 py-4 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRowClick(inv.id)}
-                        className="h-8 px-3 rounded-xl text-xs border-border hover:bg-secondary flex items-center space-x-1.5 mx-auto cursor-pointer"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                        <span>View</span>
-                      </Button>
+                      <div className="flex items-center justify-center space-x-1.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRowClick(inv.id)}
+                          className="h-8 px-2.5 rounded-xl text-xs border-border hover:bg-secondary flex items-center space-x-1 cursor-pointer"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>View</span>
+                        </Button>
+
+                        {(isAdmin || (user && inv.creatorId === user.id)) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            title="Share invoice with another cashier"
+                            onClick={(e) => openShareModal(inv, e)}
+                            className="h-8 px-2 rounded-xl text-xs border-border hover:bg-blue-500/10 hover:text-blue-600 hover:border-blue-500/30 flex items-center space-x-1 cursor-pointer transition-colors"
+                          >
+                            <Share2 className="h-3.5 w-3.5 text-blue-500" />
+                            <span className="hidden sm:inline">Share</span>
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -680,6 +874,54 @@ export default function InvoicesPage() {
               {invoiceDetails && (
                 <div className="flex items-center space-x-2">
                   
+                  {/* Share Button */}
+                  {(isAdmin || (user && invoiceDetails.creatorId === user.id)) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openShareModal(invoiceDetails)}
+                      className="h-9 text-xs rounded-xl border-border flex items-center space-x-1.5 cursor-pointer hover:bg-blue-500/10 hover:text-blue-600 hover:border-blue-500/30 transition-colors"
+                    >
+                      <Share2 className="h-3.5 w-3.5 text-blue-500" />
+                      <span>Share</span>
+                    </Button>
+                  )}
+
+                  {/* Request Reprint Button for Apprentice if PRINTED */}
+                  {!isAdmin && invoiceDetails.status === 'PRINTED' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        const reason = await modal.prompt(
+                          'Reprint Authorization Request',
+                          'Enter the reason for requesting reprint authorization (e.g. Paper damaged, client duplicate copy):',
+                          'Customer copy replacement'
+                        );
+                        if (reason) {
+                          try {
+                            await createApprovalMutation.mutateAsync({
+                              invoiceId: invoiceDetails.id,
+                              type: 'PRINT',
+                              reason,
+                            });
+                            modal.alert(
+                              'Request Submitted',
+                              'Your reprint authorization request has been submitted to the administrators. You will be able to print once approved.',
+                              'success'
+                            );
+                          } catch (err) {
+                            const msg = (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to submit reprint request';
+                            modal.alert('Request Failed', msg, 'error');
+                          }
+                        }
+                      }}
+                      className="h-9 text-xs rounded-xl border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 flex items-center space-x-1.5 cursor-pointer"
+                    >
+                      <Lock className="h-3.5 w-3.5 text-amber-500" />
+                      <span>Request Reprint</span>
+                    </Button>
+                  )}
 
                   {/* PDF Export */}
                   <Button
@@ -771,6 +1013,53 @@ export default function InvoicesPage() {
                 </div>
               </div>
 
+              {/* Invoice Sharing Record (if shared) */}
+              {invoiceDetails.shares && invoiceDetails.shares.length > 0 && (
+                <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/20 space-y-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <div className="flex items-center space-x-2">
+                      <Share2 className="h-4 w-4 text-blue-500" />
+                      <span className="text-xs font-bold text-foreground">Shared Cashier Access</span>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">
+                      Originally issued by <strong>{invoiceDetails.creator ? `${invoiceDetails.creator.firstName} ${invoiceDetails.creator.lastName}` : 'Original Cashier'}</strong>
+                    </span>
+                  </div>
+                  <div className="divide-y divide-border/60">
+                    {invoiceDetails.shares.map((share) => (
+                      <div key={share.id} className="pt-2 pb-1.5 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-semibold text-foreground">
+                              {share.sharedWith.firstName} {share.sharedWith.lastName}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              (Shared by {share.sharedBy.firstName} {share.sharedBy.lastName} on {new Date(share.createdAt).toLocaleDateString()})
+                            </span>
+                          </div>
+                          {share.notes && (
+                            <p className="text-[11px] text-muted-foreground italic pl-2 border-l-2 border-blue-500/40">
+                              &ldquo;{share.notes}&rdquo;
+                            </p>
+                          )}
+                        </div>
+
+                        {(isAdmin || (user && invoiceDetails.creatorId === user.id)) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRevokeShare(invoiceDetails.id, share.sharedWithId, `${share.sharedWith.firstName} ${share.sharedWith.lastName}`)}
+                            className="h-7 px-2.5 text-[11px] text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer self-start sm:self-auto rounded-lg"
+                          >
+                            Revoke
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Line Items Table */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Line Items Breakdown</h4>
@@ -820,6 +1109,131 @@ export default function InvoicesPage() {
                 </div>
               </div>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================= */}
+      {/* SHARE INVOICE MODAL                                       */}
+      {/* ========================================================= */}
+      <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
+        <DialogContent className="sm:max-w-md w-[95vw] p-6 rounded-2xl">
+          <DialogHeader>
+            <div className="flex items-center space-x-3 mb-1">
+              <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
+                <Share2 className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold text-foreground">
+                  Share Invoice
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Allow another cashier to access, view, and print this invoice.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {invoiceToShare && (
+            <form onSubmit={handleShareSubmit} className="space-y-4 pt-2">
+              {/* Invoice Summary Card */}
+              <div className="p-3 rounded-xl bg-secondary/50 border border-border text-xs space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Invoice Number:</span>
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    {invoiceToShare.invoiceNumber}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Customer:</span>
+                  <span className="font-medium text-foreground">{invoiceToShare.customerName}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Original Issuer:</span>
+                  <span className="font-medium text-foreground">
+                    {invoiceToShare.creator ? `${invoiceToShare.creator.firstName} ${invoiceToShare.creator.lastName}` : 'Cashier'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Grand Total:</span>
+                  <span className="font-mono font-bold text-foreground">{formatCurrency(invoiceToShare.total)}</span>
+                </div>
+              </div>
+
+              {/* Recipient Cashier Selector */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">
+                  Select Recipient Cashier <span className="text-rose-500">*</span>
+                </label>
+                {staffList.filter((u) => u.role === 'APPRENTICE' && u.id !== invoiceToShare.creatorId && u.id !== user?.id).length === 0 ? (
+                  <p className="text-xs text-amber-600 bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
+                    No other active apprentice cashiers are available to receive this invoice.
+                  </p>
+                ) : (
+                  <div className="relative">
+                    <select
+                      value={targetUserId}
+                      onChange={(e) => setTargetUserId(e.target.value)}
+                      required
+                      className="w-full h-10 px-3 pr-8 bg-secondary border border-border rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/30 cursor-pointer font-medium appearance-none"
+                    >
+                      <option value="" disabled>Choose an apprentice cashier...</option>
+                      {staffList
+                        .filter((u) => u.role === 'APPRENTICE' && u.id !== invoiceToShare.creatorId && u.id !== user?.id)
+                        .map((cashier) => (
+                          <option key={cashier.id} value={cashier.id}>
+                            {cashier.firstName} {cashier.lastName} ({cashier.email})
+                          </option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                )}
+                <p className="text-[11px] text-muted-foreground">
+                  The invoice will remain officially credited to {invoiceToShare.creator ? `${invoiceToShare.creator.firstName} ${invoiceToShare.creator.lastName}` : 'the issuer'}.
+                </p>
+              </div>
+
+              {/* Transfer Note */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">
+                  Transfer Note / Instructions <span className="text-muted-foreground font-normal">(Optional)</span>
+                </label>
+                <Input
+                  type="text"
+                  placeholder="e.g. Please print customer receipt copy and collect balance"
+                  value={shareNotes}
+                  onChange={(e) => setShareNotes(e.target.value)}
+                  className="h-10 text-xs bg-background rounded-xl border-border focus:ring-2 focus:ring-emerald-500/30"
+                />
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-border/80">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsShareModalOpen(false)}
+                  className="h-9 px-4 rounded-xl text-xs cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isSharing || !targetUserId}
+                  className="h-9 px-4 rounded-xl text-xs bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-1.5 cursor-pointer"
+                >
+                  {isSharing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Share2 className="h-3.5 w-3.5" />
+                  )}
+                  <span>Share Invoice</span>
+                </Button>
+              </div>
+            </form>
           )}
         </DialogContent>
       </Dialog>
