@@ -78,7 +78,12 @@ export default function InvoicesPage() {
   const getEligibleRecipients = (invoice: Invoice | null) => {
     if (!invoice) return [];
     return staffList.filter(
-      (u) => !u.isDeleted && !u.isSuspended && u.id !== invoice.creatorId && u.id !== user?.id
+      (u) =>
+        u.role === 'APPRENTICE' &&
+        !u.isDeleted &&
+        !u.isSuspended &&
+        u.id !== invoice.creatorId &&
+        u.id !== user?.id
     );
   };
 
@@ -1172,9 +1177,9 @@ export default function InvoicesPage() {
                 </label>
                 {getEligibleRecipients(invoiceToShare).length === 0 ? (
                   <div className="text-xs text-amber-600 bg-amber-500/10 p-3.5 rounded-xl border border-amber-500/20 space-y-1.5">
-                    <p className="font-semibold">No other active cashier accounts available</p>
+                    <p className="font-semibold">No other apprentice cashiers available</p>
                     <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80">
-                      To share invoices, there must be at least one other active cashier account registered in the system.
+                      To share invoices, there must be at least one other active apprentice cashier registered in the system.
                     </p>
                     {isAdmin && (
                       <Link href="/users">
@@ -1195,7 +1200,7 @@ export default function InvoicesPage() {
                       <option value="" disabled>Choose an apprentice cashier...</option>
                       {getEligibleRecipients(invoiceToShare).map((cashier) => (
                         <option key={cashier.id} value={cashier.id}>
-                          {cashier.firstName} {cashier.lastName} ({cashier.role === 'ADMIN' ? 'Admin' : 'Cashier'}) &mdash; {cashier.email}
+                          {cashier.firstName} {cashier.lastName} &mdash; {cashier.email}
                         </option>
                       ))}
                     </select>
