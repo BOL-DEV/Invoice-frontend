@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { useDashboardStats } from '../features/dashboard/hooks/useDashboardStats';
 import { AppLayout } from '../components/layout/AppLayout';
@@ -12,7 +13,6 @@ import {
   Clock,
   UserCheck,
   FileSpreadsheet,
-  Building2,
   RefreshCw,
   Loader2,
   Plus,
@@ -419,7 +419,7 @@ export default function Home() {
               {/* Station Guidance / Security Card */}
               <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 text-white border border-slate-800 space-y-2 shadow-premium">
                 <div className="flex items-center space-x-2">
-                  <Building2 className="h-4 w-4 text-emerald-400" />
+                  <Image src="/logo.svg" alt="Lao Steel Ventures" width={18} height={18} className="w-4 h-4 object-contain" />
                   <span className="text-xs font-bold">Lao Steel Ventures</span>
                 </div>
                 <p className="text-[11px] text-slate-400 leading-relaxed">

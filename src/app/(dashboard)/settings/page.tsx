@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useBusinessSettings, useUpdateBusinessSettings } from '../../../features/business/hooks/useBusinessSettings';
@@ -439,8 +440,8 @@ export default function SettingsPage() {
             <form onSubmit={handleBusinessSubmit(onBusinessSubmit)}>
               <CardHeader className="p-4 sm:p-6 border-b border-border/80 bg-slate-50/50 dark:bg-slate-900/30">
                 <div className="flex items-center space-x-3">
-                  <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
-                    <Building2 className="h-5 w-5" />
+                  <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shrink-0 shadow-sm">
+                    <Image src="/logo.svg" alt="Company Logo" width={32} height={32} className="w-8 h-8 object-contain" />
                   </div>
                   <div>
                     <CardTitle className="text-sm sm:text-base font-bold text-foreground">

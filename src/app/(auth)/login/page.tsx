@@ -10,8 +10,8 @@ import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { normalizeApiError, applyApiFieldErrors, NormalizedError } from '../../../lib/api-error';
+import Image from 'next/image';
 import {
-  Building2,
   Clock,
   Loader2,
   Mail,
@@ -99,8 +99,8 @@ function LoginForm() {
           </div>
 
           <div className="flex items-center space-x-3.5 mb-3">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-[#059669] flex items-center justify-center shadow-lg shadow-emerald-500/25">
-              <Building2 className="h-6 w-6 text-white" />
+            <div className="h-14 w-14 rounded-2xl bg-white p-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/25 shrink-0">
+              <Image src="/logo.svg" alt="Lao Steel Ventures" width={48} height={48} className="w-11 h-11 object-contain" priority />
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-white font-heading">
@@ -167,8 +167,8 @@ function LoginForm() {
           
           {/* Mobile Header Branding (Visible on mobile & tablets only) */}
           <div className="lg:hidden flex flex-col items-center text-center space-y-3 mb-6">
-            <div className="h-12 w-12 rounded-2xl bg-[#10B981] flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white">
-              <Building2 className="h-6 w-6" />
+            <div className="h-14 w-14 rounded-2xl bg-white p-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/20 border border-border shrink-0">
+              <Image src="/logo.svg" alt="Lao Steel Ventures" width={48} height={48} className="w-11 h-11 object-contain" />
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC] font-heading">

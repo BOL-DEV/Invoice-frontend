@@ -26,6 +26,10 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "LSV Invoice Generator",
   description: "Billing & Invoices management for Lao Steel Ventures",
+  icons: {
+    icon: "/logo.svg",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

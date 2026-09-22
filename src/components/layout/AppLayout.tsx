@@ -5,6 +5,7 @@ import { SessionTimeoutModal } from '../shared/SessionTimeoutModal';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../../features/auth/context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,7 +21,6 @@ import {
   X,
   Sun,
   Moon,
-  Building2,
   ChevronDown,
   Loader2,
 } from 'lucide-react';
@@ -165,8 +165,8 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   if (isLoading || !user) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-background text-foreground space-y-4">
-        <div className="h-10 w-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg animate-pulse">
-          <Building2 className="h-6 w-6" />
+        <div className="h-12 w-12 rounded-2xl bg-white dark:bg-slate-900 border border-border p-1.5 flex items-center justify-center shadow-lg animate-pulse">
+          <Image src="/logo.svg" alt="Lao Steel Ventures" width={40} height={40} className="w-9 h-9 object-contain" priority />
         </div>
         <div className="flex items-center space-x-2 text-xs text-muted-foreground font-mono">
           <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
@@ -180,9 +180,9 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     <div className="h-screen w-screen overflow-hidden bg-background text-foreground flex">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex md:w-64 h-screen sticky top-0 bg-card border-r border-border flex-col shrink-0 text-foreground z-30 select-none">
-        <div className="p-6 flex items-center space-x-3 border-b border-border">
-          <div className="bg-primary text-white p-2 rounded-xl shadow-sm">
-            <Building2 className="h-6 w-6" />
+        <div className="p-5 flex items-center space-x-3 border-b border-border">
+          <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shadow-sm shrink-0">
+            <Image src="/logo.svg" alt="Lao Steel Ventures" width={36} height={36} className="w-8 h-8 object-contain" priority />
           </div>
           <div>
             <h1 className="font-bold text-sm tracking-wide uppercase leading-tight text-foreground font-heading">
@@ -230,8 +230,8 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             >
               <div className="flex items-center justify-between pb-6 border-b border-border">
                 <div className="flex items-center space-x-3">
-                  <div className="bg-primary text-white p-2 rounded-xl shadow-sm">
-                    <Building2 className="h-6 w-6" />
+                  <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shadow-sm shrink-0">
+                    <Image src="/logo.svg" alt="Lao Steel Ventures" width={36} height={36} className="w-8 h-8 object-contain" />
                   </div>
                   <div>
                     <h1 className="font-bold text-sm tracking-wide uppercase leading-tight text-foreground">
