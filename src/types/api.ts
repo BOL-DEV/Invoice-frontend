@@ -45,10 +45,13 @@ export interface RefreshResult {
 export interface BusinessSettings {
   id: string;
   businessName: string;
+  tagline?: string;
   address: string;
   phone: string;
   email: string;
   logo: string | null;
+  tin?: string;
+  cacOrRegNumber?: string;
   receiptPrefix: string;
   defaultVatPercentage: number;
   defaultWhtPercentage: number;

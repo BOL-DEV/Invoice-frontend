@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { useInvoice } from '../context/InvoiceContext';
 import { useInvoiceRows } from '../hooks/useInvoiceRows';
 import { useInvoiceCalculations } from '../hooks/useInvoiceCalculations';
@@ -39,8 +40,9 @@ import {
   DollarSign,
   Printer,
   FileSpreadsheet,
-User,
+  User,
   ShoppingBag,
+  Lock,
 } from 'lucide-react';
 
 interface InvoiceFormProps {
@@ -50,6 +52,7 @@ interface InvoiceFormProps {
 
 export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const modal = useModal();
   const { isAdmin } = usePermission();
   
@@ -228,17 +231,16 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       
       const blob = new Blob([response.data], { type: contentType });
       const url = window.URL.createObjectURL(blob);
-      if (format === 'pdf') {
-        window.open(url, '_blank');
-      } else {
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `invoice_${invoiceNumber}.${extension}`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
-      }
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice_${invoiceNumber}.${extension}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (error) {
       console.error(`Export to ${format} failed:`, error);
       modal.alert('Export Failed', (error as AxiosErrorLike).response?.data?.error?.message || `Failed to export invoice to ${format}`, 'error');
@@ -250,6 +252,25 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       <div className="flex flex-col items-center justify-center py-16">
         <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
         <p className="text-sm text-muted-foreground">Loading invoice ledger details...</p>
+      </div>
+    );
+  }
+
+  if (mode === 'edit' && existingInvoice && existingInvoice.status !== 'DRAFT') {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 max-w-md mx-auto text-center space-y-4">
+        <div className="p-3.5 bg-amber-500/10 text-amber-500 rounded-full border border-amber-500/20">
+          <Lock className="h-8 w-8" />
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="text-lg font-bold text-foreground">Invoice Is Locked</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Invoice #{existingInvoice.invoiceNumber} is marked as <strong className="font-semibold text-foreground">{existingInvoice.status}</strong> and cannot be edited. Only draft invoices can be modified.
+          </p>
+        </div>
+        <Button onClick={() => router.push('/invoices')} className="text-xs rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-medium">
+          Return to Invoices
+        </Button>
       </div>
     );
   }

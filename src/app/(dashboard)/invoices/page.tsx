@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useInvoicesList,
   useInvoiceDetails,
@@ -45,9 +46,11 @@ import {
   X,
   Loader2,
   Share2,
+  Pencil,
 } from 'lucide-react';
 
 export default function InvoicesPage() {
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const { isAdmin } = usePermission();
   const modal = useModal();
@@ -249,6 +252,22 @@ export default function InvoicesPage() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+
+      // Transition status to PRINTED if it was FINALIZED
+      const returnedStatus = response.headers ? response.headers['x-invoice-status'] : undefined;
+      const willBePrinted = returnedStatus === 'PRINTED' || invoiceDetails?.status === 'FINALIZED';
+
+      if (invoiceDetails?.status === 'FINALIZED' || willBePrinted) {
+        // Optimistically update invoiceDetails query cache so UI reflects PRINTED immediately
+        queryClient.setQueryData(['invoices', 'details', invoiceId], (prev: any) => {
+          if (!prev) return prev;
+          return { ...prev, status: 'PRINTED' };
+        });
+      }
+
+      // Invalidate queries so that table list, summary cards, and stats stay in sync
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (error) {
       console.error(`Export to ${format} failed:`, error);
       const errMsg = (error as AxiosErrorLike).response?.data?.error?.message || `Failed to export invoice to ${format}`;
@@ -770,6 +789,20 @@ export default function InvoicesPage() {
                           <span>View</span>
                         </Button>
 
+                        {(inv.status === 'DRAFT' && (isAdmin || (user && inv.creatorId === user.id))) && (
+                          <Link href={`/invoices/${inv.id}`}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              title="Edit draft invoice"
+                              className="h-8 px-2.5 rounded-xl text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1 cursor-pointer font-medium transition-colors"
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-emerald-500" />
+                              <span>Edit</span>
+                            </Button>
+                          </Link>
+                        )}
+
                         {(isAdmin || (user && inv.creatorId === user.id)) && (
                           <Button
                             variant="outline"
@@ -884,6 +917,20 @@ export default function InvoicesPage() {
               {invoiceDetails && (
                 <div className="flex items-center space-x-2">
                   
+                  {/* Edit Button strictly for Draft */}
+                  {(invoiceDetails.status === 'DRAFT' && (isAdmin || (user && invoiceDetails.creatorId === user.id))) && (
+                    <Link href={`/invoices/${invoiceDetails.id}`}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 text-xs rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1.5 cursor-pointer font-medium transition-colors"
+                      >
+                        <Pencil className="h-3.5 w-3.5 text-emerald-500" />
+                        <span>Edit Draft</span>
+                      </Button>
+                    </Link>
+                  )}
+
                   {/* Share Button */}
                   {(isAdmin || (user && invoiceDetails.creatorId === user.id)) && (
                     <Button

@@ -30,6 +30,8 @@ import {
   Mail,
   MapPin,
   FileCode,
+  Tag,
+  Hash,
 } from 'lucide-react';
 import { useModal } from '../../../components/ui/modal-provider';
 import { BusinessSettings, AxiosErrorLike } from '../../../types/api';
@@ -480,18 +482,36 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
+                {/* Business Tagline / Subtitle */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="tagline" className="text-xs font-semibold text-muted-foreground flex items-center space-x-1.5">
+                    <Tag className="h-3 w-3 text-emerald-500" />
+                    <span>Business Tagline / Subtitle</span>
+                  </Label>
+                  <Input
+                    id="tagline"
+                    placeholder="e.g. Industrial & Building Materials Suppliers"
+                    {...registerBusiness('tagline')}
+                    className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs"
+                  />
+                </div>
+
                 {/* Phone & Tax Rates */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4">
                   <div className="space-y-1.5 sm:col-span-1">
                     <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground flex items-center space-x-1.5">
                       <Phone className="h-3 w-3 text-emerald-500" />
-                      <span>Contact Phone</span>
+                      <span>Contact Phone(s)</span>
                     </Label>
                     <Input
                       id="phone"
+                      placeholder="e.g. 08030000000, 08050000000"
                       {...registerBusiness('phone', { required: true })}
                       className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs"
                     />
+                    <p className="text-[10px] text-muted-foreground">
+                      Separate multiple numbers with commas
+                    </p>
                   </div>
 
                   {/* VAT & WHT in side-by-side subgrid on mobile */}
@@ -534,22 +554,52 @@ export default function SettingsPage() {
                   </Label>
                   <Input
                     id="address"
+                    placeholder="e.g. 12 Industrial Avenue, Ikeja, Lagos"
                     {...registerBusiness('address', { required: true })}
                     className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs"
                   />
                 </div>
 
-                {/* Default Receipt Prefix */}
-                <div className="w-full sm:w-1/2 space-y-1.5">
-                  <Label htmlFor="receiptPrefix" className="text-xs font-semibold text-muted-foreground flex items-center space-x-1.5">
-                    <FileCode className="h-3 w-3 text-emerald-500" />
-                    <span>Default Receipt Prefix</span>
-                  </Label>
-                  <Input
-                    id="receiptPrefix"
-                    {...registerBusiness('receiptPrefix', { required: true })}
-                    className="bg-background border-border/80 focus:border-emerald-500/60 font-mono uppercase h-10 rounded-xl text-xs"
-                  />
+                {/* Prefix, Registration No, and TIN */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="receiptPrefix" className="text-xs font-semibold text-muted-foreground flex items-center space-x-1.5">
+                      <FileCode className="h-3 w-3 text-emerald-500" />
+                      <span>Default Receipt Prefix</span>
+                    </Label>
+                    <Input
+                      id="receiptPrefix"
+                      placeholder="e.g. INV"
+                      {...registerBusiness('receiptPrefix', { required: true })}
+                      className="bg-background border-border/80 focus:border-emerald-500/60 font-mono uppercase h-10 rounded-xl text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="cacOrRegNumber" className="text-xs font-semibold text-muted-foreground flex items-center space-x-1.5">
+                      <Hash className="h-3 w-3 text-emerald-500" />
+                      <span>Registration / CAC No.</span>
+                    </Label>
+                    <Input
+                      id="cacOrRegNumber"
+                      placeholder="e.g. RC-123456 or BN-123456"
+                      {...registerBusiness('cacOrRegNumber')}
+                      className="bg-background border-border/80 focus:border-emerald-500/60 font-mono h-10 rounded-xl text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="tin" className="text-xs font-semibold text-muted-foreground flex items-center space-x-1.5">
+                      <Hash className="h-3 w-3 text-emerald-500" />
+                      <span>Tax ID Number (TIN)</span>
+                    </Label>
+                    <Input
+                      id="tin"
+                      placeholder="e.g. 12345678-0001"
+                      {...registerBusiness('tin')}
+                      className="bg-background border-border/80 focus:border-emerald-500/60 font-mono h-10 rounded-xl text-xs"
+                    />
+                  </div>
                 </div>
               </CardContent>
 
