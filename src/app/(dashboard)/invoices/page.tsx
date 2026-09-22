@@ -236,8 +236,8 @@ export default function InvoicesPage() {
 
     setExportingFormat(format);
     try {
-      const extension = format === 'pdf' ? 'pdf' : 'csv';
-      const contentType = format === 'pdf' ? 'application/pdf' : 'text/csv';
+      const extension = format === 'pdf' ? 'pdf' : 'xlsx';
+      const contentType = format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
       
       const response = await apiClient.get(`/api/printing/${invoiceId}/${format}`, {
         responseType: 'blob',

@@ -222,8 +222,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
   const handleExport = async (invoiceId: string, format: 'pdf' | 'excel', invoiceNumber: string) => {
     try {
-      const extension = format === 'pdf' ? 'pdf' : 'csv';
-      const contentType = format === 'pdf' ? 'application/pdf' : 'text/csv';
+      const extension = format === 'pdf' ? 'pdf' : 'xlsx';
+      const contentType = format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
       
       const response = await apiClient.get(`/api/printing/${invoiceId}/${format}`, {
         responseType: 'blob',
@@ -800,7 +800,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                 className="space-x-1.5 font-semibold text-xs rounded-xl shadow-sm"
               >
                 <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
-                <span>CSV</span>
+                <span>Excel</span>
               </Button>
               
             </div>
