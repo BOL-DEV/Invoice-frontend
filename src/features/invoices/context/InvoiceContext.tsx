@@ -35,11 +35,13 @@ interface InvoiceContextType {
   setNotes: (notes: string) => void;
   
   // Line Items
+  setItems: React.Dispatch<React.SetStateAction<InvoiceItemInput[]>>;
   addItemRow: () => void;
   updateItemRow: (index: number, fields: Partial<InvoiceItemInput>) => void;
   deleteItemRow: (index: number) => void;
   
   // Charges
+  setCharges: React.Dispatch<React.SetStateAction<InvoiceChargeInput[]>>;
   addCharge: (name: string, amount: number) => void;
   updateCharge: (index: number, fields: Partial<InvoiceChargeInput>) => void;
   deleteCharge: (index: number) => void;
@@ -320,9 +322,11 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setCustomerPhone,
         setStatus,
         setNotes,
+        setItems,
         addItemRow,
         updateItemRow,
         deleteItemRow,
+        setCharges,
         addCharge,
         updateCharge,
         deleteCharge,

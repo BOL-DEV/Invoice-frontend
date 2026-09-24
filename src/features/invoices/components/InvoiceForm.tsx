@@ -24,9 +24,10 @@ import { Textarea } from '../../../components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui/dialog';
-import { AxiosErrorLike } from '../../../types/api';
+import { AxiosErrorLike, ExtractedInvoiceData } from '../../../types/api';
 import { apiClient } from '../../../services/api/axios';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { DocumentImportModal } from './DocumentImportModal';
 import {
   Trash2,
   X,
@@ -43,6 +44,7 @@ import {
   User,
   ShoppingBag,
   Lock,
+  Sparkles,
 } from 'lucide-react';
 
 interface InvoiceFormProps {
@@ -70,6 +72,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     setCustomerPhone,
     setStatus,
     setNotes,
+    setItems,
+    setCharges,
     resetInvoice,
     loadInvoice,
     getFormPayload,
@@ -91,11 +95,85 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   // Modals / Calculator States
   const [showCalculator, setShowCalculator] = useState(false);
   const [showWeightCalculator, setShowWeightCalculator] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   
   // Dynamic custom charge state
   const [chargeType, setChargeType] = useState<'custom' | 'vat' | 'wht'>('custom');
   const [newChargeName, setNewChargeName] = useState('');
   const [newChargeAmount, setNewChargeAmount] = useState(0);
+
+  const handleApplyExtractedData = (extracted: ExtractedInvoiceData) => {
+    // Determine whether user already has items filled in
+    const existingFilledItems = items.filter(
+      (it) => it.description.trim() !== '' || Number(it.quantity) > 0 || Number(it.unitPrice) > 0
+    );
+    const hasExistingItems = existingFilledItems.length > 0;
+
+    const newItems = (extracted.items || []).map((it, idx) => {
+      const qty = Number(it.quantity) > 0 ? Number(it.quantity) : 1;
+      const unit = Number(it.unitPrice) >= 0 ? Number(it.unitPrice) : 0;
+      const tot = Number(it.totalPrice) > 0 ? Number(it.totalPrice) : qty * unit;
+      return {
+        position: idx + 1,
+        description: it.description || '',
+        quantity: qty,
+        unitPrice: unit,
+        totalPrice: Math.round(tot * 100) / 100,
+        weight: it.weight ? Number(it.weight) : null,
+      };
+    });
+
+    if (hasExistingItems) {
+      // Append behavior: keep existing items, append extracted items sequentially
+      const startingPos = existingFilledItems.length + 1;
+      const reindexedNew = newItems.map((it, idx) => ({
+        ...it,
+        position: startingPos + idx,
+      }));
+      setItems([...existingFilledItems, ...reindexedNew]);
+    } else {
+      // Fill up behavior: replace blank starting items with extracted items
+      const reindexedNew = newItems.map((it, idx) => ({
+        ...it,
+        position: idx + 1,
+      }));
+      setItems(
+        reindexedNew.length > 0
+          ? reindexedNew
+          : [{ position: 1, description: '', quantity: 0, unitPrice: 0, totalPrice: 0, weight: null }]
+      );
+    }
+
+    // Auto-fill customer info if not currently entered
+    if (extracted.customerName && !customerName.trim()) {
+      setCustomerName(extracted.customerName.trim());
+    }
+    if (extracted.customerPhone && !customerPhone.trim()) {
+      setCustomerPhone(extracted.customerPhone.trim());
+    }
+
+    // Auto-fill notes if present
+    if (extracted.notes && !notes.trim()) {
+      setNotes(extracted.notes.trim());
+    }
+
+    // Auto-fill additional charges
+    if (extracted.charges && extracted.charges.length > 0) {
+      extracted.charges.forEach((c) => {
+        if (c.name && c.amount) {
+          addCharge(c.name, Number(c.amount));
+        }
+      });
+    }
+
+    modal.alert(
+      'Document Imported',
+      `Successfully ${hasExistingItems ? 'appended' : 'filled in'} ${newItems.length} item${
+        newItems.length === 1 ? '' : 's'
+      }${extracted.customerName ? ` for ${extracted.customerName}` : ''}!`,
+      'success'
+    );
+  };
 
   const { data: businessSettings } = useBusinessSettings();
 
@@ -294,8 +372,19 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
         </div>
 
         {/* Floating Utilities triggers */}
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowImportModal(true)}
+            className="space-x-1.5 font-semibold text-xs border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30 rounded-xl h-9 shadow-sm transition-all"
+          >
+            <Sparkles className="h-4 w-4 text-indigo-500 animate-pulse" />
+            <span>Auto-fill from Note / File</span>
+          </Button>
+          <Button
+            type="button"
             variant="outline"
             size="sm"
             onClick={() => setShowCalculator(!showCalculator)}
@@ -305,6 +394,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
             <span>Open Calculator</span>
           </Button>
           <Button
+            type="button"
             variant="outline"
             size="sm"
             onClick={() => setShowWeightCalculator(true)}
@@ -386,15 +476,28 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                   Ledger Line Items
                 </CardTitle>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={addRow}
-                className="space-x-1.5 font-semibold text-xs border-primary text-primary hover:bg-primary/5 rounded-xl h-8 px-3"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Add Row</span>
-              </Button>
+              <div className="flex items-center space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowImportModal(true)}
+                  className="space-x-1.5 font-semibold text-xs border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30 rounded-xl h-8 px-3"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+                  <span>Scan / Import</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addRow}
+                  className="space-x-1.5 font-semibold text-xs border-primary text-primary hover:bg-primary/5 rounded-xl h-8 px-3"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add Row</span>
+                </Button>
+              </div>
             </CardHeader>
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto relative">
@@ -813,6 +916,14 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* AI Document & Jotting Note Import Modal */}
+      <DocumentImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onApply={handleApplyExtractedData}
+        hasExistingItems={items.some((it) => it.description.trim() !== '' || Number(it.quantity) > 0 || Number(it.unitPrice) > 0)}
+      />
     </div>
   );
 };

@@ -208,3 +208,24 @@ export interface InvoiceRevenueSummary {
   thisMonth: number;
   thisYear: number;
 }
+
+export interface ExtractedItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice?: number;
+  weight?: number | null;
+}
+
+export interface ExtractedCharge {
+  name: string;
+  amount: number;
+}
+
+export interface ExtractedInvoiceData {
+  customerName?: string | null;
+  customerPhone?: string | null;
+  items: ExtractedItem[];
+  charges?: ExtractedCharge[];
+  notes?: string | null;
+}
