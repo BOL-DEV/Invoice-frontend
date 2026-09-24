@@ -35,9 +35,18 @@ export function normalizeApiError(error: unknown): NormalizedError {
     // Case A: Network / Connectivity failure (Server unreachable, CORS, timeout, offline)
     if (!axiosErr.response || axiosErr.code === 'ERR_NETWORK' || axiosErr.message.includes('Network Error')) {
       return {
-        title: 'Connection Lost',
-        message: 'Unable to connect to the Lao Steel Ventures server. Please check your network connection or verify that the server is online.',
+        title: 'Network Connection Issue',
+        message: 'Network connection issue. Unable to connect to the server. Please check your internet connection and try again.',
         code: 'NETWORK_ERROR',
+        isNetworkError: true,
+      };
+    }
+
+    if (axiosErr.code === 'ECONNABORTED' || axiosErr.message.toLowerCase().includes('timeout')) {
+      return {
+        title: 'Connection Timed Out',
+        message: 'The request took too long to complete. Please check your internet connection and try again.',
+        code: 'TIMEOUT',
         isNetworkError: true,
       };
     }
@@ -61,18 +70,22 @@ export function normalizeApiError(error: unknown): NormalizedError {
     // Specific HTTP status code mappings
     switch (status) {
       case 400:
+      case 422: {
+        const fieldDetailsStr = Object.values(fieldErrors).join(', ');
+        const inputHint = fieldDetailsStr || serverMessage || 'Please verify the submitted details and correct any invalid fields.';
         return {
-          title: 'Validation Error',
-          message: serverMessage || 'Please check your submitted details and try again.',
+          title: 'Input Required',
+          message: inputHint,
           code: serverCode,
           isNetworkError: false,
           fieldErrors: Object.keys(fieldErrors).length > 0 ? fieldErrors : undefined,
         };
+      }
 
       case 401:
         return {
-          title: 'Sign In Failed',
-          message: serverMessage || 'Incorrect email address or password. Please verify your credentials.',
+          title: 'Session Expired',
+          message: 'Your session has expired or credentials are invalid. Please sign in again.',
           code: serverCode,
           isNetworkError: false,
         };
@@ -80,7 +93,7 @@ export function normalizeApiError(error: unknown): NormalizedError {
       case 403:
         return {
           title: 'Access Restricted',
-          message: serverMessage || 'You do not have permission to perform this action. Contact an administrator.',
+          message: serverMessage || 'You do not have permission to perform this action. Please contact an administrator.',
           code: serverCode,
           isNetworkError: false,
         };
@@ -93,10 +106,26 @@ export function normalizeApiError(error: unknown): NormalizedError {
           isNetworkError: false,
         };
 
+      case 409:
+        return {
+          title: 'Duplicate Record',
+          message: serverMessage || 'A record with this information already exists in the system.',
+          code: serverCode,
+          isNetworkError: false,
+        };
+
+      case 422:
+        return {
+          title: 'Invalid Document',
+          message: serverMessage || 'The uploaded file format or content is not supported. Please upload a valid invoice, receipt, or order list.',
+          code: serverCode,
+          isNetworkError: false,
+        };
+
       case 429:
         return {
           title: 'Too Many Requests',
-          message: 'Too many attempts. Please wait a moment before trying again.',
+          message: serverMessage || 'Too many requests were sent in a short time. Please wait a moment before trying again.',
           code: serverCode,
           isNetworkError: false,
         };
@@ -104,18 +133,24 @@ export function normalizeApiError(error: unknown): NormalizedError {
       case 500:
       case 502:
       case 503:
-      case 504:
+      case 504: {
+        // For 5xx backend errors: assure user that the error is on our end, not their fault
+        const isAiBusy = serverCode === 'AI_SERVICE_UNAVAILABLE';
+        const serverHint = isAiBusy
+          ? (serverMessage || 'The document processing service is temporarily busy. Please try again in a few moments.')
+          : 'Something went wrong on our end. This is not an issue on your side. Please try again shortly or contact support if it persists.';
         return {
           title: 'Server Error',
-          message: 'A temporary issue occurred on the Lao Steel Ventures server. Please try again shortly.',
+          message: serverHint,
           code: serverCode,
           isNetworkError: false,
         };
+      }
 
       default:
         return {
           title: 'Operation Failed',
-          message: serverMessage || 'An unexpected error occurred. Please try again.',
+          message: serverMessage || 'An unexpected issue occurred. Please try again.',
           code: serverCode,
           isNetworkError: false,
           fieldErrors: Object.keys(fieldErrors).length > 0 ? fieldErrors : undefined,
@@ -125,6 +160,14 @@ export function normalizeApiError(error: unknown): NormalizedError {
 
   // 2. Standard JS Error
   if (error instanceof Error) {
+    if (error.message.toLowerCase().includes('network') || error.message.toLowerCase().includes('fetch')) {
+      return {
+        title: 'Network Issue',
+        message: 'Network connection issue. Please check your internet connection and try again.',
+        code: 'NETWORK_ERROR',
+        isNetworkError: true,
+      };
+    }
     return {
       title: 'Application Error',
       message: error.message,
@@ -136,9 +179,34 @@ export function normalizeApiError(error: unknown): NormalizedError {
   // 3. Fallback
   return {
     title: 'Unexpected Error',
-    message: 'An unknown error occurred. Please try again.',
+    message: 'Something went wrong on our end. This is not an issue on your side. Please try again shortly.',
     code: 'UNKNOWN_ERROR',
     isNetworkError: false,
+  };
+}
+
+/**
+ * Returns a clean, user-facing error message string.
+ */
+export function getErrorMessage(error: unknown, fallbackMessage: string = 'An unexpected error occurred'): string {
+  const normalized = normalizeApiError(error);
+  return normalized.message || fallbackMessage;
+}
+
+/**
+ * Returns a normalized title, message, and variant for UI dialogs and modals.
+ */
+export function getErrorDialog(
+  error: unknown,
+  defaultTitle: string = 'Operation Failed',
+  fallbackMessage: string = 'Could not complete request'
+): { title: string; message: string; variant: 'error' | 'warning' } {
+  const normalized = normalizeApiError(error);
+  const variant: 'error' | 'warning' = normalized.code.startsWith('HTTP_4') || normalized.code === 'VALIDATION_ERROR' ? 'warning' : 'error';
+  return {
+    title: normalized.title || defaultTitle,
+    message: normalized.message || fallbackMessage,
+    variant,
   };
 }
 

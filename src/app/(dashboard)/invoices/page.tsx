@@ -15,7 +15,8 @@ import { useCreateApproval } from '../../../features/approvals/hooks/useApproval
 import { useAuth } from '../../../features/auth/context/AuthContext';
 import { useUsersList } from '../../../features/users/hooks/useUsers';
 import { usePermission } from '../../../features/auth/hooks/usePermission';
-import { Invoice, InvoiceStatus, AxiosErrorLike } from '../../../types/api';
+import { Invoice, InvoiceStatus } from '../../../types/api';
+import { getErrorDialog } from '../../../lib/api-error';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
@@ -120,8 +121,8 @@ export default function InvoicesPage() {
         'success'
       );
     } catch (err) {
-      const errorMsg = (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to share invoice';
-      modal.alert('Sharing Failed', errorMsg, 'error');
+      const { title, message, variant } = getErrorDialog(err, 'Sharing Failed', 'Failed to share invoice');
+      modal.alert(title, message, variant);
     } finally {
       setIsSharing(false);
     }
@@ -137,8 +138,8 @@ export default function InvoicesPage() {
         await revokeShareMutation.mutateAsync({ invoiceId, targetUserId });
         modal.alert('Access Revoked', `Sharing with ${targetName} has been revoked.`, 'success');
       } catch (err) {
-        const errorMsg = (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to revoke access';
-        modal.alert('Revocation Failed', errorMsg, 'error');
+        const { title, message, variant } = getErrorDialog(err, 'Revocation Failed', 'Failed to revoke access');
+        modal.alert(title, message, variant);
       }
     }
   };
@@ -192,8 +193,8 @@ export default function InvoicesPage() {
         setIsDetailOpen(false);
         modal.alert('Success', 'Invoice soft-deleted successfully', 'success');
       } catch (err) {
-        const errorMsg = (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to delete invoice';
-        modal.alert('Delete Failed', errorMsg, 'error');
+        const { title, message, variant } = getErrorDialog(err, 'Delete Failed', 'Failed to delete invoice');
+        modal.alert(title, message, variant);
       }
     }
   };
@@ -226,8 +227,8 @@ export default function InvoicesPage() {
               'success'
             );
           } catch (approvalErr) {
-            const msg = (approvalErr as AxiosErrorLike).response?.data?.error?.message || 'Failed to submit approval request';
-            modal.alert('Submission Error', msg, 'error');
+            const { title, message, variant } = getErrorDialog(approvalErr, 'Submission Error', 'Failed to submit approval request');
+            modal.alert(title, message, variant);
           }
         }
       }
@@ -270,7 +271,8 @@ export default function InvoicesPage() {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (error) {
       console.error(`Export to ${format} failed:`, error);
-      const errMsg = (error as AxiosErrorLike).response?.data?.error?.message || `Failed to export invoice to ${format}`;
+      const { title, message, variant } = getErrorDialog(error, 'Export Failed', `Failed to export invoice to ${format}`);
+      const errMsg = message;
       
       if (!isAdmin && errMsg.toLowerCase().includes('approval')) {
         const shouldRequest = await modal.confirm(
@@ -298,8 +300,8 @@ export default function InvoicesPage() {
                 'success'
               );
             } catch (aErr) {
-              const m = (aErr as AxiosErrorLike).response?.data?.error?.message || 'Failed to submit approval request';
-              modal.alert('Submission Error', m, 'error');
+              const { title, message, variant } = getErrorDialog(aErr, 'Submission Error', 'Failed to submit approval request');
+              modal.alert(title, message, variant);
             }
           }
         }
@@ -968,8 +970,8 @@ export default function InvoicesPage() {
                               'success'
                             );
                           } catch (err) {
-                            const msg = (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to submit reprint request';
-                            modal.alert('Request Failed', msg, 'error');
+                            const { title, message, variant } = getErrorDialog(err, 'Request Failed', 'Failed to submit reprint request');
+                            modal.alert(title, message, variant);
                           }
                         }
                       }}

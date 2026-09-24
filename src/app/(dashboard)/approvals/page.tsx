@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useApprovalsList, useActionApproval } from '../../../features/approvals/hooks/useApprovals';
 import { usePermission } from '../../../features/auth/hooks/usePermission';
-import { ApprovalStatus, ApprovalRequest, AxiosErrorLike } from '../../../types/api';
+import { ApprovalStatus, ApprovalRequest } from '../../../types/api';
+import { getErrorDialog } from '../../../lib/api-error';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
@@ -60,7 +61,8 @@ export default function ApprovalsPage() {
       setIsActionModalOpen(false);
       modal.alert('Success', `Ticket has been ${actionType.toLowerCase()} successfully`, 'success');
     } catch (err) {
-      modal.alert('Update Failed', (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to submit ticket update', 'error');
+      const { title, message, variant } = getErrorDialog(err, 'Update Failed', 'Failed to submit ticket update');
+      modal.alert(title, message, variant);
     }
   };
 

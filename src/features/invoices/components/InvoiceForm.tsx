@@ -24,7 +24,8 @@ import { Textarea } from '../../../components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui/dialog';
-import { AxiosErrorLike, ExtractedInvoiceData } from '../../../types/api';
+import { ExtractedInvoiceData } from '../../../types/api';
+import { getErrorDialog } from '../../../lib/api-error';
 import { apiClient } from '../../../services/api/axios';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { DocumentImportModal } from './DocumentImportModal';
@@ -45,6 +46,7 @@ import {
   ShoppingBag,
   Lock,
   Sparkles,
+  RotateCcw,
 } from 'lucide-react';
 
 interface InvoiceFormProps {
@@ -158,10 +160,12 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     }
 
     // Auto-fill additional charges
-    if (extracted.charges && extracted.charges.length > 0) {
-      extracted.charges.forEach((c) => {
-        if (c.name && c.amount) {
-          addCharge(c.name, Number(c.amount));
+    const chargesToAdd = extracted.charges || [];
+    if (chargesToAdd.length > 0) {
+      chargesToAdd.forEach((c) => {
+        const amt = typeof c.amount === 'number' ? c.amount : parseFloat(String(c.amount).replace(/,/g, '').replace(/[^\d.-]/g, ''));
+        if (c.name && !isNaN(amt) && amt > 0) {
+          addCharge(c.name.trim(), amt);
         }
       });
     }
@@ -170,7 +174,9 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       'Document Imported',
       `Successfully ${hasExistingItems ? 'appended' : 'filled in'} ${newItems.length} item${
         newItems.length === 1 ? '' : 's'
-      }${extracted.customerName ? ` for ${extracted.customerName}` : ''}!`,
+      }${chargesToAdd.length > 0 ? ` and ${chargesToAdd.length} additional charge${chargesToAdd.length === 1 ? '' : 's'}` : ''}${
+        extracted.customerName ? ` for ${extracted.customerName}` : ''
+      }!`,
       'success'
     );
   };
@@ -196,6 +202,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [createdInvoiceId, _setCreatedInvoiceId] = useState<string | null>(null);
   const [createdInvoiceNumber, _setCreatedInvoiceNumber] = useState('');
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
+  const isDraftRestoredRef = useRef(false);
   
   const isSubmitting = useRef(false);
 
@@ -204,14 +212,135 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     setFocus({ type: 'header', fieldName: 'customerName' });
   }, [setFocus]);
 
-  // Hydrate settings if editing
+  // Hydrate settings if editing, or restore draft from localStorage if creating
   useEffect(() => {
     if (mode === 'edit' && existingInvoice) {
       loadInvoice(existingInvoice);
-    } else if (mode === 'create') {
+    } else if (mode === 'create' && !isDraftRestoredRef.current) {
+      isDraftRestoredRef.current = true;
+      try {
+        const savedDraft = localStorage.getItem('invoice_creation_draft');
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          const hasData =
+            (parsed.customerName && parsed.customerName.trim().length > 0) ||
+            (parsed.customerPhone && parsed.customerPhone.trim().length > 0) ||
+            (parsed.notes && parsed.notes.trim().length > 0) ||
+            (Array.isArray(parsed.charges) && parsed.charges.length > 0) ||
+            (Array.isArray(parsed.items) &&
+              parsed.items.some(
+                (it: any) => it.description?.trim() || Number(it.quantity) > 0 || Number(it.unitPrice) > 0
+              ));
+
+          if (hasData) {
+            if (parsed.customerName) setCustomerName(parsed.customerName);
+            if (parsed.customerPhone) setCustomerPhone(parsed.customerPhone);
+            if (parsed.notes) setNotes(parsed.notes);
+            if (Array.isArray(parsed.items) && parsed.items.length > 0) {
+              setItems(parsed.items);
+            }
+            if (Array.isArray(parsed.charges) && parsed.charges.length > 0) {
+              setCharges(parsed.charges);
+            }
+            setHasRestoredDraft(true);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Failed to restore invoice draft from localStorage:', err);
+      }
       resetInvoice();
     }
-  }, [mode, existingInvoice, loadInvoice, resetInvoice]);
+  }, [mode, existingInvoice, loadInvoice, resetInvoice, setCustomerName, setCustomerPhone, setNotes, setItems, setCharges]);
+
+  // Persist working draft in localStorage whenever changes occur
+  useEffect(() => {
+    if (mode !== 'create' || !isDraftRestoredRef.current) return;
+
+    const hasData =
+      customerName.trim().length > 0 ||
+      customerPhone.trim().length > 0 ||
+      notes.trim().length > 0 ||
+      charges.length > 0 ||
+      items.some(
+        (it) => it.description.trim() !== '' || Number(it.quantity) > 0 || Number(it.unitPrice) > 0
+      );
+
+    if (hasData) {
+      try {
+        localStorage.setItem(
+          'invoice_creation_draft',
+          JSON.stringify({
+            customerName,
+            customerPhone,
+            notes,
+            items,
+            charges,
+            updatedAt: Date.now(),
+          })
+        );
+      } catch (e) {
+        // storage quota or private browsing
+      }
+    } else {
+      try {
+        localStorage.removeItem('invoice_creation_draft');
+      } catch {}
+    }
+  }, [mode, customerName, customerPhone, notes, items, charges]);
+
+  // Prevent accidental tab closure or refresh when working on an unsaved invoice
+  useEffect(() => {
+    if (mode !== 'create') return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const hasData =
+        customerName.trim().length > 0 ||
+        items.some((it) => it.description.trim() !== '' || Number(it.quantity) > 0 || Number(it.unitPrice) > 0);
+      if (hasData) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [mode, customerName, items]);
+
+  const handleDiscardDraft = () => {
+    try {
+      localStorage.removeItem('invoice_creation_draft');
+    } catch {}
+    resetInvoice();
+    setHasRestoredDraft(false);
+  };
+
+  const handleClearFormConfirm = async () => {
+    const hasData =
+      customerName.trim().length > 0 ||
+      customerPhone.trim().length > 0 ||
+      notes.trim().length > 0 ||
+      charges.length > 0 ||
+      items.some(
+        (it) => it.description.trim() !== '' || Number(it.quantity) > 0 || Number(it.unitPrice) > 0
+      );
+
+    if (!hasData) {
+      resetInvoice();
+      return;
+    }
+
+    const confirmed = await modal.confirm(
+      'Clear Invoice Form',
+      'Are you sure you want to clear all entered items, customer details, and charges? This will discard your current draft and start a fresh invoice.',
+      'Clear Form',
+      'Keep Editing'
+    );
+
+    if (confirmed) {
+      handleDiscardDraft();
+    }
+  };
 
   // Render input focus updates
   useEffect(() => {
@@ -277,6 +406,10 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       try {
         if (mode === 'create') {
           const res = await createMutation.mutateAsync(payload);
+          try {
+            localStorage.removeItem('invoice_creation_draft');
+          } catch {}
+          setHasRestoredDraft(false);
           await modal.alert('Success', 'Invoice saved successfully', 'success');
           if (targetStatus === 'FINALIZED') {
             await handleExport(res.id, 'pdf', res.invoiceNumber);
@@ -291,7 +424,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
           router.push('/invoices');
         }
       } catch (err) {
-        modal.alert('Operation Failed', (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to save invoice ledger', 'error');
+        const { title, message, variant } = getErrorDialog(err, 'Operation Failed', 'Failed to save invoice ledger');
+        modal.alert(title, message, variant);
       } finally {
         isSubmitting.current = false;
       }
@@ -321,7 +455,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (error) {
       console.error(`Export to ${format} failed:`, error);
-      modal.alert('Export Failed', (error as AxiosErrorLike).response?.data?.error?.message || `Failed to export invoice to ${format}`, 'error');
+      const { title, message, variant } = getErrorDialog(error, 'Export Failed', `Failed to export invoice to ${format}`);
+      modal.alert(title, message, variant);
     }
   };
 
@@ -355,6 +490,42 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto">
+      {/* Draft restoration alert banner */}
+      {mode === 'create' && hasRestoredDraft && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-300 text-xs shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center space-x-2.5">
+            <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="font-semibold text-xs text-foreground">Unsaved draft recovered</p>
+              <p className="text-[11px] text-muted-foreground">Your items, customer info, and charges from your previous session were automatically restored.</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDiscardDraft}
+              className="h-7 px-3 text-xs border-amber-500/30 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-xl"
+            >
+              Discard Draft
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setHasRestoredDraft(false)}
+              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground rounded-lg"
+              title="Dismiss banner"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Top action bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-4">
         <div className="flex items-center space-x-3.5">
@@ -403,6 +574,20 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
             <Scale className="h-4 w-4 text-muted-foreground" />
             <span>Weight Estimator</span>
           </Button>
+
+          {mode === 'create' && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleClearFormConfirm}
+              className="space-x-1.5 font-semibold text-xs border-rose-500/30 text-rose-600 dark:text-rose-400 bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-100/60 dark:hover:bg-rose-900/30 rounded-xl h-9"
+              title="Clear all fields and start a fresh invoice"
+            >
+              <RotateCcw className="h-3.5 w-3.5 text-rose-500" />
+              <span>Clear Form</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -467,36 +652,49 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
           {/* Card 2: Items Table Grid */}
           <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden">
-            <CardHeader className="flex flex-row justify-between items-center bg-secondary/15 border-b border-border py-3 px-6">
+            <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-secondary/15 border-b border-border py-3 px-4 sm:px-6">
               <div className="flex items-center space-x-2.5">
-                <div className="bg-primary/10 text-primary p-1.5 rounded-lg">
+                <div className="bg-primary/10 text-primary p-1.5 rounded-lg shrink-0">
                   <ShoppingBag className="h-4 w-4" />
                 </div>
-                <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <CardTitle className="text-xs sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                   Ledger Line Items
                 </CardTitle>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setShowImportModal(true)}
-                  className="space-x-1.5 font-semibold text-xs border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30 rounded-xl h-8 px-3"
+                  className="flex-1 sm:flex-initial space-x-1.5 font-semibold text-xs border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30 rounded-xl h-9 sm:h-8 px-3 justify-center"
                 >
-                  <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-                  <span>Scan / Import</span>
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                  <span className="whitespace-nowrap">Scan / Import</span>
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={addRow}
-                  className="space-x-1.5 font-semibold text-xs border-primary text-primary hover:bg-primary/5 rounded-xl h-8 px-3"
+                  className="flex-1 sm:flex-initial space-x-1.5 font-semibold text-xs border-primary text-primary hover:bg-primary/5 rounded-xl h-9 sm:h-8 px-3 justify-center"
                 >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Add Row</span>
+                  <Plus className="h-3.5 w-3.5 shrink-0" />
+                  <span className="whitespace-nowrap">Add Row</span>
                 </Button>
+                {mode === 'create' && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClearFormConfirm}
+                    className="flex-1 sm:flex-initial space-x-1.5 font-semibold text-xs border-rose-500/30 text-rose-600 dark:text-rose-400 bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-100/60 dark:hover:bg-rose-900/30 rounded-xl h-9 sm:h-8 px-3 justify-center"
+                    title="Clear all fields and start a fresh invoice"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                    <span className="whitespace-nowrap">Clear Form</span>
+                  </Button>
+                )}
               </div>
             </CardHeader>
             {/* Desktop Table View */}
@@ -805,20 +1003,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                     <span>Apply Charge</span>
                   </Button>
                 </div>
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-1.5">
-                <Label htmlFor="invoice-notes" className="text-xs font-semibold text-muted-foreground">
-                  Cashier Transaction Notes
-                </Label>
-                <Textarea
-                  id="invoice-notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g. Delivery terms..."
-                  className="bg-background min-h-20 text-xs rounded-xl border border-border"
-                />
               </div>
 
               {/* Action operations buttons */}

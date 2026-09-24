@@ -12,7 +12,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 import { User, Shield, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
-import { AxiosErrorLike } from '../../types/api';
+import { getErrorMessage } from '../../lib/api-error';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -81,7 +81,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
         setSuccessMsg(null);
       }, 4000);
     } catch (err) {
-      const msg = (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to update profile details';
+      const msg = getErrorMessage(err, 'Failed to update profile details');
       setErrorMsg(msg);
     }
   };

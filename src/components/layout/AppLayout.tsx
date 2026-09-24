@@ -22,6 +22,10 @@ import {
   Sun,
   Moon,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
   Loader2,
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -33,25 +37,28 @@ interface SidebarItemProps {
   icon: React.ReactNode;
   label: string;
   active: boolean;
+  isCollapsed?: boolean;
   onClick?: () => void;
 }
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, label, active, onClick }) => {
+const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, label, active, isCollapsed, onClick }) => {
   return (
-    <Link href={href} onClick={onClick}>
+    <Link href={href} onClick={onClick} title={isCollapsed ? label : undefined}>
       <motion.span
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium group relative ${
+        className={`flex items-center ${
+          isCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
+        } rounded-xl text-sm font-medium group relative transition-colors ${
           active
             ? 'bg-primary text-white shadow-sm font-semibold'
             : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
         }`}
       >
-        <span className={`transition-transform duration-150 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>
+        <span className={`shrink-0 transition-transform duration-150 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>
           {icon}
         </span>
-        <span className="font-medium">{label}</span>
+        {!isCollapsed && <span className="font-medium whitespace-nowrap truncate">{label}</span>}
       </motion.span>
     </Link>
   );
@@ -63,12 +70,31 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const { isWarningOpen, secondsRemaining, stayLoggedIn, logOutNow } = useIdleTimeout();
   const { theme, setTheme } = useTheme();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    try {
+      const saved = localStorage.getItem('sidebar_collapsed');
+      if (saved === 'true') {
+        setIsCollapsed(true);
+      }
+    } catch {
+      // localStorage may be disabled
+    }
   }, []);
+
+  const toggleSidebar = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -103,17 +129,17 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     setIsMobileOpen(false);
   };
 
-  const renderNavList = (onItemClick?: () => void) => {
+  const renderNavList = (onItemClick?: () => void, collapsed = false) => {
     if (isLoading && !user) {
       return (
         <div className="space-y-2 py-1">
           {[1, 2, 3, 4, 5].map((i) => (
             <div
               key={i}
-              className="flex items-center space-x-3 px-4 py-3 rounded-xl bg-secondary/50"
+              className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3 px-4'} py-3 rounded-xl bg-secondary/50`}
             >
               <Skeleton className="h-5 w-5 rounded-lg shrink-0" />
-              <Skeleton className="h-4 w-28 rounded" />
+              {!collapsed && <Skeleton className="h-4 w-28 rounded" />}
             </div>
           ))}
         </div>
@@ -129,6 +155,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             icon={item.icon}
             label={item.label}
             active={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))}
+            isCollapsed={collapsed}
             onClick={onItemClick}
           />
         ))}
@@ -179,34 +206,81 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   return (
     <div className="h-screen w-screen overflow-hidden bg-background text-foreground flex">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex md:w-64 h-screen sticky top-0 bg-card border-r border-border flex-col shrink-0 text-foreground z-30 select-none">
-        <div className="p-5 flex items-center space-x-3 border-b border-border">
-          <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shadow-sm shrink-0">
-            <Image src="/logo.svg" alt="Lao Steel Ventures" width={36} height={36} className="w-8 h-8 object-contain" priority />
+      <aside
+        className={`hidden md:flex ${
+          isCollapsed ? 'w-20' : 'w-64'
+        } h-screen sticky top-0 bg-card border-r border-border flex-col shrink-0 text-foreground z-30 select-none transition-all duration-300 ease-in-out`}
+      >
+        <div
+          className={`p-4 flex items-center ${
+            isCollapsed ? 'justify-center' : 'justify-between'
+          } border-b border-border h-16 shrink-0`}
+        >
+          <div className="flex items-center space-x-3 overflow-hidden">
+            <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shadow-sm shrink-0">
+              <Image src="/logo.svg" alt="Lao Steel Ventures" width={36} height={36} className="w-8 h-8 object-contain" priority />
+            </div>
+            {!isCollapsed && (
+              <div className="min-w-0">
+                <h1 className="font-bold text-sm tracking-wide uppercase leading-tight text-foreground font-heading truncate">
+                  Lao Steel
+                </h1>
+                <p className="text-xs text-muted-foreground truncate">Ventures</p>
+              </div>
+            )}
           </div>
-          <div>
-            <h1 className="font-bold text-sm tracking-wide uppercase leading-tight text-foreground font-heading">
-              Lao Steel
-            </h1>
-            <p className="text-xs text-muted-foreground">Ventures</p>
-          </div>
+          {!isCollapsed && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSidebar}
+              className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary shrink-0"
+              title="Collapse sidebar"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
-        <nav className="flex-1 px-4 py-6 overflow-y-auto">
-          {renderNavList()}
+        <nav className="flex-1 px-3 py-6 overflow-y-auto space-y-1">
+          {renderNavList(undefined, isCollapsed)}
         </nav>
 
-        <div className="p-4 border-t border-border space-y-3">
-          {renderUserCard()}
-
-          <Button
-            variant="ghost"
-            onClick={logout}
-            className="w-full justify-start space-x-3 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-medium py-3 h-auto rounded-xl"
-          >
-            <LogOut className="h-5 w-5" />
-            <span>Logout</span>
-          </Button>
+        <div className="p-3 border-t border-border space-y-2">
+          {isCollapsed ? (
+            <div className="flex flex-col items-center space-y-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleSidebar}
+                className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary"
+                title="Expand sidebar"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={logout}
+                className="h-9 w-9 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                title="Logout"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              {renderUserCard()}
+              <Button
+                variant="ghost"
+                onClick={logout}
+                className="w-full justify-start space-x-3 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-medium py-2.5 h-auto rounded-xl"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </Button>
+            </>
+          )}
         </div>
       </aside>
 
@@ -282,17 +356,32 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       {/* Main Panel Content Container */}
       <div className="flex-1 flex flex-col h-screen min-w-0 overflow-y-auto overflow-x-hidden">
         {/* Header toolbar */}
-        <header className="h-16 border-b border-border bg-card/90 backdrop-blur-md sticky top-0 z-40 flex items-center justify-between px-6 shadow-sm shrink-0">
-          <div className="flex items-center space-x-4">
+        <header className="h-16 border-b border-border bg-card/90 backdrop-blur-md sticky top-0 z-40 flex items-center justify-between px-4 sm:px-6 shadow-sm shrink-0">
+          <div className="flex items-center space-x-3">
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden text-foreground"
+              className="md:hidden text-foreground h-9 w-9"
               onClick={() => setIsMobileOpen(true)}
             >
-              <Menu className="h-6 w-6" />
+              <Menu className="h-5 w-5" />
             </Button>
-            <span className="font-heading font-bold text-lg md:text-xl tracking-tight capitalize select-none text-foreground">
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSidebar}
+              className="hidden md:flex text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg h-9 w-9 shrink-0"
+              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {isCollapsed ? (
+                <PanelLeftOpen className="h-4 w-4" />
+              ) : (
+                <PanelLeftClose className="h-4 w-4" />
+              )}
+            </Button>
+
+            <span className="font-heading font-bold text-base sm:text-lg md:text-xl tracking-tight capitalize select-none text-foreground truncate">
               {pathname === '/'
                 ? 'Analytics Dashboard'
                 : pathname.split('/')[1] || 'Dashboard'}

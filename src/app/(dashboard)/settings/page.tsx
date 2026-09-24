@@ -35,7 +35,8 @@ import {
   Hash,
 } from 'lucide-react';
 import { useModal } from '../../../components/ui/modal-provider';
-import { BusinessSettings, AxiosErrorLike } from '../../../types/api';
+import { BusinessSettings } from '../../../types/api';
+import { getErrorDialog, getErrorMessage } from '../../../lib/api-error';
 
 export default function SettingsPage() {
   const { user, updateCurrentUser } = useAuth();
@@ -117,13 +118,10 @@ export default function SettingsPage() {
 
       modal.alert('Success', 'Your profile and security credentials have been updated.', 'success');
     } catch (err) {
-      const axiosErr = err as AxiosErrorLike;
-      const msg =
-        axiosErr.response?.data?.error?.message ||
-        axiosErr.message ||
-        'Failed to update profile settings. Please verify your current password.';
+      const msg = getErrorMessage(err, 'Failed to update profile settings. Please verify your current password.');
       setProfileError(msg);
-      modal.alert('Update Failed', msg, 'error');
+      const { title, message, variant } = getErrorDialog(err, 'Update Failed', 'Failed to update profile settings.');
+      modal.alert(title, message, variant);
     }
   };
 
@@ -157,7 +155,8 @@ export default function SettingsPage() {
       await updateBusinessMutation.mutateAsync(payload);
       modal.alert('Success', 'Business configurations saved successfully', 'success');
     } catch (err) {
-      modal.alert('Update Failed', (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to update configurations', 'error');
+      const { title, message, variant } = getErrorDialog(err, 'Update Failed', 'Failed to update configurations');
+      modal.alert(title, message, variant);
     } finally {
       setIsBusinessSubmitting(false);
     }

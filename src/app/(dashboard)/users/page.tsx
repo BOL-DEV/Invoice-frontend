@@ -14,7 +14,7 @@ import { Label } from '../../../components/ui/label';
 import { Badge } from '../../../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui/dialog';
 import { Plus, ShieldAlert, UserCheck, UserX, Loader2, Mail, Lock as LockIcon, Eye, EyeOff } from 'lucide-react';
-import { AxiosErrorLike } from '../../../types/api';
+import { getErrorMessage, getErrorDialog } from '../../../lib/api-error';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { useModal } from '../../../components/ui/modal-provider';
 
@@ -80,7 +80,7 @@ export default function UsersPage() {
       reset();
       modal.alert('Cashier Added', `Cashier ${data.firstName} ${data.lastName} registered successfully.`, 'success');
     } catch (err) {
-      const msg = (err as AxiosErrorLike).response?.data?.error?.message || 'Failed to create cashier account';
+      const msg = getErrorMessage(err, 'Failed to create cashier account');
       setErrorMsg(msg);
     }
   };
@@ -103,8 +103,8 @@ export default function UsersPage() {
           'success'
         );
       } catch (err) {
-        const errorMsg = (err as AxiosErrorLike).response?.data?.error?.message || `Failed to ${actionName.toLowerCase()} cashier`;
-        modal.alert('Operation Failed', errorMsg, 'error');
+        const { title, message, variant } = getErrorDialog(err, 'Operation Failed', `Failed to ${actionName.toLowerCase()} cashier`);
+        modal.alert(title, message, variant);
       }
     }
   };
