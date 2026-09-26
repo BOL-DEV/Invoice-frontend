@@ -24,8 +24,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LSV Invoice Generator",
-  description: "Billing & Invoices management for Lao Steel Ventures",
+  title: "BOLXolve Invoice | Multi-Tenant Billing Platform",
+  description: "Enterprise multi-tenant invoice, billing, and automated tax management platform",
   icons: {
     icon: "/logo.svg",
     apple: "/logo.png",
