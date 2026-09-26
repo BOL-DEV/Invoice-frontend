@@ -40,11 +40,45 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
-  const businessName = branding?.business?.businessName || 'Lao Steel Ventures';
-  const tagline = branding?.business?.tagline || 'Enterprise Invoice Generator';
-  const adminEmail = branding?.business?.email || 'admin@laosteel.com';
-  const adminPhone = branding?.business?.phone || 'Depot Helpdesk: ext. 104 / 108';
-  const address = branding?.business?.address || 'Factory Depot Admin Wing';
+  const isCustomDomain = Boolean(branding?.isCustomDomain);
+
+  // Dynamic branding parameters based on custom domain vs root platform
+  const businessName = isCustomDomain
+    ? (branding?.business?.businessName || 'LAO STEEL VENTURES')
+    : 'BOLXolve Invoice';
+
+  const badgeText = isCustomDomain
+    ? `${branding?.business?.businessName || 'LSV'} Billing & Logistics Gateway`
+    : 'BOLXolve Multi-Tenant Invoice Platform';
+
+  const tagline = isCustomDomain
+    ? (branding?.business?.tagline || 'STEEL STOCKISTS, INDUSTRIAL AND BUILDING MATERIALS SUPPLIERS')
+    : 'Multi-Tenant Invoicing & Enterprise Billing Platform';
+
+  const description = isCustomDomain
+    ? 'Industrial-grade billing system built for high-volume steel distribution, accurate tonnage computing, and audit-proof ledger tracking.'
+    : 'Modern cloud invoicing platform engineered for multi-tenant organizations, automated tax compliance, AI document extraction, and strict role-based access control.';
+
+  const feature1Title = isCustomDomain ? 'Dynamic Line-Item Calculation' : 'Multi-Tenant Workspaces & Plans';
+  const feature1Desc = isCustomDomain
+    ? 'Automated tonnage, custom charges, and compliant 7.5% VAT / 2% WHT rates.'
+    : 'Isolated business tenants, granular cashier permissions, and customizable staff quotas.';
+
+  const feature2Title = isCustomDomain ? 'Dual-Role Anti-Fraud Protection' : 'Multimodal AI Document Scanner';
+  const feature2Desc = isCustomDomain
+    ? 'Strict reprint approval gates to eliminate unauthorized duplicate receipts.'
+    : 'High-precision automated data extraction from receipts, bills, and purchase orders.';
+
+  const feature3Title = isCustomDomain ? 'Multi-Format Vector Documents' : 'Branded Portals & Custom Domains';
+  const feature3Desc = isCustomDomain
+    ? 'Instant branded PDF, sharp 2x PNG rasterization, and spreadsheet exports.'
+    : 'Seamless custom domains, white-label receipt templates, and audit-proof ledgers.';
+
+  const footerVersion = isCustomDomain ? `v3.0.0 • ${businessName}` : 'v3.0.0 • BOLXolve Cloud';
+
+  const adminEmail = branding?.business?.email || (isCustomDomain ? 'iambeakeem74@gmail.com' : 'support@bolxolve.com');
+  const adminPhone = branding?.business?.phone || (isCustomDomain ? '08034071931, 08052008315' : '+234 800 BOLXOLVE');
+  const address = branding?.business?.address || (isCustomDomain ? 'HEAD OFFICE: S/L/L.G Shop 249, Orile-Iganmu, Lagos' : 'BOLXolve Cloud Systems');
 
   const {
     register,
@@ -103,7 +137,7 @@ function LoginForm() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span>LSV Billing & Logistics Gateway</span>
+            <span>{badgeText}</span>
           </div>
 
           <div className="flex items-center space-x-3.5 mb-3">
@@ -120,7 +154,7 @@ function LoginForm() {
             </div>
           </div>
           <p className="text-sm text-slate-300/90 leading-relaxed max-w-md mt-4">
-            Industrial-grade billing system built for high-volume steel distribution, accurate tonnage computing, and audit-proof ledger tracking.
+            {description}
           </p>
         </div>
 
@@ -131,8 +165,8 @@ function LoginForm() {
               <FileText className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="text-xs font-semibold text-white">Dynamic Line-Item Calculation</h4>
-              <p className="text-[11px] text-slate-400 mt-0.5">Automated tonnage, custom charges, and compliant 7.5% VAT / 2% WHT rates.</p>
+              <h4 className="text-xs font-semibold text-white">{feature1Title}</h4>
+              <p className="text-[11px] text-slate-400 mt-0.5">{feature1Desc}</p>
             </div>
           </div>
 
@@ -141,8 +175,8 @@ function LoginForm() {
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="text-xs font-semibold text-white">Dual-Role Anti-Fraud Protection</h4>
-              <p className="text-[11px] text-slate-400 mt-0.5">Strict reprint approval gates to eliminate unauthorized duplicate receipts.</p>
+              <h4 className="text-xs font-semibold text-white">{feature2Title}</h4>
+              <p className="text-[11px] text-slate-400 mt-0.5">{feature2Desc}</p>
             </div>
           </div>
 
@@ -151,8 +185,8 @@ function LoginForm() {
               <Printer className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="text-xs font-semibold text-white">Multi-Format Vector Documents</h4>
-              <p className="text-[11px] text-slate-400 mt-0.5">Instant branded PDF, sharp 2x PNG rasterization, and spreadsheet exports.</p>
+              <h4 className="text-xs font-semibold text-white">{feature3Title}</h4>
+              <p className="text-[11px] text-slate-400 mt-0.5">{feature3Desc}</p>
             </div>
           </div>
         </div>
@@ -163,7 +197,7 @@ function LoginForm() {
             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
             <span>Secure TLS 1.3 Active</span>
           </div>
-          <span>v2.4.0 • Depot Hub</span>
+          <span>{footerVersion}</span>
         </div>
       </div>
 
@@ -192,7 +226,7 @@ function LoginForm() {
               Sign In
             </h2>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Enter your authorized email and password to access the billing ledger.
+              Enter your authorized email and password to access {isCustomDomain ? 'the billing ledger' : 'your business workspace'}.
             </p>
           </div>
 
@@ -321,7 +355,7 @@ function LoginForm() {
                   <span>Verifying credentials...</span>
                 </>
               ) : (
-                <span>Sign In to Billing</span>
+                <span>Sign In to {isCustomDomain ? 'Billing' : 'BOLXolve'}</span>
               )}
             </Button>
           </form>
