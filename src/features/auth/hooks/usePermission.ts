@@ -13,6 +13,17 @@ export type PermissionKey =
   | 'dashboard:view';
 
 const ROLE_PERMISSIONS: Record<Role, PermissionKey[]> = {
+  SUPER_ADMIN: [
+    'invoice:create',
+    'invoice:list-all',
+    'invoice:edit-finalized',
+    'invoice:delete',
+    'invoice:print-finalized',
+    'users:manage',
+    'business:manage',
+    'activity:view',
+    'dashboard:view',
+  ],
   ADMIN: [
     'invoice:create',
     'invoice:list-all',
@@ -35,8 +46,8 @@ export const usePermission = () => {
   const hasPermission = (permission: PermissionKey): boolean => {
     if (!user) return false;
     
-    // ADMIN role bypasses all client checks
-    if (user.role === 'ADMIN') return true;
+    // ADMIN and SUPER_ADMIN roles bypass all client checks
+    if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') return true;
 
     const allowedPermissions = ROLE_PERMISSIONS[user.role] || [];
     return allowedPermissions.includes(permission);
@@ -45,7 +56,8 @@ export const usePermission = () => {
   return {
     hasPermission,
     role: user?.role || null,
-    isAdmin: user?.role === 'ADMIN',
+    isAdmin: user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN',
+    isSuperAdmin: user?.role === 'SUPER_ADMIN',
     isLoading,
     isAuthenticated: !!user,
   };

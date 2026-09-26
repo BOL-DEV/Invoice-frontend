@@ -33,18 +33,33 @@ import {
   FileCode,
   Tag,
   Hash,
+  Globe,
+  CreditCard,
+  Plus,
+  Trash2,
+  ExternalLink,
+  Sparkles,
+  Layers,
 } from 'lucide-react';
 import { useModal } from '../../../components/ui/modal-provider';
 import { BusinessSettings } from '../../../types/api';
 import { getErrorDialog, getErrorMessage } from '../../../lib/api-error';
+import { useSubscription, useAddCustomDomain, useRemoveCustomDomain } from '../../../features/subscriptions/hooks/useSubscription';
 
 export default function SettingsPage() {
   const { user, updateCurrentUser } = useAuth();
   const { isAdmin, isLoading: isAuthLoading } = usePermission();
   const modal = useModal();
 
-  // Active Tab state: 'profile' (all users) or 'business' (admin only)
-  const [activeTab, setActiveTab] = useState<'profile' | 'business'>('profile');
+  // Active Tab state: 'profile' (all users), 'business' (admin only), or 'subscription' (admin only)
+  const [activeTab, setActiveTab] = useState<'profile' | 'business' | 'subscription'>('profile');
+  const [newDomainInput, setNewDomainInput] = useState('');
+  const [isDomainSubmitting, setIsDomainSubmitting] = useState(false);
+
+  // Subscription data
+  const { data: subDetails, isLoading: isSubLoading } = useSubscription();
+  const addDomainMutation = useAddCustomDomain();
+  const removeDomainMutation = useRemoveCustomDomain();
 
   // --- Profile & Security Form State ---
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -190,7 +205,7 @@ export default function SettingsPage() {
 
       {/* Tabs Selection (Modern Segmented Control) */}
       {isAdmin && (
-        <div className="p-1 rounded-xl bg-secondary/70 dark:bg-slate-900/80 border border-border/80 grid grid-cols-2 gap-1 w-full sm:max-w-md">
+        <div className="p-1 rounded-xl bg-secondary/70 dark:bg-slate-900/80 border border-border/80 grid grid-cols-3 gap-1 w-full sm:max-w-lg">
           <button
             type="button"
             onClick={() => setActiveTab('profile')}
@@ -201,7 +216,7 @@ export default function SettingsPage() {
             }`}
           >
             <User className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">Profile & Security</span>
+            <span className="truncate">Profile</span>
           </button>
 
           <button
@@ -214,7 +229,20 @@ export default function SettingsPage() {
             }`}
           >
             <Building2 className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">Company & Billing</span>
+            <span className="truncate">Company</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('subscription')}
+            className={`flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'subscription'
+                ? 'bg-card text-foreground shadow-sm border border-border/60 text-emerald-600 dark:text-emerald-400 font-bold'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+            }`}
+          >
+            <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">Plan & Domains</span>
           </button>
         </div>
       )}
@@ -625,6 +653,263 @@ export default function SettingsPage() {
             </form>
           )}
         </Card>
+      )}
+
+      {/* ========================================================= */}
+      {/* TAB 3: SUBSCRIPTION & DOMAINS (ADMIN ONLY)                 */}
+      {/* ========================================================= */}
+      {activeTab === 'subscription' && isAdmin && (
+        <div className="space-y-6">
+          {/* Plan & Quota Card */}
+          <Card className="border-border/80 bg-card shadow-premium rounded-2xl overflow-hidden">
+            <CardHeader className="p-4 sm:p-6 border-b border-border/80 bg-slate-50/50 dark:bg-slate-900/30">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-sm sm:text-base font-bold text-foreground">
+                      Subscription Plan & Quotas
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Active platform tier, staff limits, and feature capabilities.
+                    </CardDescription>
+                  </div>
+                </div>
+
+                {subDetails?.subscription && (
+                  <div className="flex items-center space-x-2">
+                    <Badge className="bg-emerald-500 text-white font-mono text-xs px-3 py-1">
+                      {subDetails.subscription.plan} PLAN
+                    </Badge>
+                    {subDetails.subscription.billingMode === 'COMPLIMENTARY' && (
+                      <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400 text-xs">
+                        COMPLIMENTARY ACCESS
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-4 sm:p-6 space-y-6">
+              {isSubLoading ? (
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+                </div>
+              ) : subDetails ? (
+                <div className="space-y-6">
+                  {/* Quota Usage Bar */}
+                  <div className="p-4 rounded-xl border border-border/80 bg-slate-50/60 dark:bg-slate-900/50 space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-semibold text-foreground flex items-center space-x-1.5">
+                        <User className="h-3.5 w-3.5 text-emerald-500" />
+                        <span>Staff Seats Allocated</span>
+                      </span>
+                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        {subDetails.usage.staffCount} of {subDetails.usage.maxStaffCount} seats used
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-emerald-500 h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.min(100, (subDetails.usage.staffCount / Math.max(1, subDetails.usage.maxStaffCount)) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      {subDetails.subscription.plan === 'STARTER' && 'Starter plan is limited to 2 staff accounts.'}
+                      {subDetails.subscription.plan === 'BUSINESS' && 'Business plan is limited to 4 staff accounts.'}
+                      {subDetails.subscription.plan === 'ENTERPRISE' && 'Enterprise custom staff quota managed by Super Administrator.'}
+                    </p>
+                  </div>
+
+                  {/* Feature Capabilities Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="p-3.5 rounded-xl border border-border/80 flex items-start space-x-3">
+                      <div className={`p-2 rounded-lg shrink-0 ${subDetails.capabilities.aiExtraction ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                        <Sparkles className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground">AI Document Scanner</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {subDetails.capabilities.aiExtraction ? 'Active (Business & Enterprise)' : 'Locked on Starter Plan'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl border border-border/80 flex items-start space-x-3">
+                      <div className={`p-2 rounded-lg shrink-0 ${subDetails.capabilities.customDomain ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                        <Globe className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground">Custom Branded Domain</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {subDetails.capabilities.customDomain ? 'Active (Enterprise Plan)' : 'Locked on Starter & Business'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl border border-border/80 flex items-start space-x-3">
+                      <div className={`p-2 rounded-lg shrink-0 ${subDetails.capabilities.multipleBranches ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                        <Layers className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground">Multiple Branches</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {subDetails.capabilities.multipleBranches ? 'Active (Modular Enterprise)' : 'Standard Single Branch'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl border border-border/80 flex items-start space-x-3">
+                      <div className="p-2 rounded-lg shrink-0 bg-emerald-500/10 text-emerald-500">
+                        <CheckCircle2 className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground">Standard & Advanced Analytics</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {subDetails.capabilities.multipleBranches ? 'Multi-branch Aggregated Analytics' : 'Standard Full Analytics Report'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          {/* Custom Domains Manager */}
+          <Card className="border-border/80 bg-card shadow-premium rounded-2xl overflow-hidden">
+            <CardHeader className="p-4 sm:p-6 border-b border-border/80 bg-slate-50/50 dark:bg-slate-900/30">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+                  <Globe className="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm sm:text-base font-bold text-foreground">
+                    Custom Domains
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Configure your business web domain for seamless direct login and branded billing access.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-4 sm:p-6 space-y-4">
+              {/* Domain Input Form */}
+              {subDetails?.capabilities?.customDomain ? (
+                <div className="p-4 rounded-xl border border-border/80 bg-slate-50/50 dark:bg-slate-900/30 space-y-3">
+                  <Label htmlFor="domainInput" className="text-xs font-semibold text-foreground">
+                    Register New Custom Domain
+                  </Label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Input
+                      id="domainInput"
+                      placeholder="e.g. invoice.mycompany.com or invoice.laosteel.local"
+                      value={newDomainInput}
+                      onChange={(e) => setNewDomainInput(e.target.value)}
+                      className="bg-background border-border/80 focus:border-emerald-500 font-mono text-xs h-10 rounded-xl"
+                    />
+                    <Button
+                      type="button"
+                      disabled={isDomainSubmitting || !newDomainInput.trim()}
+                      onClick={async () => {
+                        if (!newDomainInput.trim()) return;
+                        setIsDomainSubmitting(true);
+                        try {
+                          await addDomainMutation.mutateAsync(newDomainInput.trim());
+                          setNewDomainInput('');
+                          modal.alert('Success', `Domain ${newDomainInput.trim()} registered successfully. Point your DNS CNAME to bolxolve-invoice.vercel.app`, 'success');
+                        } catch (err) {
+                          modal.alert('Domain Error', getErrorMessage(err), 'error');
+                        } finally {
+                          setIsDomainSubmitting(false);
+                        }
+                      }}
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs h-10 px-4 rounded-xl font-semibold cursor-pointer shrink-0"
+                    >
+                      {isDomainSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1.5" />}
+                      Add Domain
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Point a CNAME record from your domain to <span className="font-mono text-foreground font-bold">bolxolve-invoice.vercel.app</span>. For local development testing, you can map <span className="font-mono text-foreground font-bold">127.0.0.1 invoice.mycompany.local</span> in your Windows hosts file.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs flex items-start space-x-3">
+                  <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold">Custom Domains Locked</p>
+                    <p className="text-[11px] mt-0.5 leading-relaxed">
+                      Custom domain routing is available exclusively on the Enterprise plan. Contact BOLXolve platform administration to upgrade and link your business domain.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Registered Domains Table */}
+              <div className="space-y-2 pt-2">
+                <h4 className="text-xs font-semibold text-foreground">Active Registered Domains</h4>
+                <div className="divide-y divide-border/80 border border-border/80 rounded-xl overflow-hidden">
+                  {subDetails?.domains && subDetails.domains.length > 0 ? (
+                    subDetails.domains.map((d) => (
+                      <div key={d.id} className="p-3.5 flex items-center justify-between bg-card text-xs">
+                        <div className="flex items-center space-x-2.5">
+                          <Globe className="h-4 w-4 text-emerald-500" />
+                          <span className="font-mono font-medium text-foreground">{d.domain}</span>
+                          {d.isPrimary && (
+                            <Badge variant="outline" className="text-[10px] py-0 px-2 border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+                              Primary Platform Domain
+                            </Badge>
+                          )}
+                          {d.isCustom && (
+                            <Badge variant="outline" className="text-[10px] py-0 px-2 border-blue-500/30 text-blue-600 dark:text-blue-400">
+                              Custom Brand Domain
+                            </Badge>
+                          )}
+                        </div>
+
+                        {!d.isPrimary && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              const confirmed = await modal.confirm(
+                                'Remove Domain',
+                                `Are you sure you want to detach domain "${d.domain}"?`
+                              );
+                              if (confirmed) {
+                                try {
+                                  await removeDomainMutation.mutateAsync(d.id);
+                                  modal.alert('Success', 'Domain removed successfully', 'success');
+                                } catch (err) {
+                                  modal.alert('Error', getErrorMessage(err), 'error');
+                                }
+                              }
+                            }}
+                            className="text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 h-8 px-2.5 rounded-lg text-xs"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-6 text-center text-xs text-muted-foreground">
+                      No domains registered yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );

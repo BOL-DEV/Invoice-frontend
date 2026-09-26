@@ -11,6 +11,7 @@ import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { normalizeApiError, applyApiFieldErrors, NormalizedError } from '../../../lib/api-error';
 import Image from 'next/image';
+import { useBranding } from '../../../features/business/hooks/useBranding';
 import {
   Clock,
   Loader2,
@@ -33,10 +34,17 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const isExpired = searchParams.get('reason') === 'expired';
   const { login } = useAuth();
+  const { data: branding } = useBranding();
   const [errorState, setErrorState] = useState<NormalizedError | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+
+  const businessName = branding?.business?.businessName || 'Lao Steel Ventures';
+  const tagline = branding?.business?.tagline || 'Enterprise Invoice Generator';
+  const adminEmail = branding?.business?.email || 'admin@laosteel.com';
+  const adminPhone = branding?.business?.phone || 'Depot Helpdesk: ext. 104 / 108';
+  const address = branding?.business?.address || 'Factory Depot Admin Wing';
 
   const {
     register,
@@ -100,14 +108,14 @@ function LoginForm() {
 
           <div className="flex items-center space-x-3.5 mb-3">
             <div className="h-14 w-14 rounded-2xl bg-white p-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/25 shrink-0">
-              <Image src="/logo.svg" alt="Lao Steel Ventures" width={48} height={48} className="w-11 h-11 object-contain" priority />
+              <Image src="/logo.svg" alt={businessName} width={48} height={48} className="w-11 h-11 object-contain" priority />
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-white font-heading">
-                Lao Steel Ventures
+                {businessName}
               </h1>
               <p className="text-xs text-slate-400 font-mono tracking-wider uppercase">
-                Enterprise Invoice Generator
+                {tagline}
               </p>
             </div>
           </div>
@@ -168,13 +176,13 @@ function LoginForm() {
           {/* Mobile Header Branding (Visible on mobile & tablets only) */}
           <div className="lg:hidden flex flex-col items-center text-center space-y-3 mb-6">
             <div className="h-14 w-14 rounded-2xl bg-white p-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/20 border border-border shrink-0">
-              <Image src="/logo.svg" alt="Lao Steel Ventures" width={48} height={48} className="w-11 h-11 object-contain" />
+              <Image src="/logo.svg" alt={businessName} width={48} height={48} className="w-11 h-11 object-contain" />
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC] font-heading">
-                Lao Steel Ventures
+                {businessName}
               </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Invoice Generator</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{tagline}</p>
             </div>
           </div>
 
@@ -328,7 +336,7 @@ function LoginForm() {
               <HelpCircle className="h-3.5 w-3.5" />
               <span>Need help signing in?</span>
             </button>
-            <span className="text-[11px] font-mono select-none">Lao Steel Ventures</span>
+            <span className="text-[11px] font-mono select-none">{businessName}</span>
           </div>
         </div>
       </div>
@@ -342,7 +350,7 @@ function LoginForm() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2 text-[#0F172A] dark:text-[#F8FAFC]">
                 <HelpCircle className="h-5 w-5 text-emerald-500" />
-                <h3 className="font-bold text-sm">Depot Access Assistance</h3>
+                <h3 className="font-bold text-sm">Access Assistance</h3>
               </div>
               <button
                 type="button"
@@ -354,13 +362,13 @@ function LoginForm() {
             </div>
             
             <p className="text-xs text-muted-foreground leading-relaxed">
-              If you have forgotten your password or your account is locked, please notify your shift supervisor or system administrator directly:
+              If you have forgotten your password or your account is locked, please notify your supervisor or system administrator directly:
             </p>
 
             <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/60 text-xs space-y-1.5 font-mono">
-              <p><span className="text-muted-foreground">Depot Helpdesk:</span> ext. 104 / 108</p>
-              <p><span className="text-muted-foreground">Admin Email:</span> admin@laosteel.com</p>
-              <p><span className="text-muted-foreground">Office:</span> Factory Depot Admin Wing</p>
+              <p><span className="text-muted-foreground">Contact:</span> {adminPhone}</p>
+              <p><span className="text-muted-foreground">Email:</span> {adminEmail}</p>
+              <p><span className="text-muted-foreground">Office:</span> {address}</p>
             </div>
 
             <Button

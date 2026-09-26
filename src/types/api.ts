@@ -1,7 +1,8 @@
-export type Role = 'ADMIN' | 'APPRENTICE';
+export type Role = 'SUPER_ADMIN' | 'ADMIN' | 'APPRENTICE';
 
 export interface User {
   id: string;
+  businessId?: string;
   email: string;
   role: Role;
   firstName: string;
@@ -45,6 +46,7 @@ export interface RefreshResult {
 export interface BusinessSettings {
   id: string;
   businessName: string;
+  slug?: string;
   tagline?: string;
   address: string;
   phone: string;
@@ -56,8 +58,59 @@ export interface BusinessSettings {
   defaultVatPercentage: number;
   defaultWhtPercentage: number;
   nextInvoiceNumber: number;
+  receiptTemplateId?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export type PlanType = 'STARTER' | 'BUSINESS' | 'ENTERPRISE';
+export type BillingMode = 'SUBSCRIPTION' | 'COMPLIMENTARY';
+export type SubscriptionStatus = 'ACTIVE' | 'TRIALING' | 'PAST_DUE' | 'CANCELED' | 'INCOMPLETE';
+
+export interface BusinessDomain {
+  id: string;
+  businessId: string;
+  domain: string;
+  isPrimary: boolean;
+  isCustom: boolean;
+  createdAt: string;
+}
+
+export interface Subscription {
+  id: string;
+  businessId: string;
+  plan: PlanType;
+  billingMode: BillingMode;
+  status: SubscriptionStatus;
+  maxStaffCount: number;
+  hasCustomDomain: boolean;
+  hasMultipleBranches: boolean;
+  hasAdvancedReports: boolean;
+  startDate: string;
+  endDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubscriptionDetails {
+  subscription: Subscription;
+  usage: {
+    staffCount: number;
+    maxStaffCount: number;
+  };
+  domains: BusinessDomain[];
+  capabilities: {
+    aiExtraction: boolean;
+    customDomain: boolean;
+    multipleBranches: boolean;
+    advancedReports: boolean;
+  };
+}
+
+export interface TenantBranding {
+  business: BusinessSettings | null;
+  isCustomDomain: boolean;
+  plan?: PlanType;
 }
 
 export interface ActivityLog {
@@ -121,6 +174,7 @@ export interface InvoiceShare {
 
 export interface Invoice {
   id: string;
+  businessId?: string;
   invoiceNumber: string;
   customerName: string;
   customerPhone: string | null;
