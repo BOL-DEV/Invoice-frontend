@@ -26,6 +26,12 @@ export const setupInterceptors = () => {
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      if (typeof window !== 'undefined' && config.headers) {
+        const activeBusinessId = localStorage.getItem('active_business_id');
+        if (activeBusinessId) {
+          config.headers['x-business-id'] = activeBusinessId;
+        }
+      }
       return config;
     },
     (error) => Promise.reject(error)

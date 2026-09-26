@@ -26,6 +26,7 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  Building2,
   Loader2,
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -109,13 +110,19 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     }
   }, [isLoading, user, router]);
 
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isAdminOrSuper = user?.role === 'ADMIN' || isSuperAdmin;
+
   // Strictly role-based navigation: NEVER default to Apprentice links if user is null or unauthenticated
   const navItems = user
     ? [
+        ...(isSuperAdmin
+          ? [{ href: '/admin/tenants', icon: <Building2 className="h-5 w-5" />, label: 'Tenants & SaaS' }]
+          : []),
         { href: '/', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' },
         { href: '/invoices', icon: <FileText className="h-5 w-5" />, label: 'Invoices' },
         { href: '/approvals', icon: <CheckSquare className="h-5 w-5" />, label: 'Approvals' },
-        ...(user.role === 'ADMIN'
+        ...(isAdminOrSuper
           ? [
               { href: '/users', icon: <Users className="h-5 w-5" />, label: 'Cashiers' },
               { href: '/activity', icon: <Activity className="h-5 w-5" />, label: 'Activity Logs' },

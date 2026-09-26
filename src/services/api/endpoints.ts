@@ -33,6 +33,9 @@ export const API_ENDPOINTS = {
     BASE: '/api/business',
     DETAIL: (id: string) => `/api/business/${id}`,
     BRANDING: '/api/business/branding',
+    ADMIN_ALL: '/api/business/admin/all',
+    ADMIN_ONBOARD: '/api/business/admin/onboard',
+    ADMIN_STATUS: (id: string) => `/api/business/admin/${id}/status`,
   },
   SUBSCRIPTIONS: {
     ME: '/api/subscriptions/me',

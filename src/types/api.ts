@@ -113,6 +113,40 @@ export interface TenantBranding {
   plan?: PlanType;
 }
 
+export type OnboardingStatus = 'PENDING' | 'IN_PROGRESS' | 'ACTIVE' | 'SUSPENDED';
+
+export interface TenantSummary extends BusinessSettings {
+  onboardingStatus: OnboardingStatus;
+  subscription: Subscription | null;
+  domains: BusinessDomain[];
+  stats: {
+    userCount: number;
+    invoiceCount: number;
+    customerCount: number;
+  };
+}
+
+export interface OnboardTenantInput {
+  businessName: string;
+  slug: string;
+  address: string;
+  phone: string;
+  email: string;
+  receiptPrefix?: string;
+  tagline?: string | null;
+  plan: PlanType;
+  billingMode: BillingMode;
+  maxStaffCount: number;
+  hasCustomDomain: boolean;
+  hasMultipleBranches: boolean;
+  hasAdvancedReports: boolean;
+  customDomain?: string | null;
+  adminFirstName: string;
+  adminLastName: string;
+  adminEmail: string;
+  adminPassword: string;
+}
+
 export interface ActivityLog {
   id: string;
   userId: string;
