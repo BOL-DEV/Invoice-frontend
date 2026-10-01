@@ -27,12 +27,15 @@ import {
   HelpCircle,
   CheckCircle2,
   X,
+  ShieldAlert,
 } from 'lucide-react';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isExpired = searchParams.get('reason') === 'expired';
+  const isTenantMismatch = searchParams.get('reason') === 'tenant_mismatch';
+  const mismatchDomain = searchParams.get('domain');
   const { login } = useAuth();
   const { data: branding } = useBranding();
   const [errorState, setErrorState] = useState<NormalizedError | null>(null);
@@ -258,6 +261,19 @@ function LoginForm() {
                 <p className="font-bold text-xs">Session Expired</p>
                 <p className="text-[11px] leading-relaxed opacity-95">
                   Your previous session timed out due to 30 minutes of inactivity. Please sign in again.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Organization Domain Mismatch Notice */}
+          {isTenantMismatch && !errorState && (
+            <div className="p-4 rounded-xl border flex items-start space-x-3 text-xs bg-amber-500/10 border-amber-500/25 text-amber-600 dark:text-amber-400">
+              <ShieldAlert className="h-5 w-5 shrink-0 mt-0.5" />
+              <div className="space-y-1 flex-1">
+                <p className="font-bold text-xs">Organization Boundary Enforced</p>
+                <p className="text-[11px] leading-relaxed opacity-95">
+                  You were signed out because your previous session belongs to a different organization. Please sign in with an account authorized for {mismatchDomain || businessName}.
                 </p>
               </div>
             </div>

@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../../features/auth/context/AuthContext';
 import { useBusinessSettings } from '../../features/business/hooks/useBusinessSettings';
+import { useBranding } from '../../features/business/hooks/useBranding';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -113,6 +114,21 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const isAdminOrSuper = user?.role === 'ADMIN' || isSuperAdmin;
+
+  const { data: branding } = useBranding();
+
+  // Custom Domain Session Mismatch Protection:
+  // If a user with a cross-tenant session visits a specific tenant's custom domain,
+  // ensure the session matches the domain tenant; otherwise prompt them cleanly to sign in.
+  useEffect(() => {
+    if (!isLoading && user && branding?.isCustomDomain && branding?.business?.id) {
+      if (user.role !== 'SUPER_ADMIN' && user.businessId && user.businessId !== branding.business.id) {
+        logout().then(() => {
+          router.push(`/login?reason=tenant_mismatch&domain=${encodeURIComponent(branding.business?.businessName || 'this workspace')}`);
+        });
+      }
+    }
+  }, [isLoading, user, branding, router, logout]);
 
   const { data: businessSettings } = useBusinessSettings();
 
