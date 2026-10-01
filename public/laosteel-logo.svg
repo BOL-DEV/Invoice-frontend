@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Outer Globe Circle -->
+  <circle cx="60" cy="60" r="54" fill="#0f522b" fill-opacity="0.04" stroke="#0f522b" stroke-width="4.5"/>
+  
+  <!-- Longitudinal Ellipses -->
+  <ellipse cx="60" cy="60" rx="54" ry="20" fill="none" stroke="#0f522b" stroke-width="2.2"/>
+  <ellipse cx="60" cy="60" rx="54" ry="38" fill="none" stroke="#0f522b" stroke-width="2.2"/>
+  
+  <!-- Latitudinal Ellipses -->
+  <ellipse cx="60" cy="60" rx="20" ry="54" fill="none" stroke="#0f522b" stroke-width="2.2"/>
+  <ellipse cx="60" cy="60" rx="38" ry="54" fill="none" stroke="#0f522b" stroke-width="2.2"/>
+  
+  <!-- Central Monogram Ribbon / Banner -->
+  <rect x="8" y="46" width="104" height="28" rx="4" fill="#0f522b" stroke="#ffffff" stroke-width="2"/>
+  
+  <!-- Bold White Initials -->
+  <text x="60" y="66" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="3">LSV</text>
+</svg>

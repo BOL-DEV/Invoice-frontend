@@ -370,7 +370,7 @@ export default function InvoicesPage() {
             Invoice Ledgers
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Search, review, export, and audit official Lao Steel Ventures billing records.
+            Search, review, export, and audit official organization billing ledgers and receipts.
           </p>
         </div>
         

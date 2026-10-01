@@ -146,6 +146,13 @@ export default function SettingsPage() {
   const updateBusinessMutation = useUpdateBusinessSettings(settings?.id || '');
   const [isBusinessSubmitting, setIsBusinessSubmitting] = useState(false);
 
+  const isLaoSteel = Boolean(
+    settings?.slug === 'lao-steel' ||
+    settings?.businessName?.toLowerCase().includes('lao steel') ||
+    settings?.businessName?.toLowerCase().includes('laosteel')
+  );
+  const logoSrc = isLaoSteel ? '/laosteel-logo.svg' : (settings?.logo || '/platform-logo.svg');
+
   const {
     register: registerBusiness,
     handleSubmit: handleBusinessSubmit,
@@ -470,7 +477,7 @@ export default function SettingsPage() {
               <CardHeader className="p-4 sm:p-6 border-b border-border/80 bg-slate-50/50 dark:bg-slate-900/30">
                 <div className="flex items-center space-x-3">
                   <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shrink-0 shadow-sm">
-                    <Image src="/logo.svg" alt="Company Logo" width={32} height={32} className="w-8 h-8 object-contain" />
+                    <Image src={logoSrc} alt={settings.businessName || 'Company Logo'} width={32} height={32} className="w-8 h-8 object-contain" />
                   </div>
                   <div>
                     <CardTitle className="text-sm sm:text-base font-bold text-foreground">
@@ -658,7 +665,7 @@ export default function SettingsPage() {
                       <div className="space-y-0.5">
                         <p className="text-xs font-bold text-foreground">Classic Industrial / Thermal</p>
                         <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          Original bespoke Lao Steel Ventures styling with globe watermark, blue ledger borders, and customer guarantee terms.
+                          Original bespoke industrial styling with ledger borders, watermark support, and structured customer guarantee terms.
                         </p>
                       </div>
                     </label>

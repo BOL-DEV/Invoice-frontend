@@ -8,6 +8,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../../features/auth/context/AuthContext';
+import { useBusinessSettings } from '../../features/business/hooks/useBusinessSettings';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -113,6 +114,26 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const isAdminOrSuper = user?.role === 'ADMIN' || isSuperAdmin;
 
+  const { data: businessSettings } = useBusinessSettings();
+
+  const isLaoSteel = Boolean(
+    businessSettings?.slug === 'lao-steel' ||
+    businessSettings?.businessName?.toLowerCase().includes('lao steel') ||
+    businessSettings?.businessName?.toLowerCase().includes('laosteel')
+  );
+
+  const logoSrc = isLaoSteel
+    ? '/laosteel-logo.svg'
+    : (businessSettings?.logo || '/platform-logo.svg');
+
+  const displayBusinessName = isSuperAdmin && !businessSettings?.businessName
+    ? 'BOLXolve'
+    : (isLaoSteel ? 'Lao Steel' : (businessSettings?.businessName || 'BOLXolve'));
+
+  const displayTagline = isSuperAdmin && !businessSettings?.businessName
+    ? 'Platform Admin'
+    : (isLaoSteel ? 'Ventures' : (businessSettings?.tagline || 'Workspace'));
+
   // Strictly role-based navigation: NEVER default to Apprentice links if user is null or unauthenticated
   const navItems = user
     ? [
@@ -200,7 +221,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-background text-foreground space-y-4">
         <div className="h-12 w-12 rounded-2xl bg-white dark:bg-slate-900 border border-border p-1.5 flex items-center justify-center shadow-lg animate-pulse">
-          <Image src="/logo.svg" alt="Lao Steel Ventures" width={40} height={40} className="w-9 h-9 object-contain" priority />
+          <Image src="/platform-logo.svg" alt="BOLXolve Platform" width={40} height={40} className="w-9 h-9 object-contain" priority />
         </div>
         <div className="flex items-center space-x-2 text-xs text-muted-foreground font-mono">
           <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
@@ -225,14 +246,14 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
         >
           <div className="flex items-center space-x-3 overflow-hidden">
             <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shadow-sm shrink-0">
-              <Image src="/logo.svg" alt="Lao Steel Ventures" width={36} height={36} className="w-8 h-8 object-contain" priority />
+              <Image src={logoSrc} alt={displayBusinessName} width={36} height={36} className="w-8 h-8 object-contain" priority />
             </div>
             {!isCollapsed && (
               <div className="min-w-0">
                 <h1 className="font-bold text-sm tracking-wide uppercase leading-tight text-foreground font-heading truncate">
-                  Lao Steel
+                  {displayBusinessName}
                 </h1>
-                <p className="text-xs text-muted-foreground truncate">Ventures</p>
+                <p className="text-xs text-muted-foreground truncate">{displayTagline}</p>
               </div>
             )}
           </div>
@@ -312,13 +333,13 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
               <div className="flex items-center justify-between pb-6 border-b border-border">
                 <div className="flex items-center space-x-3">
                   <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shadow-sm shrink-0">
-                    <Image src="/logo.svg" alt="Lao Steel Ventures" width={36} height={36} className="w-8 h-8 object-contain" />
+                    <Image src={logoSrc} alt={displayBusinessName} width={36} height={36} className="w-8 h-8 object-contain" />
                   </div>
                   <div>
                     <h1 className="font-bold text-sm tracking-wide uppercase leading-tight text-foreground">
-                      Lao Steel
+                      {displayBusinessName}
                     </h1>
-                    <p className="text-xs text-muted-foreground">Ventures</p>
+                    <p className="text-xs text-muted-foreground">{displayTagline}</p>
                   </div>
                 </div>
                 <Button

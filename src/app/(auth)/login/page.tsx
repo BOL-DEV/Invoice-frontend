@@ -42,21 +42,33 @@ function LoginForm() {
 
   const isCustomDomain = Boolean(branding?.isCustomDomain);
 
+  // Determine if domain belongs to Lao Steel specifically
+  const isLaoSteel = isCustomDomain && Boolean(
+    branding?.business?.slug === 'lao-steel' ||
+    branding?.business?.businessName?.toLowerCase().includes('lao')
+  );
+
   // Dynamic branding parameters based on custom domain vs root platform
   const businessName = isCustomDomain
-    ? (branding?.business?.businessName || 'LAO STEEL VENTURES')
+    ? (branding?.business?.businessName || (isLaoSteel ? 'LAO STEEL VENTURES' : 'Tenant Workspace'))
     : 'BOLXolve Invoice';
 
+  const logoSrc = isLaoSteel
+    ? '/laosteel-logo.svg'
+    : (branding?.business?.logo || '/platform-logo.svg');
+
   const badgeText = isCustomDomain
-    ? `${branding?.business?.businessName || 'LSV'} Billing & Logistics Gateway`
+    ? `${branding?.business?.businessName || 'Workspace'} Billing & Logistics Gateway`
     : 'BOLXolve Multi-Tenant Invoice Platform';
 
   const tagline = isCustomDomain
-    ? (branding?.business?.tagline || 'STEEL STOCKISTS, INDUSTRIAL AND BUILDING MATERIALS SUPPLIERS')
+    ? (branding?.business?.tagline || (isLaoSteel ? 'STEEL STOCKISTS, INDUSTRIAL AND BUILDING MATERIALS SUPPLIERS' : 'Commercial Invoicing & Billing Portal'))
     : 'Multi-Tenant Invoicing & Enterprise Billing Platform';
 
   const description = isCustomDomain
-    ? 'Industrial-grade billing system built for high-volume steel distribution, accurate tonnage computing, and audit-proof ledger tracking.'
+    ? (isLaoSteel
+        ? 'Industrial-grade billing system built for high-volume steel distribution, accurate tonnage computing, and audit-proof ledger tracking.'
+        : `Authorized invoicing, tax compliance, and automated billing portal for ${branding?.business?.businessName || 'this workspace'}.`)
     : 'Modern cloud invoicing platform engineered for multi-tenant organizations, automated tax compliance, AI document extraction, and strict role-based access control.';
 
   const feature1Title = isCustomDomain ? 'Dynamic Line-Item Calculation' : 'Multi-Tenant Workspaces & Plans';
@@ -76,9 +88,9 @@ function LoginForm() {
 
   const footerVersion = isCustomDomain ? `v3.0.0 • ${businessName}` : 'v3.0.0 • BOLXolve Cloud';
 
-  const adminEmail = branding?.business?.email || (isCustomDomain ? 'iambeakeem74@gmail.com' : 'support@bolxolve.com');
-  const adminPhone = branding?.business?.phone || (isCustomDomain ? '08034071931, 08052008315' : '+234 800 BOLXOLVE');
-  const address = branding?.business?.address || (isCustomDomain ? 'HEAD OFFICE: S/L/L.G Shop 249, Orile-Iganmu, Lagos' : 'BOLXolve Cloud Systems');
+  const adminEmail = branding?.business?.email || (isLaoSteel ? 'iambeakeem74@gmail.com' : 'support@bolxolve.com');
+  const adminPhone = branding?.business?.phone || (isLaoSteel ? '08034071931, 08052008315' : '+234 800 BOLXOLVE');
+  const address = branding?.business?.address || (isLaoSteel ? 'HEAD OFFICE: S/L/L.G Shop 249, Orile-Iganmu, Lagos' : 'BOLXolve Cloud Systems');
 
   const {
     register,
@@ -142,7 +154,7 @@ function LoginForm() {
 
           <div className="flex items-center space-x-3.5 mb-3">
             <div className="h-14 w-14 rounded-2xl bg-white p-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/25 shrink-0">
-              <Image src="/logo.svg" alt={businessName} width={48} height={48} className="w-11 h-11 object-contain" priority />
+              <Image src={logoSrc} alt={businessName} width={48} height={48} className="w-11 h-11 object-contain" priority />
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-white font-heading">
@@ -210,7 +222,7 @@ function LoginForm() {
           {/* Mobile Header Branding (Visible on mobile & tablets only) */}
           <div className="lg:hidden flex flex-col items-center text-center space-y-3 mb-6">
             <div className="h-14 w-14 rounded-2xl bg-white p-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/20 border border-border shrink-0">
-              <Image src="/logo.svg" alt={businessName} width={48} height={48} className="w-11 h-11 object-contain" />
+              <Image src={logoSrc} alt={businessName} width={48} height={48} className="w-11 h-11 object-contain" />
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC] font-heading">

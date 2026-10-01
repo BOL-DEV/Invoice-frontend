@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { useDashboardStats } from '../features/dashboard/hooks/useDashboardStats';
+import { useBusinessSettings } from '../features/business/hooks/useBusinessSettings';
 import { AppLayout } from '../components/layout/AppLayout';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../components/ui/card';
 import { motion } from 'framer-motion';
@@ -27,6 +28,16 @@ import { Button } from '../components/ui/button';
 export default function Home() {
   const { user, isLoading: authLoading } = useAuth();
   const { data: stats, isLoading: statsLoading, isError, error, refetch } = useDashboardStats();
+  const { data: businessSettings } = useBusinessSettings();
+
+  const isLaoSteel = Boolean(
+    businessSettings?.slug === 'lao-steel' ||
+    businessSettings?.businessName?.toLowerCase().includes('lao steel') ||
+    businessSettings?.businessName?.toLowerCase().includes('laosteel')
+  );
+
+  const businessName = businessSettings?.businessName || (isLaoSteel ? 'Lao Steel Ventures' : 'BOLXolve Invoice');
+  const logoSrc = isLaoSteel ? '/laosteel-logo.svg' : (businessSettings?.logo || '/platform-logo.svg');
 
   if (authLoading || !user) {
     return (
@@ -35,7 +46,7 @@ export default function Home() {
           <div className="h-10 w-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
-          <p className="text-xs text-muted-foreground font-medium">Loading Lao Steel Ventures Dashboard...</p>
+          <p className="text-xs text-muted-foreground font-medium">Loading Workspace Dashboard...</p>
         </div>
       </div>
     );
@@ -76,8 +87,8 @@ export default function Home() {
               </span>
               <span>
                 {isAdmin
-                  ? 'Lao Steel Ventures • Management Hub'
-                  : 'Lao Steel Ventures • Cashier Station Terminal'}
+                  ? `${businessName} • Management Hub`
+                  : `${businessName} • Cashier Station Terminal`}
               </span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading">
@@ -419,8 +430,8 @@ export default function Home() {
               {/* Station Guidance / Security Card */}
               <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 text-white border border-slate-800 space-y-2 shadow-premium">
                 <div className="flex items-center space-x-2">
-                  <Image src="/logo.svg" alt="Lao Steel Ventures" width={18} height={18} className="w-4 h-4 object-contain" />
-                  <span className="text-xs font-bold">Lao Steel Ventures</span>
+                  <Image src={logoSrc} alt={businessName} width={18} height={18} className="w-4 h-4 object-contain" />
+                  <span className="text-xs font-bold">{businessName}</span>
                 </div>
                 <p className="text-[11px] text-slate-400 leading-relaxed">
                   {isAdmin

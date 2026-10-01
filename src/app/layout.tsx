@@ -27,8 +27,8 @@ export const metadata: Metadata = {
   title: "BOLXolve Invoice | Multi-Tenant Billing Platform",
   description: "Enterprise multi-tenant invoice, billing, and automated tax management platform",
   icons: {
-    icon: "/logo.svg",
-    apple: "/logo.png",
+    icon: "/platform-logo.svg",
+    apple: "/platform-logo.svg",
   },
 };
 
