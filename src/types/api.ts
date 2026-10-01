@@ -59,6 +59,7 @@ export interface BusinessSettings {
   defaultWhtPercentage: number;
   nextInvoiceNumber: number;
   receiptTemplateId?: string;
+  subscription?: Subscription | null;
   createdAt: string;
   updatedAt: string;
 }

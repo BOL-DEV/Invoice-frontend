@@ -544,16 +544,39 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
         {/* Floating Utilities triggers */}
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setShowImportModal(true)}
-            className="space-x-1.5 font-semibold text-xs border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30 rounded-xl h-9 shadow-sm transition-all"
-          >
-            <Sparkles className="h-4 w-4 text-indigo-500 animate-pulse" />
-            <span>Auto-fill from Note / File</span>
-          </Button>
+          {businessSettings?.subscription?.plan === 'STARTER' ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                modal.alert(
+                  'AI Document Scanning (Business & Enterprise)',
+                  'AI Vision document and handwriting scanning is enabled for Business and Enterprise tiers. On the Starter plan, invoices can be created by manual keyboard entry below. Contact your administrator to upgrade.',
+                  'info'
+                );
+              }}
+              className="space-x-1.5 font-semibold text-xs border-dashed border-border text-muted-foreground bg-muted/20 hover:bg-muted/30 rounded-xl h-9 shadow-sm"
+              title="AI Vision is available on Business & Enterprise plans"
+            >
+              <Sparkles className="h-4 w-4 text-muted-foreground/70" />
+              <span>Auto-fill from Note / File</span>
+              <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-secondary font-bold text-muted-foreground border border-border">
+                PRO
+              </span>
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowImportModal(true)}
+              className="space-x-1.5 font-semibold text-xs border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30 rounded-xl h-9 shadow-sm transition-all"
+            >
+              <Sparkles className="h-4 w-4 text-indigo-500 animate-pulse" />
+              <span>Auto-fill from Note / File</span>
+            </Button>
+          )}
           <Button
             type="button"
             variant="outline"

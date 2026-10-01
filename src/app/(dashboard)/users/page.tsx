@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useUsersList, useCreateUser, useToggleSuspendUser } from '../../../features/users/hooks/useUsers';
 import { usePermission } from '../../../features/auth/hooks/usePermission';
+import { useBusinessSettings } from '../../../features/business/hooks/useBusinessSettings';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createUserSchema, CreateUserInput } from '../../../features/users/schemas';
@@ -13,10 +14,11 @@ import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Badge } from '../../../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui/dialog';
-import { Plus, ShieldAlert, UserCheck, UserX, Loader2, Mail, Lock as LockIcon, Eye, EyeOff } from 'lucide-react';
+import { Plus, ShieldAlert, UserCheck, UserX, Loader2, Mail, Lock as LockIcon, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { getErrorMessage, getErrorDialog } from '../../../lib/api-error';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { useModal } from '../../../components/ui/modal-provider';
+import { cn } from '../../../lib/utils';
 
 export default function UsersPage() {
   const { isAdmin, isLoading: isAuthLoading } = usePermission();
@@ -27,11 +29,17 @@ export default function UsersPage() {
 
   // Queries & Mutations
   const { data: users, isLoading, isError } = useUsersList();
+  const { data: businessSettings } = useBusinessSettings();
   const createMutation = useCreateUser();
   const toggleSuspendMutation = useToggleSuspendUser();
 
   // Exclusively filter for Cashiers/Apprentices (Admins are managed outside this page)
   const cashiers = users?.filter((u) => u.role === 'APPRENTICE') || [];
+
+  const subscription = businessSettings?.subscription;
+  const maxStaffCount = subscription?.maxStaffCount ?? 2;
+  const activeStaffCount = cashiers.filter((c) => !c.isDeleted).length;
+  const isQuotaReached = Boolean(subscription && activeStaffCount >= maxStaffCount);
 
   const {
     register,
@@ -120,18 +128,54 @@ export default function UsersPage() {
           </p>
         </div>
 
-        <Button
-          onClick={() => {
-            setErrorMsg(null);
-            reset();
-            setIsAddOpen(true);
-          }}
-          className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-premium h-10 text-xs font-semibold px-4 flex items-center space-x-2 shrink-0 cursor-pointer"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Add Cashier</span>
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          {subscription && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border bg-card text-xs shadow-sm">
+              <span className="font-semibold text-foreground">
+                Plan: <span className="uppercase text-emerald-600 dark:text-emerald-400 font-bold">{subscription.plan}</span>
+              </span>
+              <span className="text-muted-foreground">•</span>
+              <span className="text-muted-foreground">
+                Staff Quota: <strong className={isQuotaReached ? 'text-rose-500 font-bold' : 'text-foreground font-semibold'}>{activeStaffCount} / {maxStaffCount}</strong>
+              </span>
+            </div>
+          )}
+
+          <Button
+            onClick={() => {
+              if (isQuotaReached) {
+                modal.alert(
+                  'Staff Quota Limit Reached',
+                  `Your ${subscription?.plan} plan has a maximum quota of ${maxStaffCount} staff members (${activeStaffCount}/${maxStaffCount} registered). Please contact your BOLXolve platform administrator to upgrade your plan or expand your cashier quota.`,
+                  'warning'
+                );
+                return;
+              }
+              setErrorMsg(null);
+              reset();
+              setIsAddOpen(true);
+            }}
+            className={cn(
+              "rounded-xl shadow-premium h-10 text-xs font-semibold px-4 flex items-center space-x-2 shrink-0 cursor-pointer transition-all",
+              isQuotaReached
+                ? "bg-secondary text-muted-foreground hover:bg-secondary/80 border border-border"
+                : "bg-emerald-500 hover:bg-emerald-600 text-white"
+            )}
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add Cashier</span>
+          </Button>
+        </div>
       </div>
+
+      {isQuotaReached && (
+        <div className="flex items-center gap-2 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs">
+          <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <span>
+            Staff quota limit reached for your <strong>{subscription?.plan}</strong> plan ({activeStaffCount}/{maxStaffCount} cashiers). New cashiers cannot be registered until an account is removed or your plan quota is upgraded.
+          </span>
+        </div>
+      )}
 
       {/* Cashiers Table Card */}
       <Card className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">

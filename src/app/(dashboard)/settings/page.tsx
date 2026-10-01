@@ -40,6 +40,7 @@ import {
   ExternalLink,
   Sparkles,
   Layers,
+  FileText,
 } from 'lucide-react';
 import { useModal } from '../../../components/ui/modal-provider';
 import { BusinessSettings } from '../../../types/api';
@@ -149,6 +150,7 @@ export default function SettingsPage() {
     register: registerBusiness,
     handleSubmit: handleBusinessSubmit,
     reset: resetBusiness,
+    watch: watchBusiness,
   } = useForm<Partial<BusinessSettings>>({
     defaultValues: settings || {},
   });
@@ -627,6 +629,60 @@ export default function SettingsPage() {
                       {...registerBusiness('tin')}
                       className="bg-background border-border/80 focus:border-emerald-500/60 font-mono h-10 rounded-xl text-xs"
                     />
+                  </div>
+                </div>
+
+                {/* Printable Invoice & Receipt Template Design */}
+                <div className="space-y-2 pt-2 border-t border-border/60">
+                  <Label className="text-xs font-semibold text-muted-foreground flex items-center space-x-1.5">
+                    <FileText className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>Printable Invoice & Receipt Template</span>
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Select the styling and visual layout used when generating PDF receipts and customer invoices.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <label
+                      className={`flex items-start space-x-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                        watchBusiness('receiptTemplateId') === 'classic' || (!watchBusiness('receiptTemplateId') && settings?.receiptTemplateId === 'classic')
+                          ? 'border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-950/20 shadow-sm'
+                          : 'border-border/80 bg-background hover:bg-secondary/40'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        value="classic"
+                        {...registerBusiness('receiptTemplateId')}
+                        className="mt-1 text-emerald-500 focus:ring-emerald-500"
+                      />
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-bold text-foreground">Classic Industrial / Thermal</p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Original bespoke Lao Steel Ventures styling with globe watermark, blue ledger borders, and customer guarantee terms.
+                        </p>
+                      </div>
+                    </label>
+
+                    <label
+                      className={`flex items-start space-x-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                        watchBusiness('receiptTemplateId') === 'modern'
+                          ? 'border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-950/20 shadow-sm'
+                          : 'border-border/80 bg-background hover:bg-secondary/40'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        value="modern"
+                        {...registerBusiness('receiptTemplateId')}
+                        className="mt-1 text-emerald-500 focus:ring-emerald-500"
+                      />
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-bold text-foreground">Modern Corporate Executive</p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Clean minimal SaaS invoice design with modern typography, slate headers, itemized charges, and payment verification tags.
+                        </p>
+                      </div>
+                    </label>
                   </div>
                 </div>
               </CardContent>
