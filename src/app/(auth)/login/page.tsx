@@ -53,9 +53,17 @@ function LoginForm() {
     ? (branding?.business?.businessName || (isLaoSteel ? 'LAO STEEL VENTURES' : 'Tenant Workspace'))
     : 'BOLXolve Invoice';
 
+  const rawLogo = branding?.business?.logo;
+  const hasCustomLogo = Boolean(
+    rawLogo &&
+    typeof rawLogo === 'string' &&
+    (rawLogo.startsWith('/') || rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('data:image/')) &&
+    !rawLogo.startsWith('{')
+  );
+
   const logoSrc = isLaoSteel
     ? '/laosteel-logo.svg'
-    : (branding?.business?.logo || '/platform-logo.svg');
+    : (hasCustomLogo ? (rawLogo as string) : '/platform-logo.svg');
 
   const badgeText = isCustomDomain
     ? `${branding?.business?.businessName || 'Workspace'} Billing & Logistics Gateway`

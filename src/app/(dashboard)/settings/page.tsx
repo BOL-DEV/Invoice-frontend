@@ -151,7 +151,14 @@ export default function SettingsPage() {
     settings?.businessName?.toLowerCase().includes('lao steel') ||
     settings?.businessName?.toLowerCase().includes('laosteel')
   );
-  const logoSrc = isLaoSteel ? '/laosteel-logo.svg' : (settings?.logo || '/platform-logo.svg');
+  const rawLogo = settings?.logo;
+  const hasCustomLogo = Boolean(
+    rawLogo &&
+    typeof rawLogo === 'string' &&
+    (rawLogo.startsWith('/') || rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('data:image/')) &&
+    !rawLogo.startsWith('{')
+  );
+  const logoSrc = isLaoSteel ? '/laosteel-logo.svg' : (hasCustomLogo ? (rawLogo as string) : '/platform-logo.svg');
 
   const {
     register: registerBusiness,

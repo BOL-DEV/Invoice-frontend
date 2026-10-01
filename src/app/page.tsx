@@ -37,7 +37,15 @@ export default function Home() {
   );
 
   const businessName = businessSettings?.businessName || (isLaoSteel ? 'Lao Steel Ventures' : 'BOLXolve Invoice');
-  const logoSrc = isLaoSteel ? '/laosteel-logo.svg' : (businessSettings?.logo || '/platform-logo.svg');
+  const rawLogo = businessSettings?.logo;
+  const hasCustomLogo = Boolean(
+    rawLogo &&
+    typeof rawLogo === 'string' &&
+    (rawLogo.startsWith('/') || rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('data:image/')) &&
+    !rawLogo.startsWith('{')
+  );
+
+  const logoSrc = isLaoSteel ? '/laosteel-logo.svg' : (hasCustomLogo ? (rawLogo as string) : '/platform-logo.svg');
 
   if (authLoading || !user) {
     return (
