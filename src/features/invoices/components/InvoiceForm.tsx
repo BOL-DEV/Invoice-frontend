@@ -114,7 +114,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     const newItems = (extracted.items || []).map((it, idx) => {
       const qty = Number(it.quantity) > 0 ? Number(it.quantity) : 1;
       const unit = Number(it.unitPrice) >= 0 ? Number(it.unitPrice) : 0;
-      const tot = Number(it.totalPrice) > 0 ? Number(it.totalPrice) : qty * unit;
+      const accurateTotal = Math.round(qty * unit * 100) / 100;
+      const tot = accurateTotal > 0 ? accurateTotal : (Number(it.totalPrice) > 0 ? Number(it.totalPrice) : 0);
       return {
         position: idx + 1,
         description: it.description || '',

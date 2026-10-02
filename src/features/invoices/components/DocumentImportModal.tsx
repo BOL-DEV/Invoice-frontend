@@ -309,12 +309,53 @@ export const DocumentImportModal: React.FC<DocumentImportModalProps> = ({
       return;
     }
 
+    // Confirm and verify accuracy of each line item's amount against quantity * unit price
+    const verifiedItems: ExtractedItem[] = newExtractedItems.map((item, idx) => {
+      const qty = Number(item.quantity) > 0 ? Number(item.quantity) : 1;
+      const rate = Number(item.unitPrice) >= 0 ? Number(item.unitPrice) : 0;
+      const accurateAmount = Math.round(qty * rate * 100) / 100;
+      const rawAmount = (item.totalPrice !== undefined && item.totalPrice !== null) ? Number(item.totalPrice) : accurateAmount;
+
+      const hasDiscrepancy = Boolean(
+        item.wasAdjusted ||
+        (qty > 0 && rate > 0 && Math.abs(rawAmount - accurateAmount) > 0.05)
+      );
+
+      const origAmount = (item.originalAmount !== undefined && item.originalAmount !== null)
+        ? item.originalAmount
+        : (hasDiscrepancy ? rawAmount : null);
+
+      return {
+        ...item,
+        quantity: qty,
+        unitPrice: rate,
+        totalPrice: accurateAmount > 0 ? accurateAmount : rawAmount,
+        wasAdjusted: hasDiscrepancy,
+        originalAmount: origAmount,
+        adjustmentMessage: hasDiscrepancy
+          ? (item.adjustmentMessage || `Row ${idx + 1} amount is not accurate and has been resolved.`)
+          : undefined,
+      };
+    });
+
+    const collectedDiscrepancies = verifiedItems
+      .map((it, idx) => ({ it, row: idx + 1 }))
+      .filter(({ it }) => it.wasAdjusted)
+      .map(({ it, row }) => ({
+        row,
+        description: it.description,
+        originalAmount: it.originalAmount ?? 0,
+        resolvedAmount: it.totalPrice ?? (it.quantity * it.unitPrice),
+        message: it.adjustmentMessage || `Row ${row} amount is not accurate and has been resolved.`,
+      }));
+
     const mergedData: ExtractedInvoiceData = {
-      items: newExtractedItems,
+      items: verifiedItems,
       charges: newExtractedCharges,
       customerName: curCustomerName || undefined,
       customerPhone: curCustomerPhone || undefined,
       notes: curNotes || undefined,
+      discrepancies: collectedDiscrepancies,
     };
 
     setExtractedData(mergedData);
@@ -612,6 +653,35 @@ export const DocumentImportModal: React.FC<DocumentImportModalProps> = ({
               </div>
             )}
 
+            {/* Amount Accuracy Confirmation & Resolution Notice */}
+            {extractedData.discrepancies && extractedData.discrepancies.length > 0 && (
+              <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/25 text-blue-700 dark:text-blue-300 space-y-2 text-xs animate-in fade-in slide-in-from-top-1">
+                <div className="flex items-center space-x-2 font-bold text-blue-600 dark:text-blue-400">
+                  <Sparkles className="h-4 w-4 shrink-0" />
+                  <span>Amount Accuracy Verified</span>
+                </div>
+                <div className="space-y-1.5">
+                  {extractedData.discrepancies.map((disc, i) => (
+                    <div
+                      key={i}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] bg-background/80 px-3 py-2 rounded-lg border border-blue-500/15 gap-1 shadow-xs"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                        <span className="font-semibold text-foreground">{disc.message}</span>
+                      </div>
+                      {disc.originalAmount > 0 && (
+                        <span className="font-mono text-muted-foreground self-end sm:self-auto text-[11px]">
+                          <span className="line-through mr-1 opacity-70">₦{disc.originalAmount.toLocaleString()}</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold">₦{disc.resolvedAmount.toLocaleString()}</span>
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Extracted Items Table */}
             <div className="border border-border rounded-xl overflow-hidden shadow-sm">
               <div className="p-2.5 bg-secondary/30 border-b border-border flex items-center justify-between text-xs font-semibold">
@@ -639,7 +709,8 @@ export const DocumentImportModal: React.FC<DocumentImportModalProps> = ({
                   <TableBody className="text-xs">
                     {extractedData.items.map((item, idx) => {
                       const isSelected = selectedItemIndices.has(idx);
-                      const rowTotal = item.quantity * item.unitPrice;
+                      const accurateTotal = Math.round(item.quantity * item.unitPrice * 100) / 100;
+                      const rowTotal = accurateTotal > 0 ? accurateTotal : (item.totalPrice || 0);
 
                       return (
                         <TableRow
@@ -657,13 +728,38 @@ export const DocumentImportModal: React.FC<DocumentImportModalProps> = ({
                               className="rounded border-border text-emerald-500 focus:ring-emerald-500 h-4 w-4"
                             />
                           </TableCell>
-                          <TableCell className="font-medium text-foreground min-w-[180px]">{item.description}</TableCell>
+                          <TableCell className="font-medium text-foreground min-w-[180px]">
+                            <div className="space-y-0.5">
+                              <span>{item.description}</span>
+                              {item.wasAdjusted && (
+                                <p className="text-[10px] text-blue-600 dark:text-blue-400 font-sans font-normal">
+                                  {item.adjustmentMessage || `Row ${idx + 1} amount is not accurate and has been resolved.`}
+                                </p>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell className="text-center font-mono">{item.quantity}</TableCell>
                           <TableCell className="text-right font-mono">
                             {item.unitPrice > 0 ? item.unitPrice.toLocaleString() : '—'}
                           </TableCell>
                           <TableCell className="text-right font-mono font-semibold">
-                            {rowTotal > 0 ? rowTotal.toLocaleString() : '—'}
+                            {item.wasAdjusted && item.originalAmount && item.originalAmount !== rowTotal ? (
+                              <div className="flex flex-col items-end">
+                                <span className="text-[10px] text-muted-foreground line-through opacity-75">
+                                  ₦{item.originalAmount.toLocaleString()}
+                                </span>
+                                <div className="flex items-center space-x-1">
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                                    ₦{rowTotal.toLocaleString()}
+                                  </span>
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30">
+                                    Resolved
+                                  </Badge>
+                                </div>
+                              </div>
+                            ) : (
+                              <span>{rowTotal > 0 ? `₦${rowTotal.toLocaleString()}` : '—'}</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       );

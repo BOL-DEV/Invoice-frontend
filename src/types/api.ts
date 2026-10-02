@@ -304,6 +304,9 @@ export interface ExtractedItem {
   unitPrice: number;
   totalPrice?: number;
   weight?: number | null;
+  originalAmount?: number | null;
+  wasAdjusted?: boolean;
+  adjustmentMessage?: string | null;
 }
 
 export interface ExtractedCharge {
@@ -311,10 +314,19 @@ export interface ExtractedCharge {
   amount: number;
 }
 
+export interface ExtractedDiscrepancy {
+  row: number;
+  description: string;
+  originalAmount: number;
+  resolvedAmount: number;
+  message: string;
+}
+
 export interface ExtractedInvoiceData {
   customerName?: string | null;
   customerPhone?: string | null;
   items: ExtractedItem[];
   charges?: ExtractedCharge[];
+  discrepancies?: ExtractedDiscrepancy[];
   notes?: string | null;
 }
