@@ -132,7 +132,13 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
   const { data: businessSettings } = useBusinessSettings();
 
+  const currentHost = typeof window !== 'undefined' ? window.location.host.split(':')[0].toLowerCase() : '';
+  const isLaoSteelHost = currentHost.includes('laosteel');
+
   const isLaoSteel = Boolean(
+    isLaoSteelHost ||
+    branding?.business?.slug === 'lao-steel' ||
+    branding?.business?.businessName?.toLowerCase().includes('lao') ||
     businessSettings?.slug === 'lao-steel' ||
     businessSettings?.businessName?.toLowerCase().includes('lao steel') ||
     businessSettings?.businessName?.toLowerCase().includes('laosteel')

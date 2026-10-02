@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,16 +37,27 @@ function LoginForm() {
   const isTenantMismatch = searchParams.get('reason') === 'tenant_mismatch';
   const mismatchDomain = searchParams.get('domain');
   const { login } = useAuth();
-  const { data: branding } = useBranding();
+  const { data: branding, isLoading: isBrandingLoading } = useBranding();
+  const [mounted, setMounted] = useState(false);
   const [errorState, setErrorState] = useState<NormalizedError | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
-  const isCustomDomain = Boolean(branding?.isCustomDomain);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const host = typeof window !== 'undefined' ? window.location.host.split(':')[0].toLowerCase() : '';
+  const rootHosts = ['localhost', '127.0.0.1', 'bolxolve-invoice.vercel.app', 'invoice.bolxolve.com'];
+  const isCustomHost = host ? !rootHosts.includes(host) : false;
+  const isLaoSteelHost = host.includes('laosteel');
+
+  const isCustomDomain = Boolean(branding?.isCustomDomain || isCustomHost);
 
   // Determine if domain belongs to Lao Steel specifically
-  const isLaoSteel = isCustomDomain && Boolean(
+  const isLaoSteel = Boolean(
+    isLaoSteelHost ||
     branding?.business?.slug === 'lao-steel' ||
     branding?.business?.businessName?.toLowerCase().includes('lao')
   );
@@ -69,7 +80,7 @@ function LoginForm() {
     : (hasCustomLogo ? (rawLogo as string) : '/platform-logo.svg');
 
   const badgeText = isCustomDomain
-    ? `${branding?.business?.businessName || 'Workspace'} Billing & Logistics Gateway`
+    ? `${branding?.business?.businessName || (isLaoSteel ? 'Lao Steel Ventures' : 'Workspace')} Billing & Logistics Gateway`
     : 'BOLXolve Multi-Tenant Invoice Platform';
 
   const tagline = isCustomDomain
@@ -97,9 +108,9 @@ function LoginForm() {
     ? 'Instant branded PDF, sharp 2x PNG rasterization, and spreadsheet exports.'
     : 'Seamless custom domains, white-label receipt templates, and audit-proof ledgers.';
 
-  const footerVersion = isCustomDomain ? `v3.0.0 • ${businessName}` : 'v3.0.0 • BOLXolve Cloud';
+  const footerBrand = isCustomDomain ? businessName : 'BOLXolve Cloud';
 
-  const adminEmail = branding?.business?.email || (isLaoSteel ? 'iambeakeem74@gmail.com' : 'support@bolxolve.com');
+  const adminEmail = branding?.business?.email || (isLaoSteel ? 'lambeakeem74@gmail.com' : 'support@bolxolve.com');
   const adminPhone = branding?.business?.phone || (isLaoSteel ? '08034071931, 08052008315' : '+234 800 BOLXOLVE');
   const address = branding?.business?.address || (isLaoSteel ? 'HEAD OFFICE: S/L/L.G Shop 249, Orile-Iganmu, Lagos' : 'BOLXolve Cloud Systems');
 
@@ -133,6 +144,25 @@ function LoginForm() {
       setIsSubmitting(false);
     }
   };
+
+  // Sleek, branded loading state while resolving tenant environment (prevents staling BOLXolve data flash)
+  if (!mounted || isBrandingLoading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#0B0F19]">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="relative flex items-center justify-center">
+            <div className="h-16 w-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center shadow-xl shadow-emerald-500/10">
+              <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+            </div>
+          </div>
+          <div className="text-center space-y-1">
+            <p className="text-sm font-medium text-slate-200">Loading workspace...</p>
+            <p className="text-xs text-slate-500 font-mono">Securing organization gateway</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full flex bg-[#F8FAFC] dark:bg-[#030712] text-[#0F172A] dark:text-[#F8FAFC]">
@@ -215,12 +245,8 @@ function LoginForm() {
         </div>
 
         {/* Bottom Status / Footer */}
-        <div className="relative z-10 pt-6 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 font-mono">
-          <div className="flex items-center space-x-2">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-            <span>Secure TLS 1.3 Active</span>
-          </div>
-          <span>{footerVersion}</span>
+        <div className="relative z-10 pt-6 border-t border-slate-800/80 flex items-center justify-end text-xs text-slate-400 font-mono">
+          <span>{footerBrand}</span>
         </div>
       </div>
 
@@ -362,7 +388,7 @@ function LoginForm() {
             </div>
 
             {/* Remember Me Checkbox */}
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center pt-1">
               <label htmlFor="rememberMe" className="flex items-center space-x-2.5 cursor-pointer select-none">
                 <input
                   id="rememberMe"
@@ -371,12 +397,9 @@ function LoginForm() {
                   className="h-4 w-4 rounded-md border-border text-emerald-500 focus:ring-emerald-500/40 bg-card transition-colors cursor-pointer"
                 />
                 <span className="text-xs text-muted-foreground hover:text-foreground transition-colors font-medium">
-                  Remember me for 7 days
+                  Remember me
                 </span>
               </label>
-              <span className="text-[11px] text-muted-foreground/70">
-                (Standard: 8h shift)
-              </span>
             </div>
 
             {/* Submit Button */}
