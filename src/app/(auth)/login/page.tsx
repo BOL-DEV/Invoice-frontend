@@ -147,19 +147,13 @@ function LoginForm() {
     }
   };
 
-  // Sleek, branded loading state while resolving tenant environment (prevents staling BOLXolve data flash)
+  // Sleek, minimal loading spinner while resolving branding / environment
   if (!mounted || isBrandingLoading) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-[#0B0F19]">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="relative flex items-center justify-center">
-            <div className="h-16 w-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center shadow-xl shadow-emerald-500/10">
-              <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-            </div>
-          </div>
-          <div className="text-center space-y-1">
-            <p className="text-sm font-medium text-slate-200">Loading workspace...</p>
-            <p className="text-xs text-slate-500 font-mono">Securing organization gateway</p>
+        <div className="relative flex items-center justify-center">
+          <div className="h-14 w-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center shadow-xl shadow-emerald-500/10">
+            <Loader2 className="h-7 w-7 animate-spin text-emerald-500" />
           </div>
         </div>
       </div>
