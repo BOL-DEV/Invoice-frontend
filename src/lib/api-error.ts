@@ -90,13 +90,15 @@ export function normalizeApiError(error: unknown): NormalizedError {
           isNetworkError: false,
         };
 
-      case 403:
+      case 403: {
+        const isSuspended = typeof serverMessage === 'string' && serverMessage.toLowerCase().includes('suspended');
         return {
-          title: 'Access Restricted',
+          title: isSuspended ? 'Access Suspended' : 'Access Restricted',
           message: serverMessage || 'You do not have permission to perform this action. Please contact an administrator.',
           code: serverCode,
           isNetworkError: false,
         };
+      }
 
       case 404:
         return {

@@ -43,23 +43,48 @@ export const setupInterceptors = () => {
     (response) => response,
     async (error) => {
       const originalRequest = error.config;
+
+      // Handle suspended cashier account or suspended organization on 403
+      if (error.response?.status === 403) {
+        const errorMsg =
+          error.response?.data?.message ||
+          error.response?.data?.error?.message ||
+          '';
+        if (typeof errorMsg === 'string' && errorMsg.toLowerCase().includes('suspended')) {
+          tokenStore.clearTokens();
+          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+            window.location.href = `/login?reason=suspended&message=${encodeURIComponent(errorMsg)}`;
+          }
+          return Promise.reject(error);
+        }
+      }
       
       // Prevent infinite loop if the refresh request itself fails
-      if (originalRequest.url === API_ENDPOINTS.AUTH.REFRESH) {
+      if (originalRequest?.url === API_ENDPOINTS.AUTH.REFRESH) {
         tokenStore.clearTokens();
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          const errorMsg =
+            error.response?.data?.message ||
+            error.response?.data?.error?.message ||
+            '';
+          if (typeof errorMsg === 'string' && errorMsg.toLowerCase().includes('suspended')) {
+            window.location.href = `/login?reason=suspended&message=${encodeURIComponent(errorMsg)}`;
+          } else {
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(error);
       }
 
-      if (error.response?.status === 401 && !originalRequest._retry) {
+      if (error.response?.status === 401 && !originalRequest?._retry) {
         if (isRefreshing) {
           return new Promise((resolve, reject) => {
             failedQueue.push({ resolve, reject });
           })
             .then((token) => {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
+              if (originalRequest.headers) {
+                originalRequest.headers.Authorization = `Bearer ${token}`;
+              }
               return apiClient(originalRequest);
             })
             .catch((err) => Promise.reject(err));
@@ -87,13 +112,23 @@ export const setupInterceptors = () => {
           tokenStore.setAccessToken(newAccessToken);
 
           processQueue(null, newAccessToken);
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          }
           return apiClient(originalRequest);
-        } catch (refreshError) {
+        } catch (refreshError: any) {
           processQueue(refreshError, null);
           tokenStore.clearTokens();
           if (typeof window !== 'undefined') {
-            window.location.href = '/login';
+            const errorMsg =
+              refreshError?.response?.data?.message ||
+              refreshError?.response?.data?.error?.message ||
+              '';
+            if (typeof errorMsg === 'string' && errorMsg.toLowerCase().includes('suspended')) {
+              window.location.href = `/login?reason=suspended&message=${encodeURIComponent(errorMsg)}`;
+            } else {
+              window.location.href = '/login';
+            }
           }
           return Promise.reject(refreshError);
         } finally {

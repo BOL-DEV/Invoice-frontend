@@ -34,6 +34,8 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isExpired = searchParams.get('reason') === 'expired';
+  const isSuspended = searchParams.get('reason') === 'suspended';
+  const suspendedMessage = searchParams.get('message');
   const isTenantMismatch = searchParams.get('reason') === 'tenant_mismatch';
   const mismatchDomain = searchParams.get('domain');
   const { login } = useAuth();
@@ -300,6 +302,19 @@ function LoginForm() {
                 <p className="font-bold text-xs">Organization Boundary Enforced</p>
                 <p className="text-[11px] leading-relaxed opacity-95">
                   You were signed out because your previous session belongs to a different organization. Please sign in with an account authorized for {mismatchDomain || businessName}.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Account or Organization Suspended Notice */}
+          {isSuspended && !errorState && (
+            <div className="p-4 rounded-xl border flex items-start space-x-3 text-xs bg-rose-500/10 border-rose-500/25 text-rose-600 dark:text-rose-400">
+              <ShieldAlert className="h-5 w-5 shrink-0 mt-0.5 text-rose-500" />
+              <div className="space-y-1 flex-1">
+                <p className="font-bold text-xs">Access Suspended</p>
+                <p className="text-[11px] leading-relaxed opacity-95">
+                  {suspendedMessage || 'Your account or organization has been suspended. Please contact your organization administrator or platform support.'}
                 </p>
               </div>
             </div>
