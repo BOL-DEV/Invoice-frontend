@@ -183,6 +183,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   };
 
   const { data: businessSettings } = useBusinessSettings();
+  const isStarterPlan = businessSettings?.subscription?.plan === 'STARTER';
 
   // Reactively calculate VAT/WHT when subtotal or preset changes
   useEffect(() => {
@@ -545,7 +546,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
         {/* Floating Utilities triggers */}
         <div className="flex flex-wrap items-center gap-2">
-          {businessSettings?.subscription?.plan === 'STARTER' ? (
+          {isStarterPlan ? (
             <Button
               type="button"
               variant="outline"
@@ -686,16 +687,18 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                 </CardTitle>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowImportModal(true)}
-                  className="flex-1 sm:flex-initial space-x-1.5 font-semibold text-xs border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30 rounded-xl h-9 sm:h-8 px-3 justify-center"
-                >
-                  <Sparkles className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-                  <span className="whitespace-nowrap">Scan / Import</span>
-                </Button>
+                {!isStarterPlan && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowImportModal(true)}
+                    className="flex-1 sm:flex-initial space-x-1.5 font-semibold text-xs border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30 rounded-xl h-9 sm:h-8 px-3 justify-center"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                    <span className="whitespace-nowrap">Scan / Import</span>
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="outline"
