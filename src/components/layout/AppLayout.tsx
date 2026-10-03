@@ -152,16 +152,16 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     !rawLogo.startsWith('{')
   );
 
-  const logoSrc = isLaoSteel
-    ? '/laosteel-logo.svg'
-    : (hasCustomLogo ? (rawLogo as string) : '/platform-logo.svg');
+  const logoSrc = isSuperAdmin
+    ? '/platform-logo.svg'
+    : (isLaoSteel ? '/laosteel-logo.svg' : (hasCustomLogo ? (rawLogo as string) : '/platform-logo.svg'));
 
-  const displayBusinessName = isSuperAdmin && !businessSettings?.businessName
-    ? 'BOLXolve'
+  const displayBusinessName = isSuperAdmin
+    ? 'BOLXolve Platform'
     : (isLaoSteel ? 'Lao Steel' : (businessSettings?.businessName || 'BOLXolve'));
 
-  const displayTagline = isSuperAdmin && !businessSettings?.businessName
-    ? 'Platform Admin'
+  const displayTagline = isSuperAdmin
+    ? 'Super Admin Empire'
     : (isLaoSteel ? 'Ventures' : (businessSettings?.tagline || 'Workspace'));
 
   // Strictly role-based navigation: Super Admin gets a dedicated platform empire menu

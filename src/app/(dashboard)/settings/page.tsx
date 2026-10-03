@@ -50,6 +50,7 @@ import { useSubscription, useAddCustomDomain, useRemoveCustomDomain } from '../.
 export default function SettingsPage() {
   const { user, updateCurrentUser } = useAuth();
   const { isAdmin, isLoading: isAuthLoading } = usePermission();
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const modal = useModal();
 
   // Active Tab state: 'profile' (all users), 'business' (admin only), or 'subscription' (admin only)
@@ -220,7 +221,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Tabs Selection (Modern Segmented Control) */}
-      {isAdmin && (
+      {isAdmin && !isSuperAdmin && (
         <div className="p-1 rounded-xl bg-secondary/70 dark:bg-slate-900/80 border border-border/80 grid grid-cols-3 gap-1 w-full sm:max-w-lg">
           <button
             type="button"
@@ -465,7 +466,7 @@ export default function SettingsPage() {
       {/* ========================================================= */}
       {/* TAB 2: COMPANY PROFILE & BILLING (ADMIN ONLY)             */}
       {/* ========================================================= */}
-      {activeTab === 'business' && isAdmin && (
+      {activeTab === 'business' && isAdmin && !isSuperAdmin && (
         <Card className="border-border/80 bg-card shadow-premium rounded-2xl overflow-hidden">
           {isSettingsLoading ? (
             <div className="flex flex-col items-center justify-center py-16">
@@ -728,7 +729,7 @@ export default function SettingsPage() {
       {/* ========================================================= */}
       {/* TAB 3: SUBSCRIPTION & DOMAINS (ADMIN ONLY)                 */}
       {/* ========================================================= */}
-      {activeTab === 'subscription' && isAdmin && (
+      {activeTab === 'subscription' && isAdmin && !isSuperAdmin && (
         <div className="space-y-6">
           {/* Plan & Quota Card */}
           <Card className="border-border/80 bg-card shadow-premium rounded-2xl overflow-hidden">
