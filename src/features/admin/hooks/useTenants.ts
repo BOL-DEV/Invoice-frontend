@@ -102,3 +102,81 @@ export const useUpdateTenantPlan = () => {
     },
   });
 };
+
+export const useUpdateBusinessSettings = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
+      const response = await apiClient.put<ApiResponse<any>>(
+        API_ENDPOINTS.BUSINESS.DETAIL(id),
+        data
+      );
+      return response.data.data;
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenant-details', id] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['business-profile'] });
+    },
+  });
+};
+
+export const useAdminUpdateUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: {
+        firstName?: string;
+        lastName?: string;
+        email?: string;
+        role?: string;
+        newPassword?: string;
+      };
+    }) => {
+      const response = await apiClient.patch<ApiResponse<any>>(
+        API_ENDPOINTS.USERS.ADMIN_UPDATE(id),
+        data
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenant-details'] });
+    },
+  });
+};
+
+export const useAdminResetPassword = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, newPassword }: { id: string; newPassword: string }) => {
+      const response = await apiClient.post<ApiResponse<any>>(
+        API_ENDPOINTS.USERS.ADMIN_RESET_PASSWORD(id),
+        { newPassword }
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenant-details'] });
+    },
+  });
+};
+
+export const useAdminToggleUserSuspend = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.patch<ApiResponse<any>>(
+        API_ENDPOINTS.USERS.TOGGLE_SUSPEND(id)
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenant-details'] });
+    },
+  });
+};
+

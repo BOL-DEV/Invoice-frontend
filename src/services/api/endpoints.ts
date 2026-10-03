@@ -8,6 +8,8 @@ export const API_ENDPOINTS = {
     BASE: '/api/users',
     DETAIL: (id: string) => `/api/users/${id}`,
     TOGGLE_SUSPEND: (id: string) => `/api/users/${id}/toggle-suspend`,
+    ADMIN_UPDATE: (id: string) => `/api/users/admin/${id}`,
+    ADMIN_RESET_PASSWORD: (id: string) => `/api/users/admin/${id}/reset-password`,
     ME: '/api/users/me',
   },
   INVOICES: {

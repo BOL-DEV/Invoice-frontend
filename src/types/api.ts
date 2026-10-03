@@ -387,12 +387,28 @@ export interface TenantFullDetails {
     status: string;
     subtotal: number;
     total: number;
+    notes?: string | null;
     createdAt: string;
     creator: {
+      id?: string;
       firstName: string;
       lastName: string;
       email: string;
     };
+    items?: Array<{
+      id: string;
+      description: string;
+      quantity: number;
+      unitPrice: number;
+      totalPrice: number;
+      weight: number | null;
+    }>;
+    charges?: Array<{
+      id: string;
+      name: string;
+      amount: number;
+      order?: number;
+    }>;
   }>;
   recentLogs: Array<{
     id: string;
@@ -406,3 +422,4 @@ export interface TenantFullDetails {
     } | null;
   }>;
 }
+

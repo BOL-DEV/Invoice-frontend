@@ -19,6 +19,7 @@ import { Label } from '../../../../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../../components/ui/dialog';
 import { Skeleton } from '../../../../components/ui/skeleton';
 import { useModal } from '../../../../components/ui/modal-provider';
+import { Pagination } from '../../../../components/ui/pagination';
 import { getErrorMessage } from '../../../../lib/api-error';
 import {
   Building2,
@@ -58,14 +59,14 @@ export default function TenantsAdminPage() {
   const [isOnboardOpen, setIsOnboardOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<TenantSummary | null>(null);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
 
-  // Sync active workspace from localStorage
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setActiveWorkspaceId(localStorage.getItem('active_business_id'));
-    }
-  }, []);
+    setPage(1);
+  }, [searchTerm, filterCategory]);
 
   // Onboarding Form State
   const [newBizName, setNewBizName] = useState('');
@@ -236,32 +237,7 @@ export default function TenantsAdminPage() {
     }
   };
 
-  const handleSwitchWorkspace = async (tenant: TenantSummary) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('active_business_id', tenant.id);
-      localStorage.setItem('active_business_name', tenant.businessName);
-      setActiveWorkspaceId(tenant.id);
-      await modal.alert(
-        `Switched to Workspace: ${tenant.businessName}`,
-        `All dashboard pages are now scoped to "${tenant.businessName}". You can view invoices, cashiers, and reports for this tenant.`,
-        'info'
-      );
-      router.push('/');
-    }
-  };
 
-  const handleExitWorkspace = async () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('active_business_id');
-      localStorage.removeItem('active_business_name');
-      setActiveWorkspaceId(null);
-      await modal.alert(
-        'Returned to Global Super Admin View',
-        'Workspace scope cleared. You have returned to platform overview.',
-        'info'
-      );
-    }
-  };
 
   const handleToggleStatus = async (tenant: TenantSummary) => {
     const isCurrentlyActive = tenant.onboardingStatus === 'ACTIVE';
@@ -351,29 +327,6 @@ export default function TenantsAdminPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
-      {/* Active Workspace Impersonation Banner */}
-      {activeWorkspaceId && (
-        <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-blue-500/15 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-sm">
-          <div className="flex items-center space-x-2.5 text-foreground">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-            </span>
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400">Scoped Workspace Mode:</span>
-            <span>All invoices and cashier data currently reflect tenant <strong className="font-mono">{activeWorkspaceId}</strong></span>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleExitWorkspace}
-            className="h-8 rounded-lg text-xs bg-background/80 hover:bg-background border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold"
-          >
-            <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-            Exit to Global View
-          </Button>
-        </div>
-      )}
-
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -555,7 +508,6 @@ export default function TenantsAdminPage() {
                 <th className="px-6 py-3.5">Staff Usage</th>
                 <th className="px-6 py-3.5">Capabilities</th>
                 <th className="px-6 py-3.5">Status</th>
-                <th className="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -567,17 +519,16 @@ export default function TenantsAdminPage() {
                     <td className="px-6 py-4"><Skeleton className="h-4 w-20 rounded" /></td>
                     <td className="px-6 py-4"><Skeleton className="h-4 w-32 rounded" /></td>
                     <td className="px-6 py-4"><Skeleton className="h-4 w-16 rounded" /></td>
-                    <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-24 rounded ml-auto" /></td>
                   </tr>
                 ))
               ) : filteredTenants.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                     No business tenants found matching your search.
                   </td>
                 </tr>
               ) : (
-                filteredTenants.map((t) => {
+                filteredTenants.slice((page - 1) * pageSize, page * pageSize).map((t) => {
                   const plan = t.subscription?.plan || 'STARTER';
                   const isEnterprise = plan === 'ENTERPRISE';
                   const isBusiness = plan === 'BUSINESS';
@@ -587,16 +538,16 @@ export default function TenantsAdminPage() {
                   const usagePercent = Math.min(100, Math.round((userCount / maxStaff) * 100));
 
                   return (
-                    <tr key={t.id} className="hover:bg-secondary/20 transition-colors">
+                    <tr
+                      key={t.id}
+                      onClick={() => router.push(`/admin/tenants/${t.id}`)}
+                      className="hover:bg-secondary/30 transition-colors cursor-pointer group"
+                    >
                       {/* Business & Workspace */}
                       <td className="px-6 py-4">
-                        <div className="font-semibold text-foreground text-sm flex items-center space-x-2">
+                        <div className="font-semibold text-foreground text-sm flex items-center space-x-2 group-hover:text-emerald-500 transition-colors">
                           <span>{t.businessName}</span>
-                          {t.id === activeWorkspaceId && (
-                            <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/30">
-                              Active Workspace
-                            </Badge>
-                          )}
+                          <ArrowRight className="h-3.5 w-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-emerald-500" />
                         </div>
                         <div className="flex items-center space-x-2 mt-1 font-mono text-[11px] text-muted-foreground">
                           <span className="px-1.5 py-0.5 rounded bg-secondary border border-border">
@@ -717,63 +668,24 @@ export default function TenantsAdminPage() {
                           {t.onboardingStatus}
                         </Badge>
                       </td>
-
-                      {/* Actions */}
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          <Link href={`/admin/tenants/${t.id}`}>
-                            <Button
-                              size="sm"
-                              className="h-8 rounded-xl text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center space-x-1 shadow-sm"
-                              title="View full organization details, staff roster, and ledger"
-                            >
-                              <Eye className="h-3.5 w-3.5 mr-1" />
-                              <span>Details</span>
-                            </Button>
-                          </Link>
-
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => openConfigModal(t)}
-                            className="h-8 rounded-lg text-xs hover:bg-secondary"
-                            title="Configure plan & enterprise modular toggles"
-                          >
-                            <Sliders className="h-3.5 w-3.5 mr-1" />
-                            Config
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleSwitchWorkspace(t)}
-                            className="h-8 rounded-lg text-xs bg-secondary/50 hover:bg-secondary border-border"
-                            title="Inspect this workspace"
-                          >
-                            <ArrowRight className="h-3.5 w-3.5 mr-1" />
-                            Inspect
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleToggleStatus(t)}
-                            className={`h-8 rounded-lg text-xs ${
-                              t.onboardingStatus === 'ACTIVE'
-                                ? 'text-rose-500 hover:bg-rose-500/10'
-                                : 'text-emerald-500 hover:bg-emerald-500/10'
-                            }`}
-                          >
-                            {t.onboardingStatus === 'ACTIVE' ? 'Suspend' : 'Activate'}
-                          </Button>
-                        </div>
-                      </td>
                     </tr>
                   );
                 })
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="p-4 border-t border-border">
+          <Pagination
+            currentPage={page}
+            totalPages={Math.ceil(filteredTenants.length / pageSize) || 1}
+            onPageChange={setPage}
+            totalItems={filteredTenants.length}
+            itemsPerPage={pageSize}
+            itemName="businesses"
+          />
         </div>
       </Card>
 
