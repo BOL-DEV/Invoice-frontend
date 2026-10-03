@@ -24,6 +24,7 @@ import {
   } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
 import { Button } from '../components/ui/button';
+import { SuperAdminDashboard } from '../features/admin/components/SuperAdminDashboard';
 
 export default function Home() {
   const { user, isLoading: authLoading } = useAuth();
@@ -57,6 +58,16 @@ export default function Home() {
           <p className="text-xs text-muted-foreground font-medium">Loading Workspace Dashboard...</p>
         </div>
       </div>
+    );
+  }
+
+  // Super Admin Platform Command Center:
+  // Show global empire metrics, plan distribution, and commercial accounts instead of cashier depot operations
+  if (user.role === 'SUPER_ADMIN') {
+    return (
+      <AppLayout>
+        <SuperAdminDashboard user={user} />
+      </AppLayout>
     );
   }
 

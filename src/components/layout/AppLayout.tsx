@@ -164,23 +164,27 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     ? 'Platform Admin'
     : (isLaoSteel ? 'Ventures' : (businessSettings?.tagline || 'Workspace'));
 
-  // Strictly role-based navigation: NEVER default to Apprentice links if user is null or unauthenticated
+  // Strictly role-based navigation: Super Admin gets a dedicated platform empire menu
   const navItems = user
-    ? [
-        ...(isSuperAdmin
-          ? [{ href: '/admin/tenants', icon: <Building2 className="h-5 w-5" />, label: 'Tenants & SaaS' }]
-          : []),
-        { href: '/', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' },
-        { href: '/invoices', icon: <FileText className="h-5 w-5" />, label: 'Invoices' },
-        { href: '/approvals', icon: <CheckSquare className="h-5 w-5" />, label: 'Approvals' },
-        ...(isAdminOrSuper
-          ? [
-              { href: '/users', icon: <Users className="h-5 w-5" />, label: 'Cashiers' },
-              { href: '/activity', icon: <Activity className="h-5 w-5" />, label: 'Activity Logs' },
-            ]
-          : []),
-        { href: '/settings', icon: <SettingsIcon className="h-5 w-5" />, label: 'Settings' },
-      ]
+    ? isSuperAdmin
+      ? [
+          { href: '/', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' },
+          { href: '/admin/tenants', icon: <Building2 className="h-5 w-5" />, label: 'Tenants' },
+          { href: '/activity', icon: <Activity className="h-5 w-5" />, label: 'Activity Logs' },
+          { href: '/settings', icon: <SettingsIcon className="h-5 w-5" />, label: 'Settings' },
+        ]
+      : [
+          { href: '/', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' },
+          { href: '/invoices', icon: <FileText className="h-5 w-5" />, label: 'Invoices' },
+          { href: '/approvals', icon: <CheckSquare className="h-5 w-5" />, label: 'Approvals' },
+          ...(isAdminOrSuper
+            ? [
+                { href: '/users', icon: <Users className="h-5 w-5" />, label: 'Cashiers' },
+                { href: '/activity', icon: <Activity className="h-5 w-5" />, label: 'Activity Logs' },
+              ]
+            : []),
+          { href: '/settings', icon: <SettingsIcon className="h-5 w-5" />, label: 'Settings' },
+        ]
     : [];
 
   const handleLinkClick = () => {

@@ -59,6 +59,7 @@ export interface BusinessSettings {
   defaultWhtPercentage: number;
   nextInvoiceNumber: number;
   receiptTemplateId?: string;
+  onboardingStatus?: OnboardingStatus;
   subscription?: Subscription | null;
   createdAt: string;
   updatedAt: string;
@@ -329,4 +330,79 @@ export interface ExtractedInvoiceData {
   charges?: ExtractedCharge[];
   discrepancies?: ExtractedDiscrepancy[];
   notes?: string | null;
+}
+
+export interface PlatformOverview {
+  totalBusinesses: number;
+  activeBusinesses: number;
+  suspendedBusinesses: number;
+  totalUsers: number;
+  totalInvoices: number;
+  totalPlatformVolume: number;
+  planCounts: {
+    STARTER: number;
+    BUSINESS: number;
+    ENTERPRISE: number;
+  };
+  billingModeCounts: {
+    SUBSCRIPTION: number;
+    COMPLIMENTARY: number;
+  };
+  businessesByPlan: {
+    STARTER: TenantSummary[];
+    BUSINESS: TenantSummary[];
+    ENTERPRISE: TenantSummary[];
+  };
+  businessesByBilling: {
+    SUBSCRIPTION: TenantSummary[];
+    COMPLIMENTARY: TenantSummary[];
+  };
+  allBusinesses: TenantSummary[];
+}
+
+export interface TenantFullDetails {
+  business: BusinessSettings;
+  subscription: Subscription | null;
+  domains: BusinessDomain[];
+  stats: {
+    userCount: number;
+    invoiceCount: number;
+    customerCount: number;
+    totalInvoiceVolume: number;
+  };
+  users: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+    isSuspended: boolean;
+    createdAt: string;
+  }>;
+  recentInvoices: Array<{
+    id: string;
+    invoiceNumber: string;
+    customerName: string;
+    customerPhone: string | null;
+    status: string;
+    subtotal: number;
+    total: number;
+    createdAt: string;
+    creator: {
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+  }>;
+  recentLogs: Array<{
+    id: string;
+    action: string;
+    createdAt: string;
+    ipAddress: string | null;
+    user: {
+      firstName: string;
+      lastName: string;
+      email: string;
+    } | null;
+  }>;
 }

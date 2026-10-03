@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   useTenantsList,
   useOnboardTenant,
@@ -53,6 +54,7 @@ export default function TenantsAdminPage() {
 
   // Local state
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState<'ALL' | 'STARTER' | 'BUSINESS' | 'ENTERPRISE' | 'SUBSCRIPTION' | 'COMPLIMENTARY' | 'SUSPENDED'>('ALL');
   const [isOnboardOpen, setIsOnboardOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<TenantSummary | null>(null);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -319,17 +321,32 @@ export default function TenantsAdminPage() {
   // Filter tenants
   const filteredTenants = tenants?.filter((t) => {
     const q = searchTerm.toLowerCase();
-    return (
+    const matchesQuery = (
       t.businessName.toLowerCase().includes(q) ||
       (t.slug && t.slug.toLowerCase().includes(q)) ||
       t.email.toLowerCase().includes(q)
     );
+    if (!matchesQuery) return false;
+
+    if (filterCategory === 'STARTER') return (t.subscription?.plan || 'STARTER') === 'STARTER';
+    if (filterCategory === 'BUSINESS') return t.subscription?.plan === 'BUSINESS';
+    if (filterCategory === 'ENTERPRISE') return t.subscription?.plan === 'ENTERPRISE';
+    if (filterCategory === 'SUBSCRIPTION') return (t.subscription?.billingMode || 'SUBSCRIPTION') === 'SUBSCRIPTION';
+    if (filterCategory === 'COMPLIMENTARY') return t.subscription?.billingMode === 'COMPLIMENTARY';
+    if (filterCategory === 'SUSPENDED') return t.onboardingStatus === 'SUSPENDED';
+
+    return true;
   }) || [];
 
   // Metrics
   const totalTenants = tenants?.length || 0;
   const activeSubs = tenants?.filter((t) => t.onboardingStatus === 'ACTIVE').length || 0;
+  const suspendedCount = tenants?.filter((t) => t.onboardingStatus === 'SUSPENDED').length || 0;
+  const starterCount = tenants?.filter((t) => (t.subscription?.plan || 'STARTER') === 'STARTER').length || 0;
+  const businessCount = tenants?.filter((t) => t.subscription?.plan === 'BUSINESS').length || 0;
   const enterpriseCount = tenants?.filter((t) => t.subscription?.plan === 'ENTERPRISE').length || 0;
+  const subscriptionCount = tenants?.filter((t) => (t.subscription?.billingMode || 'SUBSCRIPTION') === 'SUBSCRIPTION').length || 0;
+  const complimentaryCount = tenants?.filter((t) => t.subscription?.billingMode === 'COMPLIMENTARY').length || 0;
   const totalInvoices = tenants?.reduce((acc, t) => acc + (t.stats?.invoiceCount || 0), 0) || 0;
 
   return (
@@ -430,19 +447,102 @@ export default function TenantsAdminPage() {
       {/* Tenants Table Container */}
       <Card className="border-border bg-card shadow-sm rounded-2xl overflow-hidden">
         {/* Search & Filter Bar */}
-        <div className="p-5 border-b border-border flex items-center justify-between gap-4">
-          <div className="relative w-full max-w-sm">
-            <Search className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search business name, slug, or email..."
-              className="pl-9 h-10 rounded-xl text-xs bg-secondary/50 border-border"
-            />
+        <div className="p-5 border-b border-border space-y-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative w-full max-w-sm">
+              <Search className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search business name, slug, or email..."
+                className="pl-9 h-10 rounded-xl text-xs bg-secondary/50 border-border"
+              />
+            </div>
+            <span className="text-xs text-muted-foreground font-mono">
+              Showing {filteredTenants.length} of {totalTenants}
+            </span>
           </div>
-          <span className="text-xs text-muted-foreground font-mono">
-            Showing {filteredTenants.length} of {totalTenants}
-          </span>
+
+          {/* Filter Pills */}
+          <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 text-xs">
+            <button
+              type="button"
+              onClick={() => setFilterCategory('ALL')}
+              className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                filterCategory === 'ALL'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground'
+              }`}
+            >
+              All ({totalTenants})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterCategory('STARTER')}
+              className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                filterCategory === 'STARTER'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground'
+              }`}
+            >
+              Starter ({starterCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterCategory('BUSINESS')}
+              className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                filterCategory === 'BUSINESS'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground'
+              }`}
+            >
+              Business Tier ({businessCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterCategory('ENTERPRISE')}
+              className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                filterCategory === 'ENTERPRISE'
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground'
+              }`}
+            >
+              Enterprise ({enterpriseCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterCategory('SUBSCRIPTION')}
+              className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                filterCategory === 'SUBSCRIPTION'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground'
+              }`}
+            >
+              Subscription ({subscriptionCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterCategory('COMPLIMENTARY')}
+              className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                filterCategory === 'COMPLIMENTARY'
+                  ? 'bg-amber-600 text-white shadow-sm'
+                  : 'bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground'
+              }`}
+            >
+              Complimentary ({complimentaryCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterCategory('SUSPENDED')}
+              className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                filterCategory === 'SUSPENDED'
+                  ? 'bg-rose-600 text-white shadow-sm'
+                  : 'bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground'
+              }`}
+            >
+              Suspended ({suspendedCount})
+            </button>
+          </div>
         </div>
 
         {/* Table Content */}
@@ -621,6 +721,17 @@ export default function TenantsAdminPage() {
                       {/* Actions */}
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end space-x-2">
+                          <Link href={`/admin/tenants/${t.id}`}>
+                            <Button
+                              size="sm"
+                              className="h-8 rounded-xl text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center space-x-1 shadow-sm"
+                              title="View full organization details, staff roster, and ledger"
+                            >
+                              <Eye className="h-3.5 w-3.5 mr-1" />
+                              <span>Details</span>
+                            </Button>
+                          </Link>
+
                           <Button
                             size="sm"
                             variant="ghost"

@@ -1,7 +1,38 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../../services/api/axios';
 import { API_ENDPOINTS } from '../../../services/api/endpoints';
-import { ApiResponse, TenantSummary, OnboardTenantInput, PlanType, BillingMode } from '../../../types/api';
+import {
+  ApiResponse,
+  TenantSummary,
+  OnboardTenantInput,
+  PlanType,
+  BillingMode,
+  PlatformOverview,
+  TenantFullDetails,
+} from '../../../types/api';
+
+export const usePlatformOverview = () => {
+  return useQuery<PlatformOverview>({
+    queryKey: ['admin', 'platform-overview'],
+    queryFn: async () => {
+      const response = await apiClient.get<ApiResponse<PlatformOverview>>(API_ENDPOINTS.BUSINESS.ADMIN_OVERVIEW);
+      return response.data.data;
+    },
+    refetchInterval: 30000,
+  });
+};
+
+export const useTenantDetails = (tenantId: string | null) => {
+  return useQuery<TenantFullDetails>({
+    queryKey: ['admin', 'tenant-details', tenantId],
+    queryFn: async () => {
+      if (!tenantId) throw new Error('Tenant ID required');
+      const response = await apiClient.get<ApiResponse<TenantFullDetails>>(API_ENDPOINTS.BUSINESS.ADMIN_DETAILS(tenantId));
+      return response.data.data;
+    },
+    enabled: Boolean(tenantId),
+  });
+};
 
 export const useTenantsList = () => {
   return useQuery<TenantSummary[]>({
