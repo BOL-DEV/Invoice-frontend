@@ -29,6 +29,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Building2,
+  UserPlus,
   Loader2,
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -170,6 +171,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       ? [
           { href: '/', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' },
           { href: '/admin/tenants', icon: <Building2 className="h-5 w-5" />, label: 'Tenants' },
+          { href: '/admin/onboard', icon: <UserPlus className="h-5 w-5" />, label: 'Onboard Business' },
           { href: '/activity', icon: <Activity className="h-5 w-5" />, label: 'Activity Logs' },
           { href: '/settings', icon: <SettingsIcon className="h-5 w-5" />, label: 'Settings' },
         ]

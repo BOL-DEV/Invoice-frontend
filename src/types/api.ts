@@ -143,6 +143,7 @@ export interface OnboardTenantInput {
   hasMultipleBranches: boolean;
   hasAdvancedReports: boolean;
   customDomain?: string | null;
+  devDomain?: string | null;
   adminFirstName: string;
   adminLastName: string;
   adminEmail: string;

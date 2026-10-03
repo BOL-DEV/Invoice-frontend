@@ -342,16 +342,14 @@ export default function TenantsAdminPage() {
             Manage all onboarded business workspaces across BOLXolve Invoice. Configure subscription tiers, modular features, staff limits, and domain registrations.
           </p>
         </div>
-        <Button
-          onClick={() => {
-            resetOnboardForm();
-            setIsOnboardOpen(true);
-          }}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-lg shadow-emerald-500/20 text-xs font-semibold h-10 px-4"
-        >
-          <Plus className="h-4 w-4 mr-1.5" />
-          Onboard New Business
-        </Button>
+        <Link href="/admin/onboard">
+          <Button
+            className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-500/20 text-xs font-semibold h-10 px-4"
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Onboard New Business
+          </Button>
+        </Link>
       </div>
 
       {/* Stats Cards */}

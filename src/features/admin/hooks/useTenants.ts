@@ -180,3 +180,73 @@ export const useAdminToggleUserSuspend = () => {
   });
 };
 
+
+
+export const useAddTenantDomain = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      businessId,
+      domain,
+      isPrimary,
+    }: {
+      businessId: string;
+      domain: string;
+      isPrimary?: boolean;
+    }) => {
+      const response = await apiClient.post<ApiResponse<any>>(
+        `/api/subscriptions/admin/${businessId}/domains`,
+        { domain, isPrimary }
+      );
+      return response.data.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenant-details', variables.businessId] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] });
+    },
+  });
+};
+
+export const useRemoveTenantDomain = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      businessId,
+      domainId,
+    }: {
+      businessId: string;
+      domainId: string;
+    }) => {
+      const response = await apiClient.delete<ApiResponse<any>>(
+        `/api/subscriptions/admin/${businessId}/domains/${domainId}`
+      );
+      return response.data.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenant-details', variables.businessId] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] });
+    },
+  });
+};
+
+export const useSetPrimaryTenantDomain = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      businessId,
+      domainId,
+    }: {
+      businessId: string;
+      domainId: string;
+    }) => {
+      const response = await apiClient.patch<ApiResponse<any>>(
+        `/api/subscriptions/admin/${businessId}/domains/${domainId}/primary`
+      );
+      return response.data.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenant-details', variables.businessId] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] });
+    },
+  });
+};

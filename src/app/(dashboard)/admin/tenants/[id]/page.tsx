@@ -11,6 +11,9 @@ import {
   useAdminUpdateUser,
   useAdminResetPassword,
   useAdminToggleUserSuspend,
+  useAddTenantDomain,
+  useRemoveTenantDomain,
+  useSetPrimaryTenantDomain,
 } from '../../../../../features/admin/hooks/useTenants';
 import { usePermission } from '../../../../../features/auth/hooks/usePermission';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../../../../components/ui/card';
@@ -57,6 +60,9 @@ import {
   Clock,
   DollarSign,
   X,
+  Plus,
+  Star,
+  Trash2,
 } from 'lucide-react';
 
 export default function TenantDetailPage() {
@@ -69,6 +75,70 @@ export default function TenantDetailPage() {
   const { data: tenantData, isLoading, isError, error, refetch, isFetching } = useTenantDetails(tenantId);
   const updateStatusMutation = useUpdateTenantStatus();
   const updatePlanMutation = useUpdateTenantPlan();
+  const addDomainMutation = useAddTenantDomain();
+  const removeDomainMutation = useRemoveTenantDomain();
+  const setPrimaryDomainMutation = useSetPrimaryTenantDomain();
+
+  // Domain Management State
+  const [isAddDomainOpen, setIsAddDomainOpen] = useState(false);
+  const [newDomainInput, setNewDomainInput] = useState('');
+  const [isNewDomainPrimary, setIsNewDomainPrimary] = useState(false);
+  const [domainModalError, setDomainModalError] = useState<string | null>(null);
+
+  const handleAddDomainSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDomainModalError(null);
+    const clean = newDomainInput.trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0];
+    if (!clean || clean.length < 3) {
+      setDomainModalError('Please enter a valid domain address (e.g. invoice.company.com or company.localhost).');
+      return;
+    }
+
+    try {
+      await addDomainMutation.mutateAsync({
+        businessId: tenantId,
+        domain: clean,
+        isPrimary: isNewDomainPrimary,
+      });
+      setIsAddDomainOpen(false);
+      setNewDomainInput('');
+      setIsNewDomainPrimary(false);
+      await modal.alert(
+        'Domain Registered',
+        `Successfully added domain "${clean}" to ${business.businessName}.`
+      );
+    } catch (err: any) {
+      setDomainModalError(err.response?.data?.message || err.message || 'Failed to add domain.');
+    }
+  };
+
+  const handleDeleteDomain = async (domainId: string, domainName: string) => {
+    const confirmed = await modal.confirm(
+      'Remove Configured Domain',
+      `Are you sure you want to remove ${domainName}? Invoices and users using this domain address will no longer route to this workspace.`,
+      'Remove Domain', 'Cancel'
+    );
+    if (!confirmed) return;
+
+    try {
+      await removeDomainMutation.mutateAsync({ businessId: tenantId, domainId });
+      await modal.alert('Domain Removed', `Domain ${domainName} has been successfully removed.`);
+    } catch (err: any) {
+      await modal.alert('Error', err.response?.data?.message || err.message || 'Failed to remove domain.');
+    }
+  };
+
+  const handleSetPrimaryDomain = async (domainId: string, domainName: string) => {
+    try {
+      await setPrimaryDomainMutation.mutateAsync({ businessId: tenantId, domainId });
+      await modal.alert(
+        'Primary Domain Updated',
+        `${domainName} has been designated as the primary domain for ${business.businessName}.`
+      );
+    } catch (err: any) {
+      await modal.alert('Error', err.response?.data?.message || err.message || 'Failed to set primary domain.');
+    }
+  };
   const updateSettingsMutation = useUpdateBusinessSettings();
   const adminUpdateUserMutation = useAdminUpdateUser();
   const adminResetPasswordMutation = useAdminResetPassword();
@@ -1062,21 +1132,92 @@ export default function TenantDetailPage() {
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-border space-y-2">
-                    <span className="text-muted-foreground font-semibold">Configured Domains</span>
+                  <div className="pt-4 border-t border-border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-foreground block">Configured Domains</span>
+                        <p className="text-[11px] text-muted-foreground">Live custom domains & local development endpoints</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDomainModalError(null);
+                          setNewDomainInput('');
+                          setIsNewDomainPrimary(false);
+                          setIsAddDomainOpen(true);
+                        }}
+                        className="rounded-xl text-xs font-semibold border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10 h-8 px-3"
+                      >
+                        <Plus className="h-3.5 w-3.5 mr-1" />
+                        Add Domain
+                      </Button>
+                    </div>
+
                     {domains.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">Default subdomain only: {business.slug}.bolxolve.com</p>
+                      <div className="p-3.5 rounded-2xl bg-secondary/30 border border-dashed border-border text-center">
+                        <p className="text-xs text-muted-foreground">Default subdomain only: <span className="font-mono font-bold text-foreground">{business.slug}.bolxolve.com</span></p>
+                      </div>
                     ) : (
-                      <div className="space-y-1.5">
-                        {domains.map((d) => (
-                          <div key={d.id} className="p-2.5 rounded-xl bg-secondary/40 border border-border flex items-center justify-between text-xs">
-                            <span className="font-mono font-bold text-foreground">{d.domain}</span>
-                            <div className="flex items-center space-x-1.5">
-                              {d.isCustom && <Badge className="text-[9px] bg-purple-500/10 text-purple-600">Custom Domain</Badge>}
-                              {d.isPrimary && <Badge className="text-[9px] bg-emerald-500/10 text-emerald-600">Primary</Badge>}
+                      <div className="space-y-2">
+                        {domains.map((d) => {
+                          const isLocalDev = d.domain.endsWith('.localhost') || d.domain.endsWith('.local') || d.domain.includes('127.0.0.1');
+                          return (
+                            <div
+                              key={d.id}
+                              className="p-3 rounded-2xl bg-secondary/30 border border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs"
+                            >
+                              <div className="flex items-center space-x-2.5 min-w-0">
+                                <Globe className="h-4 w-4 text-emerald-500 shrink-0" />
+                                <span className="font-mono font-bold text-foreground truncate">{d.domain}</span>
+                                <div className="flex items-center space-x-1 shrink-0">
+                                  {d.isPrimary && (
+                                    <Badge className="text-[9px] bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 font-bold">
+                                      Primary
+                                    </Badge>
+                                  )}
+                                  {isLocalDev ? (
+                                    <Badge className="text-[9px] bg-sky-500/15 text-sky-500 border border-sky-500/30 font-semibold">
+                                      Development
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="text-[9px] bg-purple-500/15 text-purple-400 border border-purple-500/30 font-semibold">
+                                      Custom Domain
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center space-x-1.5 self-end sm:self-center shrink-0">
+                                {!d.isPrimary && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleSetPrimaryDomain(d.id, d.domain)}
+                                    className="h-7 px-2 text-[11px] rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary"
+                                    title="Designate as primary domain"
+                                  >
+                                    <Star className="h-3 w-3 mr-1 text-amber-500" />
+                                    Set Primary
+                                  </Button>
+                                )}
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteDomain(d.id, d.domain)}
+                                  className="h-7 px-2 text-[11px] rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                                  title="Remove domain"
+                                >
+                                  <Trash2 className="h-3 w-3 mr-1" />
+                                  Delete
+                                </Button>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1806,6 +1947,79 @@ export default function TenantDetailPage() {
           </form>
         </DialogContent>
       </Dialog>
+      {/* ========================================================= */}
+      {/* ADD DOMAIN MODAL                                          */}
+      {/* ========================================================= */}
+      <Dialog open={isAddDomainOpen} onOpenChange={setIsAddDomainOpen}>
+        <DialogContent className="sm:max-w-lg rounded-3xl bg-card border border-border p-6 sm:p-8 shadow-2xl">
+          <DialogHeader className="space-y-1.5 pb-3 border-b border-border/60">
+            <DialogTitle className="text-xl font-bold font-heading text-foreground flex items-center space-x-2.5">
+              <Globe className="h-6 w-6 text-emerald-500" />
+              <span>Add Domain Endpoint</span>
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
+              Add a live custom production domain (e.g. <code>invoice.company.com</code>) or a development endpoint (e.g. <code>company.localhost</code>) for {business.businessName}.
+            </DialogDescription>
+          </DialogHeader>
+
+          {domainModalError && (
+            <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-rose-500 text-xs font-medium">
+              {domainModalError}
+            </div>
+          )}
+
+          <form onSubmit={handleAddDomainSubmit} className="space-y-5 pt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-foreground">Domain Address *</Label>
+              <Input
+                value={newDomainInput}
+                onChange={(e) => setNewDomainInput(e.target.value)}
+                placeholder="e.g. invoice.company.com or company.localhost"
+                required
+                className="h-11 rounded-xl text-sm font-mono px-4 bg-background border-border"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Enter without http:// or https://. Subdomains and apex domains are supported.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-2 border-t border-border/70">
+              <label className="flex items-center space-x-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isNewDomainPrimary}
+                  onChange={(e) => setIsNewDomainPrimary(e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
+                />
+                <span className="text-xs font-medium text-foreground">Designate as Primary Domain for this Workspace</span>
+              </label>
+            </div>
+
+            <DialogFooter className="pt-4 flex flex-row items-center justify-end gap-3 border-t border-border/60">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsAddDomainOpen(false);
+                  setNewDomainInput('');
+                  setDomainModalError(null);
+                }}
+                className="rounded-xl text-xs font-semibold h-11 px-5 border-border hover:bg-secondary"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={addDomainMutation.isPending}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold h-11 px-7 shadow-md shadow-emerald-500/20"
+              >
+                {addDomainMutation.isPending ? 'Registering...' : 'Register Domain'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
