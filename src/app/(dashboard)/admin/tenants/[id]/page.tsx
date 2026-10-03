@@ -403,9 +403,10 @@ export default function TenantDetailPage() {
   const plan = subscription?.plan || 'STARTER';
   const billingMode = subscription?.billingMode || 'SUBSCRIPTION';
   const maxStaff = subscription?.maxStaffCount || 2;
-  const staffUsagePercent = Math.min(100, Math.round((users.length / maxStaff) * 100));
+  const tenantStaffUsers = (users || []).filter((u) => u.role !== 'SUPER_ADMIN');
+  const staffUsagePercent = Math.min(100, Math.round((tenantStaffUsers.length / maxStaff) * 100));
 
-  const filteredUsers = users.filter(
+  const filteredUsers = tenantStaffUsers.filter(
     (u) =>
       u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
       `${u.firstName} ${u.lastName}`.toLowerCase().includes(userSearch.toLowerCase())
@@ -619,7 +620,7 @@ export default function TenantDetailPage() {
             </div>
           </div>
           <div className="flex items-baseline space-x-2 mt-2">
-            <h3 className="text-2xl font-bold font-heading text-foreground">{users.length}</h3>
+            <h3 className="text-2xl font-bold font-heading text-foreground">{tenantStaffUsers.length}</h3>
             <span className="text-xs text-muted-foreground font-mono">/ {maxStaff} permitted</span>
           </div>
           <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden mt-2">
@@ -664,7 +665,7 @@ export default function TenantDetailPage() {
             }`}
           >
             <Users className="h-4 w-4" />
-            <span>Staff & Cashiers ({users.length})</span>
+            <span>Staff & Cashiers ({tenantStaffUsers.length})</span>
           </button>
 
           <button
@@ -1144,7 +1145,7 @@ export default function TenantDetailPage() {
       {/* INVOICE DETAILS MODAL                                     */}
       {/* ========================================================= */}
       <Dialog open={!!viewingInvoice} onOpenChange={(open) => !open && setViewingInvoice(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-card border-border">
+        <DialogContent className="sm:max-w-4xl max-h-[92vh] overflow-y-auto rounded-3xl bg-card border border-border p-6 sm:p-8 shadow-2xl">
           {viewingInvoice && (
             <div className="space-y-6">
               <DialogHeader>
@@ -1294,99 +1295,99 @@ export default function TenantDetailPage() {
       {/* EDIT WORKSPACE PROFILE & SETTINGS MODAL                   */}
       {/* ========================================================= */}
       <Dialog open={isEditSettingsOpen} onOpenChange={setIsEditSettingsOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-foreground flex items-center space-x-2">
-              <Building2 className="h-5 w-5 text-emerald-500" />
+        <DialogContent className="sm:max-w-2xl md:max-w-3xl max-h-[92vh] overflow-y-auto rounded-3xl bg-card border border-border p-6 sm:p-8 shadow-2xl">
+          <DialogHeader className="space-y-1.5 pb-3 border-b border-border/60">
+            <DialogTitle className="text-xl sm:text-2xl font-bold font-heading text-foreground flex items-center space-x-2.5">
+              <Building2 className="h-6 w-6 text-emerald-500" />
               <span>Edit Organization Details & Settings</span>
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
+            <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
               Update depot contact information, legal identifiers, and default invoicing prefixes.
             </DialogDescription>
           </DialogHeader>
 
           {settingsError && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-500 text-xs">
+            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-rose-500 text-sm font-medium">
               {settingsError}
             </div>
           )}
 
-          <form onSubmit={handleSaveSettings} className="space-y-4 text-xs">
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Business Workspace Name</Label>
+          <form onSubmit={handleSaveSettings} className="space-y-5 pt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-foreground">Business Workspace Name</Label>
               <Input
                 value={settingsBizName}
                 onChange={(e) => setSettingsBizName(e.target.value)}
                 required
-                className="h-9 rounded-xl text-xs"
+                className="h-11 rounded-xl text-sm px-4 bg-background border-border"
               />
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Physical Depot Address</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-foreground">Physical Depot Address</Label>
               <Input
                 value={settingsAddress}
                 onChange={(e) => setSettingsAddress(e.target.value)}
                 required
-                className="h-9 rounded-xl text-xs"
+                className="h-11 rounded-xl text-sm px-4 bg-background border-border"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Official Phone</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">Official Phone</Label>
                 <Input
                   value={settingsPhone}
                   onChange={(e) => setSettingsPhone(e.target.value)}
                   required
-                  className="h-9 rounded-xl text-xs"
+                  className="h-11 rounded-xl text-sm px-4 bg-background border-border"
                 />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Official Email</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">Official Email</Label>
                 <Input
                   type="email"
                   value={settingsEmail}
                   onChange={(e) => setSettingsEmail(e.target.value)}
                   required
-                  className="h-9 rounded-xl text-xs"
+                  className="h-11 rounded-xl text-sm px-4 bg-background border-border"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">TIN (Tax ID Number)</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">TIN (Tax ID Number)</Label>
                 <Input
                   value={settingsTin}
                   onChange={(e) => setSettingsTin(e.target.value)}
                   placeholder="e.g. 12345678-0001"
-                  className="h-9 rounded-xl text-xs font-mono"
+                  className="h-11 rounded-xl text-sm font-mono px-4 bg-background border-border"
                 />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">RC / CAC Registration</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">RC / CAC Registration</Label>
                 <Input
                   value={settingsCac}
                   onChange={(e) => setSettingsCac(e.target.value)}
                   placeholder="e.g. RC-123456"
-                  className="h-9 rounded-xl text-xs font-mono"
+                  className="h-11 rounded-xl text-sm font-mono px-4 bg-background border-border"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border">
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Receipt Prefix</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-border/70">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">Receipt Prefix</Label>
                 <Input
                   value={settingsPrefix}
                   onChange={(e) => setSettingsPrefix(e.target.value.toUpperCase())}
                   required
-                  className="h-9 rounded-xl text-xs font-mono uppercase"
+                  className="h-11 rounded-xl text-sm font-mono uppercase px-4 bg-background border-border"
                 />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Default VAT %</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">Default VAT %</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -1394,11 +1395,11 @@ export default function TenantDetailPage() {
                   max="100"
                   value={settingsVat}
                   onChange={(e) => setSettingsVat(parseFloat(e.target.value) || 0)}
-                  className="h-9 rounded-xl text-xs font-mono"
+                  className="h-11 rounded-xl text-sm font-mono px-4 bg-background border-border"
                 />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Default WHT %</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">Default WHT %</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -1406,24 +1407,24 @@ export default function TenantDetailPage() {
                   max="100"
                   value={settingsWht}
                   onChange={(e) => setSettingsWht(parseFloat(e.target.value) || 0)}
-                  className="h-9 rounded-xl text-xs font-mono"
+                  className="h-11 rounded-xl text-sm font-mono px-4 bg-background border-border"
                 />
               </div>
             </div>
 
-            <DialogFooter className="pt-3">
+            <DialogFooter className="pt-4 flex flex-row items-center justify-end gap-3 border-t border-border/60">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsEditSettingsOpen(false)}
-                className="rounded-xl text-xs h-9 px-4"
+                className="rounded-xl text-xs font-semibold h-11 px-6 border-border hover:bg-secondary"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={updateSettingsMutation.isPending}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold h-9 px-4"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold h-11 px-7 shadow-md shadow-emerald-500/20"
               >
                 {updateSettingsMutation.isPending ? 'Saving...' : 'Save Workspace Changes'}
               </Button>
@@ -1436,118 +1437,118 @@ export default function TenantDetailPage() {
       {/* EDIT USER & ADMIN ROLE MODAL                              */}
       {/* ========================================================= */}
       <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
-        <DialogContent className="max-w-md rounded-2xl bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-foreground flex items-center space-x-2">
-              <Users className="h-5 w-5 text-emerald-500" />
+        <DialogContent className="sm:max-w-xl md:max-w-2xl rounded-3xl bg-card border border-border p-6 sm:p-8 shadow-2xl">
+          <DialogHeader className="space-y-1.5 pb-3 border-b border-border/60">
+            <DialogTitle className="text-xl sm:text-2xl font-bold font-heading text-foreground flex items-center space-x-2.5">
+              <Users className="h-6 w-6 text-emerald-500" />
               <span>Edit Staff Member & Role</span>
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Modify account attributes or change administrator role for this organization.
+            <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
+              Modify account attributes or adjust administrator privileges for this organization.
             </DialogDescription>
           </DialogHeader>
 
           {userModalError && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-500 text-xs">
+            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-rose-500 text-sm font-medium">
               {userModalError}
             </div>
           )}
 
-          <form onSubmit={handleSaveUser} className="space-y-4 text-xs">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">First Name</Label>
+          <form onSubmit={handleSaveUser} className="space-y-5 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">First Name</Label>
                 <Input
                   value={userFirstName}
                   onChange={(e) => setUserFirstName(e.target.value)}
                   required
-                  className="h-9 rounded-xl text-xs"
+                  className="h-11 rounded-xl text-sm px-4 bg-background border-border"
                 />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Last Name</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">Last Name</Label>
                 <Input
                   value={userLastName}
                   onChange={(e) => setUserLastName(e.target.value)}
                   required
-                  className="h-9 rounded-xl text-xs"
+                  className="h-11 rounded-xl text-sm px-4 bg-background border-border"
                 />
               </div>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Email Address</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-foreground">Email Address</Label>
               <Input
                 type="email"
                 value={userEmail}
                 onChange={(e) => setUserEmail(e.target.value)}
                 required
-                className="h-9 rounded-xl text-xs"
+                className="h-11 rounded-xl text-sm px-4 bg-background border-border"
               />
             </div>
 
-            <div className="space-y-2 pt-2 border-t border-border">
-              <Label className="text-xs font-semibold">Organization Role</Label>
-              <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2.5 pt-3 border-t border-border/70">
+              <Label className="text-xs font-bold text-foreground">Organization Role</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div
                   onClick={() => setUserRole('ADMIN')}
-                  className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                  className={`p-4 rounded-2xl border cursor-pointer transition-all ${
                     userRole === 'ADMIN'
-                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold'
-                      : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary'
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
+                      : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60'
                   }`}
                 >
                   <div className="flex items-center space-x-2">
-                    <Crown className="h-4 w-4" />
-                    <span>Administrator</span>
+                    <Crown className="h-5 w-5 text-emerald-500" />
+                    <span className="text-sm font-bold text-foreground font-heading">Administrator</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground font-normal mt-1">Full management access</p>
+                  <p className="text-xs text-muted-foreground mt-1.5 leading-snug">Full business management, stock, reporting, and staff oversight</p>
                 </div>
 
                 <div
                   onClick={() => setUserRole('APPRENTICE')}
-                  className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                  className={`p-4 rounded-2xl border cursor-pointer transition-all ${
                     userRole === 'APPRENTICE'
-                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold'
-                      : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary'
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
+                      : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60'
                   }`}
                 >
                   <div className="flex items-center space-x-2">
-                    <Users className="h-4 w-4" />
-                    <span>Cashier</span>
+                    <Users className="h-5 w-5 text-emerald-500" />
+                    <span className="text-sm font-bold text-foreground font-heading">Cashier / Apprentice</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground font-normal mt-1">Billing & POS desk only</p>
+                  <p className="text-xs text-muted-foreground mt-1.5 leading-snug">Restricted to POS desk, issuing receipts, and sales generation</p>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-1 pt-2 border-t border-border">
-              <Label className="text-xs font-semibold flex items-center justify-between">
+            <div className="space-y-1.5 pt-3 border-t border-border/70">
+              <Label className="text-xs font-bold text-foreground flex items-center justify-between">
                 <span>Set New Password (Optional)</span>
-                <span className="text-[10px] text-muted-foreground font-normal">Leave blank to keep unchanged</span>
+                <span className="text-xs text-muted-foreground font-normal">Leave blank to keep unchanged</span>
               </Label>
               <Input
                 type="password"
                 value={userNewPassword}
                 onChange={(e) => setUserNewPassword(e.target.value)}
                 placeholder="At least 6 characters"
-                className="h-9 rounded-xl text-xs"
+                className="h-11 rounded-xl text-sm px-4 bg-background border-border"
               />
             </div>
 
-            <DialogFooter className="pt-3">
+            <DialogFooter className="pt-4 flex flex-row items-center justify-end gap-3 border-t border-border/60">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setEditingUser(null)}
-                className="rounded-xl text-xs h-9 px-4"
+                className="rounded-xl text-xs font-semibold h-11 px-6 border-border hover:bg-secondary"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={adminUpdateUserMutation.isPending}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold h-9 px-4"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold h-11 px-7 shadow-md shadow-emerald-500/20"
               >
                 {adminUpdateUserMutation.isPending ? 'Saving...' : 'Save User Changes'}
               </Button>
@@ -1560,61 +1561,61 @@ export default function TenantDetailPage() {
       {/* QUICK RESET PASSWORD MODAL                                */}
       {/* ========================================================= */}
       <Dialog open={!!resettingUser} onOpenChange={(open) => !open && setResettingUser(null)}>
-        <DialogContent className="max-w-md rounded-2xl bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-foreground flex items-center space-x-2">
-              <Key className="h-5 w-5 text-amber-500" />
-              <span>Change Password</span>
+        <DialogContent className="sm:max-w-lg md:max-w-xl rounded-3xl bg-card border border-border p-6 sm:p-8 shadow-2xl">
+          <DialogHeader className="space-y-1.5 pb-3 border-b border-border/60">
+            <DialogTitle className="text-xl sm:text-2xl font-bold font-heading text-foreground flex items-center space-x-2.5">
+              <Key className="h-6 w-6 text-amber-500" />
+              <span>Change Account Password</span>
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Set a new secure password for {resettingUser?.firstName} {resettingUser?.lastName} ({resettingUser?.email}). Active sessions will be invalidated.
+            <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
+              Set a new secure password for <strong className="text-foreground">{resettingUser?.firstName} {resettingUser?.lastName}</strong> ({resettingUser?.email}). Active sessions will be invalidated.
             </DialogDescription>
           </DialogHeader>
 
           {resetError && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-500 text-xs">
+            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-rose-500 text-sm font-medium">
               {resetError}
             </div>
           )}
 
-          <form onSubmit={handleResetPassword} className="space-y-4 text-xs">
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">New Password</Label>
+          <form onSubmit={handleResetPassword} className="space-y-5 pt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-foreground">New Password</Label>
               <Input
                 type="password"
                 value={newPasswordInput}
                 onChange={(e) => setNewPasswordInput(e.target.value)}
                 required
                 placeholder="Minimum 6 characters"
-                className="h-9 rounded-xl text-xs"
+                className="h-11 rounded-xl text-sm px-4 bg-background border-border"
               />
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Confirm New Password</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-foreground">Confirm New Password</Label>
               <Input
                 type="password"
                 value={confirmPasswordInput}
                 onChange={(e) => setConfirmPasswordInput(e.target.value)}
                 required
                 placeholder="Re-enter new password"
-                className="h-9 rounded-xl text-xs"
+                className="h-11 rounded-xl text-sm px-4 bg-background border-border"
               />
             </div>
 
-            <DialogFooter className="pt-3">
+            <DialogFooter className="pt-4 flex flex-row items-center justify-end gap-3 border-t border-border/60">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setResettingUser(null)}
-                className="rounded-xl text-xs h-9 px-4"
+                className="rounded-xl text-xs font-semibold h-11 px-6 border-border hover:bg-secondary"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={adminResetPasswordMutation.isPending}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold h-9 px-4"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold h-11 px-7 shadow-md shadow-emerald-500/20"
               >
                 {adminResetPasswordMutation.isPending ? 'Updating...' : 'Set New Password'}
               </Button>
@@ -1627,140 +1628,179 @@ export default function TenantDetailPage() {
       {/* PLAN CONFIGURATION MODAL                                  */}
       {/* ========================================================= */}
       <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
-        <DialogContent className="max-w-lg rounded-2xl bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-foreground">
+        <DialogContent className="sm:max-w-2xl md:max-w-3xl rounded-3xl bg-card border border-border p-6 sm:p-8 max-h-[92vh] overflow-y-auto shadow-2xl">
+          <DialogHeader className="space-y-1.5 pb-3 border-b border-border/60">
+            <DialogTitle className="text-xl sm:text-2xl font-bold font-heading text-foreground">
               Configure Plan & Features for {business.businessName}
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
+            <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
               Select tier, adjust cashier account quotas, or toggle enterprise capabilities.
             </DialogDescription>
           </DialogHeader>
 
           {configError && (
-            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-500 text-xs">
+            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-rose-500 text-sm font-medium">
               {configError}
             </div>
           )}
 
-          <form onSubmit={handleSaveConfig} className="space-y-4 text-xs">
+          <form onSubmit={handleSaveConfig} className="space-y-6 pt-2">
             {/* Tier Select */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">Subscription Tier</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['STARTER', 'BUSINESS', 'ENTERPRISE'] as PlanType[]).map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => handlePlanSelect(p)}
-                    className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
-                      editPlan === p
-                        ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold'
-                        : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-bold text-foreground">Subscription Plan Tier</Label>
+                <span className="text-xs text-muted-foreground">Select tier package</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { id: 'STARTER' as PlanType, name: 'STARTER', desc: 'Up to 2 Staff', features: 'Basic invoicing, no scanner' },
+                  { id: 'BUSINESS' as PlanType, name: 'BUSINESS', desc: 'Up to 4 Staff', features: 'AI scanner included' },
+                  { id: 'ENTERPRISE' as PlanType, name: 'ENTERPRISE', desc: 'Custom Staff', features: 'All modular features' },
+                ].map((tier) => {
+                  const isSelected = editPlan === tier.id;
+                  return (
+                    <button
+                      key={tier.id}
+                      type="button"
+                      onClick={() => handlePlanSelect(tier.id)}
+                      className={`p-4 rounded-2xl border text-left transition-all relative ${
+                        isSelected
+                          ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
+                          : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-sm font-bold tracking-wide ${isSelected ? 'text-emerald-500 font-heading' : 'text-foreground font-heading'}`}>
+                          {tier.name}
+                        </span>
+                        {isSelected && (
+                          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                        )}
+                      </div>
+                      <p className="text-xs font-semibold text-foreground/80 mb-1">{tier.desc}</p>
+                      <p className="text-[11px] text-muted-foreground leading-snug">{tier.features}</p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {/* Commercial Billing Mode */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">Commercial Billing Mode</Label>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2.5">
+              <Label className="text-sm font-bold text-foreground">Billing Mode</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setEditBillingMode('SUBSCRIPTION')}
-                  className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
+                  className={`p-4 rounded-2xl border text-left transition-all ${
                     editBillingMode === 'SUBSCRIPTION'
-                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold'
-                      : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary'
+                      ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
+                      : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60'
                   }`}
                 >
-                  Standard Paid Subscription
+                  <p className={`text-sm font-bold ${editBillingMode === 'SUBSCRIPTION' ? 'text-emerald-500' : 'text-foreground'}`}>
+                    Paid SaaS Subscription
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Recurring periodic commercial license</p>
                 </button>
                 <button
                   type="button"
                   onClick={() => setEditBillingMode('COMPLIMENTARY')}
-                  className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
+                  className={`p-4 rounded-2xl border text-left transition-all ${
                     editBillingMode === 'COMPLIMENTARY'
-                      ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold'
-                      : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary'
+                      ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
+                      : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60'
                   }`}
                 >
-                  Complimentary / Sponsored
+                  <p className={`text-sm font-bold ${editBillingMode === 'COMPLIMENTARY' ? 'text-emerald-500' : 'text-foreground'}`}>
+                    Complimentary Partner
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Sponsored zero-fee partner access</p>
                 </button>
               </div>
             </div>
 
             {/* Staff Quota Input */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">
-                Max Allowed Cashier Desks / Staff Quota
-              </Label>
+            <div className="space-y-2 p-4 rounded-2xl bg-secondary/20 border border-border">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-bold text-foreground">
+                  Max Staff / Cashier Quota
+                </Label>
+                <span className="text-xs text-muted-foreground">
+                  Currently using <strong className="text-foreground font-semibold">{tenantStaffUsers.length}</strong> of <strong className="text-emerald-500 font-semibold">{editStaffQuota}</strong> accounts
+                </span>
+              </div>
               <Input
                 type="number"
-                min={users.length || 1}
+                min={tenantStaffUsers.length || 1}
                 max={100}
                 value={editStaffQuota}
                 onChange={(e) => setEditStaffQuota(parseInt(e.target.value) || 2)}
-                className="h-9 rounded-xl text-xs font-mono"
+                className="h-11 rounded-xl text-sm font-mono px-4 bg-background border-border"
               />
-              <span className="text-[10px] text-muted-foreground">
-                Currently utilizing {users.length} of {editStaffQuota} slots.
-              </span>
             </div>
 
             {/* Feature Toggles */}
-            <div className="space-y-2 pt-2 border-t border-border">
-              <Label className="text-xs font-semibold text-foreground">Enterprise Feature Toggles</Label>
-              <div className="space-y-2">
-                <label className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-secondary/20 cursor-pointer">
-                  <span className="text-xs">Custom Domain Subscriptions</span>
+            <div className="space-y-3 pt-3 border-t border-border">
+              <div>
+                <Label className="text-sm font-bold text-foreground">Modular Capabilities</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">Toggle advanced modules and enterprise add-ons for this workspace.</p>
+              </div>
+              <div className="space-y-2.5">
+                <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
+                  <div className="pr-4">
+                    <span className="text-sm font-semibold text-foreground block">Custom Enterprise Domain Routing</span>
+                    <span className="text-xs text-muted-foreground">Allow company to map and route their own custom subdomain / apex domain.</span>
+                  </div>
                   <input
                     type="checkbox"
                     checked={editCustomDomain}
                     onChange={(e) => setEditCustomDomain(e.target.checked)}
-                    className="rounded text-emerald-500 focus:ring-emerald-500"
+                    className="h-5 w-5 rounded-md border-border text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
                   />
                 </label>
-                <label className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-secondary/20 cursor-pointer">
-                  <span className="text-xs">Multiple Branches Support</span>
+                <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
+                  <div className="pr-4">
+                    <span className="text-sm font-semibold text-foreground block">Multiple Depot Branches</span>
+                    <span className="text-xs text-muted-foreground">Enable multi-location depot operations and decentralized stock management.</span>
+                  </div>
                   <input
                     type="checkbox"
                     checked={editMultipleBranches}
                     onChange={(e) => setEditMultipleBranches(e.target.checked)}
-                    className="rounded text-emerald-500 focus:ring-emerald-500"
+                    className="h-5 w-5 rounded-md border-border text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
                   />
                 </label>
-                <label className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-secondary/20 cursor-pointer">
-                  <span className="text-xs">Advanced Reporting & Analytics</span>
+                <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
+                  <div className="pr-4">
+                    <span className="text-sm font-semibold text-foreground block">Advanced Sales Ledger Analytics & AI Reports</span>
+                    <span className="text-xs text-muted-foreground">Unlock executive financial reports, cashier audits, and AI receipt scanning.</span>
+                  </div>
                   <input
                     type="checkbox"
                     checked={editAdvancedReports}
                     onChange={(e) => setEditAdvancedReports(e.target.checked)}
-                    className="rounded text-emerald-500 focus:ring-emerald-500"
+                    className="h-5 w-5 rounded-md border-border text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
                   />
                 </label>
               </div>
             </div>
 
-            <DialogFooter className="pt-3">
+            <DialogFooter className="pt-4 flex flex-row items-center justify-end gap-3 border-t border-border/60">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsConfigOpen(false)}
-                className="rounded-xl text-xs h-9 px-4"
+                className="rounded-xl text-xs font-semibold h-11 px-6 border-border hover:bg-secondary"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={updatePlanMutation.isPending}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold h-9 px-4"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold h-11 px-7 shadow-md shadow-emerald-500/20"
               >
-                {updatePlanMutation.isPending ? 'Saving...' : 'Save Configuration'}
+                {updatePlanMutation.isPending ? 'Saving...' : 'Apply Configuration'}
               </Button>
             </DialogFooter>
           </form>

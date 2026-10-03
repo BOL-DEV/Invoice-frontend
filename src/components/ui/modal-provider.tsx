@@ -144,43 +144,45 @@ export const ModalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {children}
       {isOpen && options && (
         <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(false); }}>
-          <DialogContent className="max-w-md bg-card border border-border rounded-2xl p-6 shadow-2xl">
+          <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border border-border rounded-3xl p-8 sm:p-10 shadow-2xl animate-in fade-in-50 zoom-in-95 duration-200">
             <div className="flex flex-col items-center text-center space-y-4">
-              <div className={`p-3.5 rounded-full ${getIconBg()}`}>
+              <div className={`p-4 rounded-2xl ${getIconBg()} flex items-center justify-center shadow-inner`}>
                 {getIcon()}
               </div>
-              <DialogHeader className="space-y-1.5 w-full">
-                <DialogTitle className="text-base font-bold text-foreground">{options.title}</DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              <DialogHeader className="space-y-2 w-full">
+                <DialogTitle className="text-xl sm:text-2xl font-bold text-foreground font-heading">
+                  {options.title}
+                </DialogTitle>
+                <DialogDescription className="text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
                   {options.message}
                 </DialogDescription>
               </DialogHeader>
               
               {options.type === 'prompt' && (
-                <div className="w-full pt-1">
+                <div className="w-full pt-2">
                   <Input
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     placeholder="Provide comment or justification..."
-                    className="w-full text-xs rounded-xl h-10 bg-background border border-border focus:ring-2 focus:ring-primary/20"
+                    className="w-full text-sm rounded-xl h-11 bg-background border border-border focus:ring-2 focus:ring-primary/20 px-4"
                     autoFocus
                   />
                 </div>
               )}
             </div>
-            <DialogFooter className="mt-4 flex flex-row gap-2 justify-end w-full">
+            <DialogFooter className="mt-6 flex flex-row gap-3 justify-center sm:justify-end w-full">
               {(options.type === 'confirm' || options.type === 'prompt') && (
                 <Button
                   variant="outline"
                   onClick={() => handleClose(false)}
-                  className="rounded-xl px-4 h-9 text-xs font-semibold"
+                  className="rounded-xl px-5 h-11 text-xs font-semibold border-border hover:bg-secondary"
                 >
                   {options.cancelText || "Cancel"}
                 </Button>
               )}
               <Button
                 onClick={() => handleClose(true)}
-                className="bg-primary hover:bg-[#059669] text-white rounded-xl px-5 h-9 text-xs font-semibold shadow-sm"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-7 h-11 text-xs font-semibold shadow-md shadow-emerald-500/20"
               >
                 {options.confirmText || "OK"}
               </Button>

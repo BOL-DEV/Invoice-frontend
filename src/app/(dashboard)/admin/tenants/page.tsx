@@ -693,7 +693,7 @@ export default function TenantsAdminPage() {
       {/* ONBOARD NEW TENANT MODAL                                  */}
       {/* ========================================================= */}
       <Dialog open={isOnboardOpen} onOpenChange={setIsOnboardOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
+        <DialogContent className="sm:max-w-3xl md:max-w-4xl max-h-[92vh] overflow-y-auto rounded-3xl p-6 sm:p-8 bg-card border border-border shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold font-heading flex items-center space-x-2">
               <Building2 className="h-5 w-5 text-emerald-500" />
@@ -982,7 +982,7 @@ export default function TenantsAdminPage() {
       {/* CONFIGURE TENANT PLAN & ENTERPRISE TOGGLES MODAL           */}
       {/* ========================================================= */}
       <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="sm:max-w-xl md:max-w-2xl rounded-3xl p-6 sm:p-8 bg-card border border-border shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold font-heading flex items-center space-x-2">
               <Sliders className="h-5 w-5 text-emerald-500" />
