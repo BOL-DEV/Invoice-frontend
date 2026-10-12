@@ -53,4 +53,8 @@ export const API_ENDPOINTS = {
   DASHBOARD: {
     BASE: '/api/dashboard',
   },
+  REPORTS: {
+    BASE: '/api/reports',
+    CASHIERS: '/api/reports/cashiers',
+  },
 } as const;

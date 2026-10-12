@@ -424,3 +424,87 @@ export interface TenantFullDetails {
   }>;
 }
 
+
+export interface ReportSummary {
+  totalRevenue: number;
+  draftRevenue: number;
+  totalInvoices: number;
+  finalizedInvoices: number;
+  draftInvoices: number;
+  totalWeight: number;
+  averageInvoiceValue: number;
+}
+
+export interface CashierStat {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  count: number;
+  finalizedCount: number;
+  revenue: number;
+}
+
+export interface TopCustomer {
+  customerName: string;
+  customerPhone: string | null;
+  count: number;
+  totalSpent: number;
+}
+
+export interface DailyTrendPoint {
+  date: string;
+  revenue: number;
+  count: number;
+}
+
+export interface ReportInvoiceItem {
+  id: string;
+  invoiceNumber: string;
+  customerName: string;
+  customerPhone?: string | null;
+  status: InvoiceStatus;
+  total: number;
+  subtotal: number;
+  notes?: string | null;
+  createdAt: string;
+  creator: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  itemsCount: number;
+  totalWeight: number;
+}
+
+export interface ReportResponseData {
+  dateRange: {
+    preset: string;
+    startDate: string;
+    endDate: string;
+  };
+  summary: ReportSummary;
+  cashierStats: CashierStat[];
+  topCustomers: TopCustomer[];
+  dailyTrend: DailyTrendPoint[];
+  invoices: ReportInvoiceItem[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface ReportQueryParams {
+  preset?: 'today' | 'yesterday' | 'this_week' | 'this_month' | 'last_30_days' | 'custom';
+  startDate?: string;
+  endDate?: string;
+  cashierId?: string;
+  customerName?: string;
+  status?: InvoiceStatus | 'ALL';
+  search?: string;
+  page?: number;
+  limit?: number;
+  businessId?: string;
+}
