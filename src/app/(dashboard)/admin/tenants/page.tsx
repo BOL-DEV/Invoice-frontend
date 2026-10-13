@@ -141,10 +141,11 @@ export default function TenantsAdminPage() {
       setNewBizStaffQuota(4);
       setNewBizCustomDomain(false);
       setNewBizMultipleBranches(false);
-      setNewBizAdvancedReports(false);
+      setNewBizAdvancedReports(true);
     } else if (plan === 'ENTERPRISE') {
       setNewBizStaffQuota(10);
       setNewBizCustomDomain(true);
+      setNewBizMultipleBranches(true);
       setNewBizAdvancedReports(true);
     }
   };
@@ -160,9 +161,12 @@ export default function TenantsAdminPage() {
       setEditStaffQuota(4);
       setEditCustomDomain(false);
       setEditMultipleBranches(false);
-      setEditAdvancedReports(false);
+      setEditAdvancedReports(true);
     } else if (plan === 'ENTERPRISE') {
       if (editStaffQuota < 5) setEditStaffQuota(10);
+      setEditCustomDomain(true);
+      setEditMultipleBranches(true);
+      setEditAdvancedReports(true);
     }
   };
 
@@ -1039,47 +1043,56 @@ export default function TenantsAdminPage() {
               )}
             </div>
 
-            {/* Modular Enterprise Toggles */}
-            <div className="p-3.5 rounded-xl bg-secondary/50 border border-border space-y-2.5">
-              <span className="text-xs font-semibold text-foreground">Modular Capabilities:</span>
-              <div className="space-y-2 text-xs">
-                <label className="flex items-center space-x-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    disabled={editPlan !== 'ENTERPRISE'}
-                    checked={editCustomDomain}
-                    onChange={(e) => setEditCustomDomain(e.target.checked)}
-                    className="rounded text-emerald-500 focus:ring-emerald-500"
-                  />
-                  <span>Allow Custom Domain Portals</span>
-                </label>
+            {/* Modular Feature Toggles */}
+            {editPlan !== 'STARTER' ? (
+              <div className="p-3.5 rounded-xl bg-secondary/50 border border-border space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-foreground">Modular Capabilities:</span>
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    {editPlan === 'BUSINESS' ? 'Business Tier Modular Add-ons' : 'Enterprise Modular Suite'}
+                  </span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  {editPlan === 'ENTERPRISE' && (
+                    <>
+                      <label className="flex items-center space-x-2.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editCustomDomain}
+                          onChange={(e) => setEditCustomDomain(e.target.checked)}
+                          className="rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
+                        />
+                        <span>Allow Custom Domain Portals</span>
+                      </label>
 
-                <label className="flex items-center space-x-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    disabled={editPlan !== 'ENTERPRISE'}
-                    checked={editMultipleBranches}
-                    onChange={(e) => setEditMultipleBranches(e.target.checked)}
-                    className="rounded text-emerald-500 focus:ring-emerald-500"
-                  />
-                  <span>Enable Multiple Branches</span>
-                </label>
+                      <label className="flex items-center space-x-2.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editMultipleBranches}
+                          onChange={(e) => setEditMultipleBranches(e.target.checked)}
+                          className="rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
+                        />
+                        <span>Enable Multiple Branches</span>
+                      </label>
+                    </>
+                  )}
 
-                <label className="flex items-center space-x-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    disabled={editPlan !== 'ENTERPRISE'}
-                    checked={editAdvancedReports}
-                    onChange={(e) => setEditAdvancedReports(e.target.checked)}
-                    className="rounded text-emerald-500 focus:ring-emerald-500"
-                  />
-                  <span>Enable Advanced Breakdown Reports</span>
-                </label>
+                  <label className="flex items-center space-x-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editAdvancedReports}
+                      onChange={(e) => setEditAdvancedReports(e.target.checked)}
+                      className="rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
+                    />
+                    <span>AI Reports & Scanner (Default Business & Enterprise)</span>
+                  </label>
+                </div>
               </div>
-              {editPlan !== 'ENTERPRISE' && (
-                <p className="text-[10px] text-muted-foreground italic">Modular toggles require the Enterprise tier.</p>
-              )}
-            </div>
+            ) : (
+              <div className="p-3 rounded-xl bg-secondary/20 border border-border text-[11px] text-muted-foreground italic">
+                Modular toggles are not available on the Starter plan.
+              </div>
+            )}
 
             <DialogFooter className="pt-2">
               <Button

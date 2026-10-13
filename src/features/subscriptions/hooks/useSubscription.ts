@@ -24,7 +24,8 @@ export const useAddCustomDomain = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['subscription', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['admin'] });
     },
   });
 };
@@ -39,7 +40,8 @@ export const useRemoveCustomDomain = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['subscription', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['admin'] });
     },
   });
 };

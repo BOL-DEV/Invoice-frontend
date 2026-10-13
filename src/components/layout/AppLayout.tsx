@@ -32,10 +32,12 @@ import {
   BarChart3,
   UserPlus,
   Loader2,
+  Lock,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
 import { useTheme } from 'next-themes';
+import { useSubscription } from '../../features/subscriptions/hooks/useSubscription';
 
 interface SidebarItemProps {
   href: string;
@@ -43,10 +45,33 @@ interface SidebarItemProps {
   label: string;
   active: boolean;
   isCollapsed?: boolean;
+  badge?: React.ReactNode;
+  disabled?: boolean;
   onClick?: () => void;
 }
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, label, active, isCollapsed, onClick }) => {
+const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, label, active, isCollapsed, badge, disabled, onClick }) => {
+  if (disabled) {
+    return (
+      <div
+        className={`flex items-center ${
+          isCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
+        } rounded-xl text-sm font-medium transition-colors opacity-50 cursor-not-allowed select-none text-muted-foreground/70 bg-transparent`}
+        title={isCollapsed ? `${label} (Locked - Starter Plan)` : `${label} is locked on Starter plan`}
+      >
+        <span className="shrink-0">
+          {icon}
+        </span>
+        {!isCollapsed && (
+          <div className="flex items-center justify-between flex-1 min-w-0">
+            <span className="font-medium whitespace-nowrap truncate">{label}</span>
+            {badge}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <Link href={href} onClick={onClick} title={isCollapsed ? label : undefined}>
       <motion.span
@@ -63,7 +88,12 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, label, active, is
         <span className={`shrink-0 transition-transform duration-150 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>
           {icon}
         </span>
-        {!isCollapsed && <span className="font-medium whitespace-nowrap truncate">{label}</span>}
+        {!isCollapsed && (
+          <div className="flex items-center justify-between flex-1 min-w-0">
+            <span className="font-medium whitespace-nowrap truncate">{label}</span>
+            {badge}
+          </div>
+        )}
       </motion.span>
     </Link>
   );
@@ -166,6 +196,12 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     ? 'Super Admin Empire'
     : (isLaoSteel ? 'Ventures' : (businessSettings?.tagline || 'Workspace'));
 
+  const { data: subDetails } = useSubscription();
+  const isStarterPlan = !isSuperAdmin && (
+    subDetails?.subscription?.plan === 'STARTER' ||
+    (subDetails?.capabilities && subDetails.capabilities.activityLogs === false)
+  );
+
   // Strictly role-based navigation: Super Admin gets a dedicated platform empire menu
   const navItems = user
     ? isSuperAdmin
@@ -185,7 +221,18 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           ...(isAdminOrSuper
             ? [
                 { href: '/users', icon: <Users className="h-5 w-5" />, label: 'Cashiers' },
-                { href: '/activity', icon: <Activity className="h-5 w-5" />, label: 'Activity Logs' },
+                {
+                  href: '/activity',
+                  icon: <Activity className="h-5 w-5" />,
+                  label: 'Activity Logs',
+                  disabled: isStarterPlan,
+                  badge: isStarterPlan ? (
+                    <span className="flex items-center space-x-0.5 text-[9px] font-bold text-muted-foreground bg-secondary/80 dark:bg-secondary/40 px-1.5 py-0.5 rounded-md border border-border/80">
+                      <Lock className="h-2.5 w-2.5 mr-0.5 text-amber-500" />
+                      <span>LOCKED</span>
+                    </span>
+                  ) : undefined,
+                },
               ]
             : []),
           { href: '/settings', icon: <SettingsIcon className="h-5 w-5" />, label: 'Settings' },
@@ -221,6 +268,8 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             href={item.href}
             icon={item.icon}
             label={item.label}
+            badge={(item as any).badge}
+            disabled={(item as any).disabled}
             active={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))}
             isCollapsed={collapsed}
             onClick={onItemClick}

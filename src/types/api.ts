@@ -59,6 +59,7 @@ export interface BusinessSettings {
   defaultWhtPercentage: number;
   nextInvoiceNumber: number;
   receiptTemplateId?: string;
+  customTemplateUrl?: string | null;
   onboardingStatus?: OnboardingStatus;
   subscription?: Subscription | null;
   createdAt: string;
@@ -69,6 +70,16 @@ export type PlanType = 'STARTER' | 'BUSINESS' | 'ENTERPRISE';
 export type BillingMode = 'SUBSCRIPTION' | 'COMPLIMENTARY';
 export type SubscriptionStatus = 'ACTIVE' | 'TRIALING' | 'PAST_DUE' | 'CANCELED' | 'INCOMPLETE';
 
+export interface DomainDnsInfo {
+  domain: string;
+  recordType: 'CNAME' | 'A';
+  host: string;
+  value: string;
+  isApex: boolean;
+  status: 'PENDING_DNS' | 'ACTIVE' | 'LOCAL_DEV';
+  instructions: string;
+}
+
 export interface BusinessDomain {
   id: string;
   businessId: string;
@@ -76,6 +87,7 @@ export interface BusinessDomain {
   isPrimary: boolean;
   isCustom: boolean;
   createdAt: string;
+  dnsInfo?: DomainDnsInfo;
 }
 
 export interface Subscription {
@@ -103,6 +115,7 @@ export interface SubscriptionDetails {
   domains: BusinessDomain[];
   capabilities: {
     aiExtraction: boolean;
+    activityLogs: boolean;
     customDomain: boolean;
     multipleBranches: boolean;
     advancedReports: boolean;
@@ -135,6 +148,8 @@ export interface OnboardTenantInput {
   phone: string;
   email: string;
   receiptPrefix?: string;
+  receiptTemplateId?: string;
+  customTemplateUrl?: string | null;
   tagline?: string | null;
   plan: PlanType;
   billingMode: BillingMode;
@@ -431,8 +446,6 @@ export interface ReportSummary {
   totalInvoices: number;
   finalizedInvoices: number;
   draftInvoices: number;
-  totalWeight: number;
-  averageInvoiceValue: number;
 }
 
 export interface CashierStat {
@@ -458,6 +471,20 @@ export interface DailyTrendPoint {
   count: number;
 }
 
+export interface ReportInvoiceLineItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface ReportInvoiceCharge {
+  id: string;
+  name: string;
+  amount: number;
+}
+
 export interface ReportInvoiceItem {
   id: string;
   invoiceNumber: string;
@@ -468,13 +495,20 @@ export interface ReportInvoiceItem {
   subtotal: number;
   notes?: string | null;
   createdAt: string;
+  business?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
   creator: {
     id: string;
     name: string;
     email: string;
   };
   itemsCount: number;
-  totalWeight: number;
+  items?: ReportInvoiceLineItem[];
+  charges?: ReportInvoiceCharge[];
+  totalWeight?: number;
 }
 
 export interface ReportResponseData {
@@ -497,7 +531,7 @@ export interface ReportResponseData {
 }
 
 export interface ReportQueryParams {
-  preset?: 'today' | 'yesterday' | 'this_week' | 'this_month' | 'last_30_days' | 'custom';
+  preset?: 'all_time' | 'today' | 'yesterday' | 'this_week' | 'this_month' | 'last_30_days' | 'custom';
   startDate?: string;
   endDate?: string;
   cashierId?: string;

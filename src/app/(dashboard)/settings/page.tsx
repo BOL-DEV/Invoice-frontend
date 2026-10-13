@@ -41,6 +41,7 @@ import {
   Sparkles,
   Layers,
   FileText,
+  Activity,
 } from 'lucide-react';
 import { useModal } from '../../../components/ui/modal-provider';
 import { BusinessSettings } from '../../../types/api';
@@ -59,9 +60,10 @@ export default function SettingsPage() {
   const [isDomainSubmitting, setIsDomainSubmitting] = useState(false);
 
   // Subscription data
-  const { data: subDetails, isLoading: isSubLoading } = useSubscription();
+  const { data: subDetails, isLoading: isSubLoading, refetch: refetchSub } = useSubscription();
   const addDomainMutation = useAddCustomDomain();
   const removeDomainMutation = useRemoveCustomDomain();
+  const [deletingDomainId, setDeletingDomainId] = useState<string | null>(null);
 
   // --- Profile & Security Form State ---
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -776,10 +778,10 @@ export default function SettingsPage() {
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-semibold text-foreground flex items-center space-x-1.5">
                         <User className="h-3.5 w-3.5 text-emerald-500" />
-                        <span>Staff Seats Allocated</span>
+                        <span>Cashier / Apprentice Seats</span>
                       </span>
                       <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                        {subDetails.usage.staffCount} of {subDetails.usage.maxStaffCount} seats used
+                        {subDetails.usage.staffCount} of {subDetails.usage.maxStaffCount} cashiers registered
                       </span>
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
@@ -791,9 +793,9 @@ export default function SettingsPage() {
                       />
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-1">
-                      {subDetails.subscription.plan === 'STARTER' && 'Starter plan is limited to 2 staff accounts.'}
-                      {subDetails.subscription.plan === 'BUSINESS' && 'Business plan is limited to 4 staff accounts.'}
-                      {subDetails.subscription.plan === 'ENTERPRISE' && 'Enterprise custom staff quota managed by Super Administrator.'}
+                      {subDetails.subscription.plan === 'STARTER' && 'Starter plan includes 2 cashier/apprentice seats plus 1 business administrator.'}
+                      {subDetails.subscription.plan === 'BUSINESS' && 'Business plan includes 4 cashier/apprentice seats plus 1 business administrator.'}
+                      {subDetails.subscription.plan === 'ENTERPRISE' && 'Enterprise custom cashier quota plus 1 business administrator managed by Super Administrator.'}
                     </p>
                   </div>
 
@@ -843,6 +845,18 @@ export default function SettingsPage() {
                         <p className="font-semibold text-foreground">Standard & Advanced Analytics</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {subDetails.capabilities.multipleBranches ? 'Multi-branch Aggregated Analytics' : 'Standard Full Analytics Report'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl border border-border/80 flex items-start space-x-3">
+                      <div className={`p-2 rounded-lg shrink-0 ${subDetails.capabilities.activityLogs ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                        <Activity className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground">Audit & Activity Logs</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {subDetails.capabilities.activityLogs ? 'Active (Business & Enterprise)' : 'Locked on Starter Plan'}
                         </p>
                       </div>
                     </div>
@@ -950,23 +964,32 @@ export default function SettingsPage() {
                             type="button"
                             variant="ghost"
                             size="sm"
+                            disabled={deletingDomainId === d.id}
                             onClick={async () => {
                               const confirmed = await modal.confirm(
                                 'Remove Domain',
-                                `Are you sure you want to detach domain "${d.domain}"?`
+                                `Are you sure you want to detach domain "${d.domain}"? Invoices and portals using this address will no longer route to this workspace.`
                               );
                               if (confirmed) {
+                                setDeletingDomainId(d.id);
                                 try {
                                   await removeDomainMutation.mutateAsync(d.id);
-                                  modal.alert('Success', 'Domain removed successfully', 'success');
+                                  await refetchSub();
+                                  modal.alert('Success', `Domain "${d.domain}" has been removed.`, 'success');
                                 } catch (err) {
                                   modal.alert('Error', getErrorMessage(err), 'error');
+                                } finally {
+                                  setDeletingDomainId(null);
                                 }
                               }
                             }}
                             className="text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 h-8 px-2.5 rounded-lg text-xs"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            {deletingDomainId === d.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
                           </Button>
                         )}
                       </div>

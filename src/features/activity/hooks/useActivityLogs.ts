@@ -13,7 +13,7 @@ interface ActivityLogsResponse {
   };
 }
 
-export const useActivityLogs = (page = 1, limit = 50) => {
+export const useActivityLogs = (page = 1, limit = 50, options?: { enabled?: boolean }) => {
   return useQuery<ActivityLogsResponse>({
     queryKey: ['activity', 'logs', page, limit],
     queryFn: async () => {
@@ -25,5 +25,7 @@ export const useActivityLogs = (page = 1, limit = 50) => {
       );
       return response.data.data;
     },
+    enabled: options?.enabled ?? true,
+    retry: false,
   });
 };

@@ -136,7 +136,7 @@ export default function UsersPage() {
               </span>
               <span className="text-muted-foreground">•</span>
               <span className="text-muted-foreground">
-                Staff Quota: <strong className={isQuotaReached ? 'text-rose-500 font-bold' : 'text-foreground font-semibold'}>{activeStaffCount} / {maxStaffCount}</strong>
+                Cashier Quota: <strong className={isQuotaReached ? 'text-rose-500 font-bold' : 'text-foreground font-semibold'}>{activeStaffCount} / {maxStaffCount}</strong>
               </span>
             </div>
           )}
@@ -145,8 +145,8 @@ export default function UsersPage() {
             onClick={() => {
               if (isQuotaReached) {
                 modal.alert(
-                  'Staff Quota Limit Reached',
-                  `Your ${subscription?.plan} plan has a maximum quota of ${maxStaffCount} staff members (${activeStaffCount}/${maxStaffCount} registered). Please contact your BOLXolve platform administrator to upgrade your plan or expand your cashier quota.`,
+                  'Cashier Quota Limit Reached',
+                  `Your ${subscription?.plan} plan allows up to ${maxStaffCount} cashiers/apprentices (${activeStaffCount}/${maxStaffCount} registered). Please contact your BOLXolve platform administrator to upgrade your plan or expand your cashier quota.`,
                   'warning'
                 );
                 return;
@@ -172,7 +172,7 @@ export default function UsersPage() {
         <div className="flex items-center gap-2 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs">
           <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <span>
-            Staff quota limit reached for your <strong>{subscription?.plan}</strong> plan ({activeStaffCount}/{maxStaffCount} cashiers). New cashiers cannot be registered until an account is removed or your plan quota is upgraded.
+            Cashier quota limit reached for your <strong>{subscription?.plan}</strong> plan ({activeStaffCount}/{maxStaffCount} cashiers). New cashiers cannot be registered until an account is removed or your plan quota is upgraded.
           </span>
         </div>
       )}
