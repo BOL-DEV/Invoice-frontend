@@ -653,7 +653,7 @@ export default function OnboardBusinessPage() {
                     </div>
                   ) : (
                     <div className="space-y-1.5 pt-1">
-                      <Label className="text-[11px] font-semibold text-muted-foreground">Client's Custom Production Domain *</Label>
+                      <Label className="text-[11px] font-semibold text-muted-foreground">Client&apos;s Custom Production Domain *</Label>
                       <Input
                         value={customDomain}
                         onChange={(e) => setCustomDomain(e.target.value)}

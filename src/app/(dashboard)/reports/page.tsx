@@ -681,7 +681,7 @@ export default function ReportsPage() {
                 onClick={handleResetFilters}
                 className="rounded-xl text-xs mt-2"
               >
-                Reset to Today's Report
+                Reset to Today&apos;s Report
               </Button>
             </div>
           ) : (

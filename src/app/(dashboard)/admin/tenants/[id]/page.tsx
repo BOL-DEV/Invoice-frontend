@@ -1524,7 +1524,7 @@ export default function TenantDetailPage() {
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        Upload or replace this business's bespoke invoice template image (PNG, JPG, PDF up to 5MB).
+                        Upload or replace this business&apos;s bespoke invoice template image (PNG, JPG, PDF up to 5MB).
                       </p>
 
                       {customFileName ? (

@@ -180,7 +180,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                   </h2>
                   {tagline && (
                     <p className="text-[10px] sm:text-[11px] text-[#0d47a1] italic font-serif leading-snug">
-                      "{tagline}"
+                      &ldquo;{tagline}&rdquo;
                     </p>
                   )}
                   <p className="text-[9px] sm:text-[10px] text-slate-700 leading-tight">
@@ -309,7 +309,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                   <div className="border-b border-slate-400 pb-1 mb-1 font-mono italic text-slate-400">
                     ....................................
                   </div>
-                  <span className="font-semibold text-slate-700">Customer's Signature</span>
+                  <span className="font-semibold text-slate-700">Customer&apos;s Signature</span>
                 </div>
 
                 <div className="text-center w-full sm:w-48">
@@ -529,7 +529,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                   </div>
                   <h4 className="text-sm font-bold text-white">No Custom Template Uploaded Yet</h4>
                   <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                    This business has not uploaded a bespoke invoice mockup yet. You can upload a design file (PNG, JPG, or PDF) during onboarding or anytime in the tenant's management tab.
+                    This business has not uploaded a bespoke invoice mockup yet. You can upload a design file (PNG, JPG, or PDF) during onboarding or anytime in the tenant&apos;s management tab.
                   </p>
                 </div>
               )}
