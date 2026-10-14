@@ -85,6 +85,7 @@ export const useUpdateTenantPlan = () => {
         plan?: PlanType;
         billingMode?: BillingMode;
         maxStaffCount?: number;
+        aiScansLimit?: number;
         hasCustomDomain?: boolean;
         hasMultipleBranches?: boolean;
         hasAdvancedReports?: boolean;

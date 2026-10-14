@@ -1001,7 +1001,7 @@ export default function TenantsAdminPage() {
             </div>
           )}
 
-          <form onSubmit={handleConfigSubmit} className="space-y-4">
+          <form onSubmit={handleConfigSubmit} noValidate className="space-y-4">
             <div className="space-y-1.5">
               <Label className="text-xs">Subscription Plan</Label>
               <select

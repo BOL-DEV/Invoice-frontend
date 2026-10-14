@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { apiClient } from '../../../services/api/axios';
 import { getErrorMessage } from '../../../lib/api-error';
 import { ExtractedInvoiceData, ExtractedItem } from '../../../types/api';
+import { useSubscription } from '../../subscriptions/hooks/useSubscription';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   UploadCloud,
   FileSpreadsheet,
@@ -41,6 +43,9 @@ export const DocumentImportModal: React.FC<DocumentImportModalProps> = ({
   onApply,
   hasExistingItems,
 }) => {
+  const queryClient = useQueryClient();
+  const { data: subDetails } = useSubscription();
+
   const [files, setFiles] = useState<File[]>([]);
   const [savedFileNames, setSavedFileNames] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -188,6 +193,24 @@ export const DocumentImportModal: React.FC<DocumentImportModalProps> = ({
       return;
     }
 
+    const isAiQuotaExhausted = Boolean(subDetails?.aiScans && subDetails.aiScans.remaining <= 0);
+    const hasAiFile = validFiles.some((f) => {
+      const isExcel =
+        f.name.endsWith('.xlsx') ||
+        f.name.endsWith('.xls') ||
+        f.name.endsWith('.csv') ||
+        f.type.includes('spreadsheet') ||
+        f.type.includes('excel');
+      return !isExcel;
+    });
+
+    if (isAiQuotaExhausted && hasAiFile) {
+      setErrorMsg(
+        `This business has exhausted its monthly AI document scanning quota (${subDetails?.aiScans?.limit ?? 10} scans used). You can still upload Excel/CSV spreadsheets or enter items manually.`
+      );
+      return;
+    }
+
     if (validFiles.length < batchFiles.length) {
       setWarningMsg(
         `${batchFiles.length - validFiles.length} unsupported file(s) were skipped. Only images, PDFs, and Excel/CSV files are processed.`
@@ -297,6 +320,8 @@ export const DocumentImportModal: React.FC<DocumentImportModalProps> = ({
 
     setIsProcessing(false);
     setProcessingProgress(null);
+    queryClient.invalidateQueries({ queryKey: ['subscription'] });
+    queryClient.invalidateQueries({ queryKey: ['business', 'settings'] });
 
     if (newExtractedItems.length === 0) {
       if (failedFiles.length === 1) {
@@ -377,6 +402,7 @@ export const DocumentImportModal: React.FC<DocumentImportModalProps> = ({
     }
 
     try {
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
       localStorage.setItem(
         'invoice_autofill_extracted_data',
         JSON.stringify({
@@ -475,6 +501,18 @@ export const DocumentImportModal: React.FC<DocumentImportModalProps> = ({
                 <Badge variant="outline" className="text-[10px] font-mono border-emerald-500/30 text-emerald-500">
                   AI Powered Multi-File
                 </Badge>
+                {subDetails?.aiScans && (
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] font-mono ${
+                      subDetails.aiScans.remaining <= 2
+                        ? 'border-amber-500/40 text-amber-500 bg-amber-500/10'
+                        : 'border-border/80 text-muted-foreground'
+                    }`}
+                  >
+                    {subDetails.aiScans.remaining} / {subDetails.aiScans.limit} scans left this month
+                  </Badge>
+                )}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground truncate sm:whitespace-normal">
                 Upload single or multiple photos of receipts, handwritten notes, WhatsApp screenshots, PDFs, or Excel files.
@@ -511,6 +549,18 @@ export const DocumentImportModal: React.FC<DocumentImportModalProps> = ({
                 <span className="px-2 py-0.5 rounded-md bg-secondary border border-border">Excel / CSV (.xlsx)</span>
               </div>
             </div>
+
+            {subDetails?.aiScans && subDetails.aiScans.remaining <= 0 && (
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 flex items-start space-x-2 text-xs">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">Monthly AI Scan Quota Reached</p>
+                  <p className="text-[11px] mt-0.5 leading-relaxed">
+                    You have used all {subDetails.aiScans.limit} AI document scans for this monthly billing cycle. You can still import Excel/CSV spreadsheets or enter items manually.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {errorMsg && (
               <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-start space-x-2 text-xs">

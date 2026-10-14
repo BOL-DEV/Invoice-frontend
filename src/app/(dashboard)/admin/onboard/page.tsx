@@ -99,6 +99,7 @@ export default function OnboardBusinessPage() {
   const [plan, setPlan] = useState<PlanType>('BUSINESS');
   const [billingMode, setBillingMode] = useState<BillingMode>('SUBSCRIPTION');
   const [maxStaffCount, setMaxStaffCount] = useState<number>(4);
+  const [aiScansLimit, setAiScansLimit] = useState<number>(300);
   const [hasCustomDomain, setHasCustomDomain] = useState<boolean>(false);
   const [hasMultipleBranches, setHasMultipleBranches] = useState<boolean>(false);
   const [hasAdvancedReports, setHasAdvancedReports] = useState<boolean>(true);
@@ -144,18 +145,21 @@ export default function OnboardBusinessPage() {
     setPlan(selectedPlan);
     if (selectedPlan === 'STARTER') {
       setMaxStaffCount(2);
+      setAiScansLimit(10);
       setHasCustomDomain(false);
       setHasMultipleBranches(false);
       setHasAdvancedReports(false);
       setCustomDomain('');
     } else if (selectedPlan === 'BUSINESS') {
       setMaxStaffCount(4);
+      setAiScansLimit(300);
       setHasCustomDomain(false);
       setHasMultipleBranches(false);
       setHasAdvancedReports(true);
       setCustomDomain('');
     } else if (selectedPlan === 'ENTERPRISE') {
       setMaxStaffCount(10);
+      setAiScansLimit(700);
       setHasCustomDomain(true);
       setHasMultipleBranches(true);
       setHasAdvancedReports(true);
@@ -220,6 +224,7 @@ export default function OnboardBusinessPage() {
         plan,
         billingMode,
         maxStaffCount,
+        aiScansLimit: Number(aiScansLimit),
         hasCustomDomain: isEnterpriseCustomDomain,
         hasMultipleBranches: plan === 'ENTERPRISE' && hasMultipleBranches,
         hasAdvancedReports,
@@ -307,9 +312,9 @@ export default function OnboardBusinessPage() {
               <Label className="text-xs font-bold text-foreground">Subscription Tier Package</Label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 {[
-                  { id: 'STARTER' as PlanType, name: 'STARTER', staff: '2 Staff Desks', desc: 'Standard invoicing, basic reporting' },
-                  { id: 'BUSINESS' as PlanType, name: 'BUSINESS', staff: '4 Staff Desks', desc: 'Includes AI Scanner & Analytics' },
-                  { id: 'ENTERPRISE' as PlanType, name: 'ENTERPRISE', staff: 'Custom Quota', desc: 'Multi-branch & full modular suite' },
+                  { id: 'STARTER' as PlanType, name: 'STARTER', staff: '2 Staff Desks', desc: '10 AI scans/mo trial included' },
+                  { id: 'BUSINESS' as PlanType, name: 'BUSINESS', staff: '4 Staff Desks', desc: '300 AI scans/mo included & Analytics' },
+                  { id: 'ENTERPRISE' as PlanType, name: 'ENTERPRISE', staff: 'Custom Quota', desc: '700 AI scans/mo default, full modular suite' },
                 ].map((tier) => {
                   const isSelected = plan === tier.id;
                   return (
@@ -337,8 +342,8 @@ export default function OnboardBusinessPage() {
               </div>
             </div>
 
-            {/* Billing Mode & Staff Quota */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Billing Mode, Staff Quota & AI Scans Quota */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-foreground">Commercial Billing Mode</Label>
                 <div className="grid grid-cols-2 gap-2.5">
@@ -368,13 +373,41 @@ export default function OnboardBusinessPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-foreground">Staff / Cashier Quota Seats</Label>
+                <Label className="text-xs font-bold text-foreground">Staff / Cashier Seats</Label>
                 <Input
                   type="number"
                   min={1}
                   max={100}
                   value={maxStaffCount}
                   onChange={(e) => setMaxStaffCount(parseInt(e.target.value) || 2)}
+                  className="h-11 rounded-xl text-sm font-mono px-4 bg-background border-border"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-foreground flex items-center space-x-1">
+                    <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>Monthly AI Scans</span>
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (plan === 'STARTER') setAiScansLimit(10);
+                      else if (plan === 'BUSINESS') setAiScansLimit(300);
+                      else if (plan === 'ENTERPRISE') setAiScansLimit(700);
+                    }}
+                    className="text-[10px] text-muted-foreground hover:text-foreground underline cursor-pointer"
+                  >
+                    Reset default
+                  </button>
+                </div>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100000}
+                  value={aiScansLimit}
+                  onChange={(e) => setAiScansLimit(Math.max(0, parseInt(e.target.value) || 0))}
                   className="h-11 rounded-xl text-sm font-mono px-4 bg-background border-border"
                 />
               </div>

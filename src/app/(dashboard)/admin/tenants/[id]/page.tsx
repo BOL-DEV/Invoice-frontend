@@ -401,6 +401,7 @@ export default function TenantDetailPage() {
   const [editPlan, setEditPlan] = useState<PlanType>('STARTER');
   const [editBillingMode, setEditBillingMode] = useState<BillingMode>('SUBSCRIPTION');
   const [editStaffQuota, setEditStaffQuota] = useState(2);
+  const [editAiScansLimit, setEditAiScansLimit] = useState(10);
   const [editCustomDomain, setEditCustomDomain] = useState(false);
   const [editMultipleBranches, setEditMultipleBranches] = useState(false);
   const [editAdvancedReports, setEditAdvancedReports] = useState(false);
@@ -411,6 +412,13 @@ export default function TenantDetailPage() {
     setEditPlan(tenantData.subscription.plan || 'STARTER');
     setEditBillingMode(tenantData.subscription.billingMode || 'SUBSCRIPTION');
     setEditStaffQuota(tenantData.subscription.maxStaffCount || 2);
+    const subPlan = tenantData.subscription.plan || 'STARTER';
+    const subLimit = tenantData.subscription.aiScansLimit;
+    setEditAiScansLimit(
+      subLimit && !(subLimit === 10 && (subPlan === 'BUSINESS' || subPlan === 'ENTERPRISE'))
+        ? subLimit
+        : (subPlan === 'ENTERPRISE' ? 700 : subPlan === 'BUSINESS' ? 300 : 10)
+    );
     setEditCustomDomain(tenantData.subscription.hasCustomDomain || false);
     setEditMultipleBranches(tenantData.subscription.hasMultipleBranches || false);
     setEditAdvancedReports(tenantData.subscription.hasAdvancedReports || false);
@@ -422,16 +430,19 @@ export default function TenantDetailPage() {
     setEditPlan(plan);
     if (plan === 'STARTER') {
       setEditStaffQuota(2);
+      setEditAiScansLimit(10);
       setEditCustomDomain(false);
       setEditMultipleBranches(false);
       setEditAdvancedReports(false);
     } else if (plan === 'BUSINESS') {
       setEditStaffQuota(4);
+      setEditAiScansLimit(300);
       setEditCustomDomain(false);
       setEditMultipleBranches(false);
       setEditAdvancedReports(true);
     } else if (plan === 'ENTERPRISE') {
       if (editStaffQuota < 5) setEditStaffQuota(10);
+      setEditAiScansLimit(700);
       setEditCustomDomain(true);
       setEditMultipleBranches(true);
       setEditAdvancedReports(true);
@@ -448,6 +459,7 @@ export default function TenantDetailPage() {
           plan: editPlan,
           billingMode: editBillingMode,
           maxStaffCount: Number(editStaffQuota),
+          aiScansLimit: Number(editAiScansLimit),
           hasCustomDomain: editCustomDomain,
           hasMultipleBranches: editMultipleBranches,
           hasAdvancedReports: editAdvancedReports,
@@ -721,7 +733,7 @@ export default function TenantDetailPage() {
       {/* ========================================================= */}
       {/* KEY METRICS & PLATFORM HEALTH                             */}
       {/* ========================================================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Metric 1: Invoiced Volume */}
         <Card className="rounded-2xl border-border bg-card shadow-sm p-5">
           <div className="flex items-center justify-between">
@@ -733,7 +745,7 @@ export default function TenantDetailPage() {
           <h3 className="text-2xl font-bold font-heading text-foreground mt-2">
             {formatCurrency(stats.totalInvoiceVolume)}
           </h3>
-          <p className="text-[11px] text-muted-foreground mt-1">Aggregated across all customer bills</p>
+          <p className="text-[11px] text-muted-foreground mt-1">Aggregated across customer bills</p>
         </Card>
 
         {/* Metric 2: Total Invoices */}
@@ -760,7 +772,7 @@ export default function TenantDetailPage() {
           </div>
           <div className="flex items-baseline space-x-2 mt-2">
             <h3 className="text-2xl font-bold font-heading text-foreground">{tenantStaffUsers.length}</h3>
-            <span className="text-xs text-muted-foreground font-mono">/ {maxStaff} permitted</span>
+            <span className="text-xs text-muted-foreground font-mono">/ {maxStaff} max</span>
           </div>
           <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden mt-2">
             <div
@@ -776,7 +788,50 @@ export default function TenantDetailPage() {
           </div>
         </Card>
 
-        {/* Metric 4: Customers Registered */}
+        {/* Metric 4: Monthly AI Document Scans */}
+        <Card className="rounded-2xl border-border bg-card shadow-sm p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground font-semibold">Monthly AI Scans</p>
+            <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+              <Sparkles className="h-4 w-4" />
+            </div>
+          </div>
+          {(() => {
+            const effectiveAiLimit = (subscription?.aiScansLimit && !(subscription.aiScansLimit === 10 && (plan === 'BUSINESS' || plan === 'ENTERPRISE')))
+              ? subscription.aiScansLimit
+              : (plan === 'ENTERPRISE' ? 700 : plan === 'BUSINESS' ? 300 : 10);
+            const scansUsed = subscription?.aiScansUsed ?? 0;
+            const ratio = scansUsed / effectiveAiLimit;
+            return (
+              <>
+                <div className="flex items-baseline space-x-2 mt-2">
+                  <h3 className="text-2xl font-bold font-heading text-foreground">
+                    {scansUsed}
+                  </h3>
+                  <span className="text-xs text-muted-foreground font-mono">
+                    / {effectiveAiLimit}
+                  </span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden mt-2">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      ratio >= 1
+                        ? 'bg-rose-500'
+                        : ratio >= 0.75
+                        ? 'bg-amber-500'
+                        : 'bg-emerald-500'
+                    }`}
+                    style={{
+                      width: `${Math.min(100, Math.round(ratio * 100))}%`,
+                    }}
+                  />
+                </div>
+              </>
+            );
+          })()}
+        </Card>
+
+        {/* Metric 5: Customers Registered */}
         <Card className="rounded-2xl border-border bg-card shadow-sm p-5">
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground font-semibold">Unique Customers</p>
@@ -785,7 +840,7 @@ export default function TenantDetailPage() {
             </div>
           </div>
           <h3 className="text-2xl font-bold font-heading text-foreground mt-2">{stats.customerCount}</h3>
-          <p className="text-[11px] text-muted-foreground mt-1">Directly attached to billing profile</p>
+          <p className="text-[11px] text-muted-foreground mt-1">Attached to billing profile</p>
         </Card>
       </div>
 
@@ -2159,7 +2214,7 @@ export default function TenantDetailPage() {
             </div>
           )}
 
-          <form onSubmit={handleSaveConfig} className="space-y-6 pt-2">
+          <form onSubmit={handleSaveConfig} noValidate className="space-y-6 pt-2">
             {/* Tier Select */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
@@ -2168,9 +2223,9 @@ export default function TenantDetailPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
-                  { id: 'STARTER' as PlanType, name: 'STARTER', desc: 'Up to 2 Staff', features: 'Basic invoicing, no scanner' },
-                  { id: 'BUSINESS' as PlanType, name: 'BUSINESS', desc: 'Up to 4 Staff', features: 'AI scanner included' },
-                  { id: 'ENTERPRISE' as PlanType, name: 'ENTERPRISE', desc: 'Custom Staff', features: 'All modular features' },
+                  { id: 'STARTER' as PlanType, name: 'STARTER', desc: 'Up to 2 Staff', features: '10 AI scans/mo trial' },
+                  { id: 'BUSINESS' as PlanType, name: 'BUSINESS', desc: 'Up to 4 Staff', features: '300 AI scans/mo included' },
+                  { id: 'ENTERPRISE' as PlanType, name: 'ENTERPRISE', desc: 'Custom Staff', features: '700 AI scans/mo default' },
                 ].map((tier) => {
                   const isSelected = editPlan === tier.id;
                   return (
@@ -2236,23 +2291,105 @@ export default function TenantDetailPage() {
             </div>
 
             {/* Staff Quota Input */}
-            <div className="space-y-2 p-4 rounded-2xl bg-secondary/20 border border-border">
+            <div className="space-y-2.5 p-4 rounded-2xl bg-secondary/20 border border-border">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-bold text-foreground">
-                  Max Staff / Cashier Quota
+                <Label className="text-sm font-bold text-foreground flex items-center space-x-1.5">
+                  <Users className="h-4 w-4 text-emerald-500" />
+                  <span>Max Staff / Cashier Quota</span>
                 </Label>
                 <span className="text-xs text-muted-foreground">
-                  Currently using <strong className="text-foreground font-semibold">{tenantStaffUsers.length}</strong> of <strong className="text-emerald-500 font-semibold">{editStaffQuota}</strong> accounts
+                  Currently using{' '}
+                  <strong className={tenantStaffUsers.length > editStaffQuota ? 'text-amber-500 font-semibold' : 'text-foreground font-semibold'}>
+                    {tenantStaffUsers.length}
+                  </strong>{' '}
+                  of{' '}
+                  <strong className={tenantStaffUsers.length > editStaffQuota ? 'text-amber-500 font-semibold' : 'text-emerald-500 font-semibold'}>
+                    {editStaffQuota}
+                  </strong>{' '}
+                  accounts
+                  {tenantStaffUsers.length > editStaffQuota && (
+                    <span className="ml-1 text-[11px] text-amber-500 font-semibold">(Over Quota)</span>
+                  )}
                 </span>
               </div>
-              <Input
-                type="number"
-                min={tenantStaffUsers.length || 1}
-                max={100}
-                value={editStaffQuota}
-                onChange={(e) => setEditStaffQuota(parseInt(e.target.value) || 2)}
-                className="h-11 rounded-xl text-sm font-mono px-4 bg-background border-border"
-              />
+              <div className="flex items-center space-x-3">
+                <Input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={editStaffQuota}
+                  onChange={(e) => setEditStaffQuota(Math.max(1, parseInt(e.target.value) || 1))}
+                  className={`h-11 rounded-xl text-sm font-mono px-4 bg-background border-border ${
+                    tenantStaffUsers.length > editStaffQuota ? 'border-amber-500/50 focus-visible:ring-amber-500' : ''
+                  }`}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (editPlan === 'STARTER') setEditStaffQuota(2);
+                    else if (editPlan === 'BUSINESS') setEditStaffQuota(4);
+                    else if (editPlan === 'ENTERPRISE') setEditStaffQuota(10);
+                  }}
+                  className="h-11 rounded-xl text-xs px-3.5 border-border hover:bg-secondary shrink-0 cursor-pointer"
+                >
+                  Reset to Plan Default
+                </Button>
+              </div>
+
+              {/* Input Guide / Notice */}
+              {tenantStaffUsers.length > editStaffQuota ? (
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <div className="leading-relaxed">
+                    <span className="font-semibold">Staff exceeds quota:</span> This business currently has {tenantStaffUsers.length} active staff accounts, exceeding this quota of {editStaffQuota}. Existing staff accounts remain active, but the business cannot invite new staff members until their quota is increased.
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Super Admins can freely customize this limit for any business. Defaults: Starter (2), Business (4), Enterprise (10). Custom allowances entered here apply directly to this business.
+                </p>
+              )}
+            </div>
+
+            {/* Monthly AI Document Scans Quota Input */}
+            <div className="space-y-2 p-4 rounded-2xl bg-secondary/20 border border-border">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-bold text-foreground flex items-center space-x-1.5">
+                  <Sparkles className="h-4 w-4 text-emerald-500" />
+                  <span>Monthly AI Document Scans Quota</span>
+                </Label>
+                <span className="text-xs text-muted-foreground">
+                  Used this cycle: <strong className="text-foreground font-semibold">{tenantData?.subscription?.aiScansUsed ?? 0}</strong> scans
+                </span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <Input
+                  type="number"
+                  min={0}
+                  max={100000}
+                  value={editAiScansLimit}
+                  onChange={(e) => setEditAiScansLimit(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="h-11 rounded-xl text-sm font-mono px-4 bg-background border-border"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (editPlan === 'STARTER') setEditAiScansLimit(10);
+                    else if (editPlan === 'BUSINESS') setEditAiScansLimit(300);
+                    else if (editPlan === 'ENTERPRISE') setEditAiScansLimit(700);
+                  }}
+                  className="h-11 rounded-xl text-xs px-3.5 border-border hover:bg-secondary shrink-0 cursor-pointer"
+                >
+                  Reset to Plan Default
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Super Admins can freely customize this limit for any business on Starter, Business, or Enterprise. Defaults: Starter (10), Business (300), Enterprise (700). Custom allowances entered here apply directly to this business.
+              </p>
             </div>
 
             {/* Feature Toggles */}

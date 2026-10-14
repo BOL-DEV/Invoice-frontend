@@ -29,6 +29,7 @@ import { getErrorDialog } from '../../../lib/api-error';
 import { apiClient } from '../../../services/api/axios';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { DocumentImportModal } from './DocumentImportModal';
+import { useSubscription } from '../../subscriptions/hooks/useSubscription';
 import {
   Trash2,
   X,
@@ -183,7 +184,25 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   };
 
   const { data: businessSettings } = useBusinessSettings();
-  const isStarterPlan = businessSettings?.subscription?.plan === 'STARTER';
+  const { data: subDetails } = useSubscription();
+
+  // AI Document Scanning Quota Calculation
+  const currentPlan = subDetails?.subscription?.plan ?? businessSettings?.subscription?.plan;
+  const rawLimit = subDetails?.aiScans?.limit ?? businessSettings?.subscription?.aiScansLimit;
+  // If rawLimit is 10 but plan is BUSINESS (default 300) or ENTERPRISE (default 700), it's the unmigrated database default
+  const aiScansLimit =
+    rawLimit !== undefined && rawLimit !== null && !(rawLimit === 10 && (currentPlan === 'BUSINESS' || currentPlan === 'ENTERPRISE'))
+      ? rawLimit
+      : (currentPlan === 'ENTERPRISE' ? 700 : currentPlan === 'BUSINESS' ? 300 : 10);
+  const aiScansUsed =
+    subDetails?.aiScans?.used ??
+    businessSettings?.subscription?.aiScansUsed ??
+    0;
+  const aiScansRemaining =
+    subDetails?.aiScans?.remaining !== undefined && !(subDetails.aiScans.remaining <= 10 && (currentPlan === 'BUSINESS' || currentPlan === 'ENTERPRISE') && aiScansLimit >= 300)
+      ? subDetails.aiScans.remaining
+      : Math.max(0, aiScansLimit - aiScansUsed);
+  const isAiQuotaExhausted = aiScansRemaining <= 0;
 
   // Reactively calculate VAT/WHT when subtotal or preset changes
   useEffect(() => {
@@ -546,39 +565,45 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
         {/* Floating Utilities triggers */}
         <div className="flex flex-wrap items-center gap-2">
-          {isStarterPlan ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={isAiQuotaExhausted}
+            onClick={() => {
+              if (isAiQuotaExhausted) {
                 modal.alert(
-                  'AI Document Scanning (Business & Enterprise)',
-                  'AI Vision document and handwriting scanning is enabled for Business and Enterprise tiers. On the Starter plan, invoices can be created by manual keyboard entry below. Contact your administrator to upgrade.',
-                  'info'
+                  'AI Scanning Quota Exhausted',
+                  `This business has exhausted its monthly AI document scanning quota (${aiScansUsed}/${aiScansLimit} scans used). You can enter line items manually or contact your administrator to upgrade your allowance.`,
+                  'warning'
                 );
-              }}
-              className="space-x-1.5 font-semibold text-xs border-dashed border-border text-muted-foreground bg-muted/20 hover:bg-muted/30 rounded-xl h-9 shadow-sm"
-              title="AI Vision is available on Business & Enterprise plans"
-            >
-              <Sparkles className="h-4 w-4 text-muted-foreground/70" />
-              <span>Auto-fill from Note / File</span>
-              <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-secondary font-bold text-muted-foreground border border-border">
-                PRO
+                return;
+              }
+              setShowImportModal(true);
+            }}
+            className={`space-x-1.5 font-semibold text-xs rounded-xl h-9 shadow-sm transition-all ${
+              isAiQuotaExhausted
+                ? 'border-border text-muted-foreground/60 bg-muted/20 cursor-not-allowed opacity-60'
+                : 'border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30'
+            }`}
+            title={
+              isAiQuotaExhausted
+                ? `AI Document Scanning Quota Exhausted (${aiScansUsed}/${aiScansLimit} scans used this month)`
+                : `Auto-fill invoice from handwritten note, photo, or PDF (${aiScansRemaining} scans remaining)`
+            }
+          >
+            <Sparkles className={`h-4 w-4 ${isAiQuotaExhausted ? 'text-muted-foreground/50' : 'text-indigo-500 animate-pulse'}`} />
+            <span>Auto-fill from Note / File</span>
+            {isAiQuotaExhausted ? (
+              <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-bold border border-amber-500/20">
+                0 Left
               </span>
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowImportModal(true)}
-              className="space-x-1.5 font-semibold text-xs border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30 rounded-xl h-9 shadow-sm transition-all"
-            >
-              <Sparkles className="h-4 w-4 text-indigo-500 animate-pulse" />
-              <span>Auto-fill from Note / File</span>
-            </Button>
-          )}
+            ) : (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-mono font-medium">
+                {aiScansRemaining} left
+              </span>
+            )}
+          </Button>
           <Button
             type="button"
             variant="outline"
@@ -687,18 +712,38 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                 </CardTitle>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-                {!isStarterPlan && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowImportModal(true)}
-                    className="flex-1 sm:flex-initial space-x-1.5 font-semibold text-xs border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30 rounded-xl h-9 sm:h-8 px-3 justify-center"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-                    <span className="whitespace-nowrap">Scan / Import</span>
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isAiQuotaExhausted}
+                  onClick={() => {
+                    if (isAiQuotaExhausted) {
+                      modal.alert(
+                        'AI Scanning Quota Exhausted',
+                        `This business has exhausted its monthly AI document scanning quota (${aiScansUsed}/${aiScansLimit} scans used). You can enter items manually or contact your administrator to upgrade.`,
+                        'warning'
+                      );
+                      return;
+                    }
+                    setShowImportModal(true);
+                  }}
+                  className={`flex-1 sm:flex-initial space-x-1.5 font-semibold text-xs rounded-xl h-9 sm:h-8 px-3 justify-center transition-all ${
+                    isAiQuotaExhausted
+                      ? 'border-border text-muted-foreground/60 bg-muted/20 cursor-not-allowed opacity-60'
+                      : 'border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30'
+                  }`}
+                  title={
+                    isAiQuotaExhausted
+                      ? `Monthly AI document scanning quota exhausted (${aiScansUsed}/${aiScansLimit} scans used)`
+                      : `Scan receipt / invoice with AI Vision (${aiScansRemaining} scans remaining)`
+                  }
+                >
+                  <Sparkles className={`h-3.5 w-3.5 shrink-0 ${isAiQuotaExhausted ? 'text-muted-foreground/50' : 'text-indigo-500'}`} />
+                  <span className="whitespace-nowrap">
+                    {isAiQuotaExhausted ? 'Quota Exhausted' : 'Scan / Import'}
+                  </span>
+                </Button>
                 <Button
                   type="button"
                   variant="outline"

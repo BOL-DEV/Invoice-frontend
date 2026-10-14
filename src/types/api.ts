@@ -100,6 +100,9 @@ export interface Subscription {
   hasCustomDomain: boolean;
   hasMultipleBranches: boolean;
   hasAdvancedReports: boolean;
+  aiScansLimit?: number;
+  aiScansUsed?: number;
+  aiScansResetAt?: string;
   startDate: string;
   endDate: string | null;
   createdAt: string;
@@ -111,6 +114,12 @@ export interface SubscriptionDetails {
   usage: {
     staffCount: number;
     maxStaffCount: number;
+  };
+  aiScans?: {
+    used: number;
+    limit: number;
+    remaining: number;
+    resetAt: string;
   };
   domains: BusinessDomain[];
   capabilities: {
@@ -154,6 +163,7 @@ export interface OnboardTenantInput {
   plan: PlanType;
   billingMode: BillingMode;
   maxStaffCount: number;
+  aiScansLimit?: number;
   hasCustomDomain: boolean;
   hasMultipleBranches: boolean;
   hasAdvancedReports: boolean;
