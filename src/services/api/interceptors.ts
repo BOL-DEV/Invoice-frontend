@@ -76,7 +76,10 @@ export const setupInterceptors = () => {
         return Promise.reject(error);
       }
 
-      if (error.response?.status === 401 && !originalRequest?._retry) {
+      // Do not attempt token refresh for login or explicit auth credentials endpoints
+      const isAuthEndpoint = originalRequest?.url === API_ENDPOINTS.AUTH.LOGIN;
+
+      if (error.response?.status === 401 && !originalRequest?._retry && !isAuthEndpoint) {
         if (isRefreshing) {
           return new Promise((resolve, reject) => {
             failedQueue.push({ resolve, reject });

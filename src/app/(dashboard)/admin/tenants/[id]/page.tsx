@@ -692,23 +692,44 @@ export default function TenantDetailPage() {
         <div className="flex items-center space-x-4">
           {(() => {
             const rawLogo = business.logo;
-            const hasCustomLogo = Boolean(
-              rawLogo &&
-              typeof rawLogo === 'string' &&
-              rawLogo !== '/platform-logo.svg' &&
-              !rawLogo.startsWith('{') &&
-              (rawLogo.startsWith('/') || rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('data:image/'))
-            );
+            let displayLogo: string | null = null;
 
-            if (hasCustomLogo) {
+            if (rawLogo && typeof rawLogo === 'string') {
+              if (rawLogo.startsWith('{')) {
+                try {
+                  const parsed = JSON.parse(rawLogo);
+                  if (parsed.logoUrl && typeof parsed.logoUrl === 'string') {
+                    displayLogo = parsed.logoUrl;
+                  }
+                } catch {}
+              } else if (
+                rawLogo !== '/platform-logo.svg' &&
+                (rawLogo.startsWith('/') || rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('data:image/'))
+              ) {
+                displayLogo = rawLogo;
+              }
+            }
+
+            if (!displayLogo) {
+              const isLaoSteel =
+                business.slug === 'lao-steel' ||
+                business.receiptPrefix === 'LSV' ||
+                business.businessName?.toLowerCase().includes('lao steel');
+              if (isLaoSteel) {
+                displayLogo = '/laosteel-logo.svg';
+              }
+            }
+
+            if (displayLogo) {
               return (
                 <div className="relative h-16 w-16 rounded-2xl bg-white dark:bg-slate-900 border border-border p-2 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
                   <Image
-                    src={rawLogo as string}
+                    src={displayLogo}
                     alt={business.businessName}
                     width={56}
                     height={56}
                     className="w-full h-full object-contain"
+                    unoptimized
                   />
                 </div>
               );

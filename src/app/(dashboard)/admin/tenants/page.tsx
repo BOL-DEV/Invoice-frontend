@@ -551,19 +551,24 @@ export default function TenantsAdminPage() {
                         <div className="flex items-center space-x-3">
                           {(() => {
                             const rawLogo = t.logo;
-                            const hasCustomLogo = Boolean(
+                            let displayLogo: string | null = null;
+                            if (
                               rawLogo &&
                               typeof rawLogo === 'string' &&
                               rawLogo !== '/platform-logo.svg' &&
                               !rawLogo.startsWith('{') &&
                               (rawLogo.startsWith('/') || rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('data:image/'))
-                            );
+                            ) {
+                              displayLogo = rawLogo;
+                            } else if (t.slug === 'lao-steel' || t.receiptPrefix === 'LSV' || t.businessName?.toLowerCase().includes('lao steel')) {
+                              displayLogo = '/laosteel-logo.svg';
+                            }
 
-                            if (hasCustomLogo) {
+                            if (displayLogo) {
                               return (
                                 <div className="h-9 w-9 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
                                   <Image
-                                    src={rawLogo as string}
+                                    src={displayLogo}
                                     alt={t.businessName}
                                     width={32}
                                     height={32}

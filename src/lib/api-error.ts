@@ -12,6 +12,7 @@ export interface BackendErrorResponse {
     code?: string;
     message?: string;
     details?: ApiErrorDetail[] | unknown;
+    dev?: Record<string, unknown>;
   };
   message?: string;
 }
@@ -22,12 +23,16 @@ export interface NormalizedError {
   code: string;
   isNetworkError: boolean;
   fieldErrors?: Record<string, string>;
+  dev?: Record<string, unknown>;
 }
 
 /**
- * Normalizes any API or Axios error into a user-friendly, actionable format.
+ * Normalizes any API or Axios error into a user-friendly, actionable format,
+ * while distinguishing development vs production error context.
  */
 export function normalizeApiError(error: unknown): NormalizedError {
+  const isDev = process.env.NODE_ENV !== 'production';
+
   // 1. Check for Axios Error
   if (error && typeof error === 'object' && 'isAxiosError' in error) {
     const axiosErr = error as AxiosError<BackendErrorResponse>;
@@ -36,18 +41,20 @@ export function normalizeApiError(error: unknown): NormalizedError {
     if (!axiosErr.response || axiosErr.code === 'ERR_NETWORK' || axiosErr.message.includes('Network Error')) {
       return {
         title: 'Network Connection Issue',
-        message: 'Network connection issue. Unable to connect to the server. Please check your internet connection and try again.',
+        message: 'Unable to connect to the server. Please check your internet connection and try again.',
         code: 'NETWORK_ERROR',
         isNetworkError: true,
+        ...(isDev ? { dev: { originalMessage: axiosErr.message, code: axiosErr.code } } : {}),
       };
     }
 
     if (axiosErr.code === 'ECONNABORTED' || axiosErr.message.toLowerCase().includes('timeout')) {
       return {
         title: 'Connection Timed Out',
-        message: 'The request took too long to complete. Please check your internet connection and try again.',
+        message: 'The request took too long to complete. Please check your network connection and try again.',
         code: 'TIMEOUT',
         isNetworkError: true,
+        ...(isDev ? { dev: { originalMessage: axiosErr.message, code: axiosErr.code } } : {}),
       };
     }
 
@@ -56,12 +63,25 @@ export function normalizeApiError(error: unknown): NormalizedError {
     const backendError = responseData?.error;
     const serverMessage = backendError?.message || responseData?.message;
     const serverCode = backendError?.code || `HTTP_${status}`;
+    const reqUrl = axiosErr.config?.url || '';
+
+    // Dev details extraction
+    const devContext = isDev
+      ? {
+          status,
+          code: serverCode,
+          requestUrl: reqUrl,
+          method: axiosErr.config?.method?.toUpperCase(),
+          serverDev: backendError?.dev,
+          rawError: backendError?.details,
+        }
+      : undefined;
 
     // Extract field-level errors if available
     const fieldErrors: Record<string, string> = {};
     if (Array.isArray(backendError?.details)) {
-      backendError.details.forEach((item) => {
-        if (item.field && item.message) {
+      backendError.details.forEach((item: any) => {
+        if (item && item.field && item.message) {
           fieldErrors[item.field] = item.message;
         }
       });
@@ -79,16 +99,38 @@ export function normalizeApiError(error: unknown): NormalizedError {
           code: serverCode,
           isNetworkError: false,
           fieldErrors: Object.keys(fieldErrors).length > 0 ? fieldErrors : undefined,
+          dev: devContext,
         };
       }
 
-      case 401:
+      case 401: {
+        const isLoginRequest = reqUrl.includes('/auth/login') || reqUrl.includes('/login');
+        const lowerMsg = (serverMessage || '').toLowerCase();
+        const isCredentialFailure =
+          isLoginRequest ||
+          lowerMsg.includes('password') ||
+          lowerMsg.includes('email') ||
+          lowerMsg.includes('credential') ||
+          lowerMsg.includes('unauthorized');
+
+        if (isCredentialFailure) {
+          return {
+            title: 'Authentication Failed',
+            message: serverMessage || 'Invalid email address or password. Please verify your credentials and try again.',
+            code: serverCode,
+            isNetworkError: false,
+            dev: devContext,
+          };
+        }
+
         return {
           title: 'Session Expired',
-          message: 'Your session has expired or credentials are invalid. Please sign in again.',
+          message: 'Your session has timed out. Please sign in again to continue.',
           code: serverCode,
           isNetworkError: false,
+          dev: devContext,
         };
+      }
 
       case 403: {
         const isSuspended = typeof serverMessage === 'string' && serverMessage.toLowerCase().includes('suspended');
@@ -97,6 +139,7 @@ export function normalizeApiError(error: unknown): NormalizedError {
           message: serverMessage || 'You do not have permission to perform this action. Please contact an administrator.',
           code: serverCode,
           isNetworkError: false,
+          dev: devContext,
         };
       }
 
@@ -106,6 +149,7 @@ export function normalizeApiError(error: unknown): NormalizedError {
           message: serverMessage || 'The requested record or resource was not found.',
           code: serverCode,
           isNetworkError: false,
+          dev: devContext,
         };
 
       case 409:
@@ -114,14 +158,7 @@ export function normalizeApiError(error: unknown): NormalizedError {
           message: serverMessage || 'A record with this information already exists in the system.',
           code: serverCode,
           isNetworkError: false,
-        };
-
-      case 422:
-        return {
-          title: 'Invalid Document',
-          message: serverMessage || 'The uploaded file format or content is not supported. Please upload a valid invoice, receipt, or order list.',
-          code: serverCode,
-          isNetworkError: false,
+          dev: devContext,
         };
 
       case 429:
@@ -130,60 +167,54 @@ export function normalizeApiError(error: unknown): NormalizedError {
           message: serverMessage || 'Too many requests were sent in a short time. Please wait a moment before trying again.',
           code: serverCode,
           isNetworkError: false,
+          dev: devContext,
         };
 
       case 500:
       case 502:
       case 503:
       case 504: {
-        // For 5xx backend errors: assure user that the error is on our end, not their fault
         const isAiBusy = serverCode === 'AI_SERVICE_UNAVAILABLE';
-        const serverHint = isAiBusy
-          ? (serverMessage || 'The document processing service is temporarily busy. Please try again in a few moments.')
-          : 'Something went wrong on our end. This is not an issue on your side. Please try again shortly or contact support if it persists.';
         return {
-          title: 'Server Error',
-          message: serverHint,
+          title: isAiBusy ? 'AI Service Busy' : 'Service Temporarily Unavailable',
+          message: isAiBusy
+            ? 'The AI extraction engine is experiencing high load. Please retry in a moment.'
+            : (serverMessage && isDev ? serverMessage : 'Something went wrong on our end. This is not an issue on your side. Please try again shortly.'),
           code: serverCode,
           isNetworkError: false,
+          dev: devContext,
         };
       }
 
       default:
         return {
-          title: 'Operation Failed',
-          message: serverMessage || 'An unexpected issue occurred. Please try again.',
+          title: 'Request Failed',
+          message: serverMessage || 'An unexpected issue occurred while processing your request.',
           code: serverCode,
           isNetworkError: false,
-          fieldErrors: Object.keys(fieldErrors).length > 0 ? fieldErrors : undefined,
+          dev: devContext,
         };
     }
   }
 
-  // 2. Standard JS Error
+  // 2. Generic JavaScript Error
   if (error instanceof Error) {
-    if (error.message.toLowerCase().includes('network') || error.message.toLowerCase().includes('fetch')) {
-      return {
-        title: 'Network Issue',
-        message: 'Network connection issue. Please check your internet connection and try again.',
-        code: 'NETWORK_ERROR',
-        isNetworkError: true,
-      };
-    }
     return {
       title: 'Application Error',
-      message: error.message,
-      code: 'CLIENT_ERROR',
+      message: isDev ? error.message : 'A client application error occurred. Please refresh the page.',
+      code: error.name || 'APPLICATION_ERROR',
       isNetworkError: false,
+      ...(isDev ? { dev: { message: error.message, stack: error.stack } } : {}),
     };
   }
 
   // 3. Fallback
   return {
     title: 'Unexpected Error',
-    message: 'Something went wrong on our end. This is not an issue on your side. Please try again shortly.',
+    message: 'Something went wrong. Please try again shortly.',
     code: 'UNKNOWN_ERROR',
     isNetworkError: false,
+    ...(isDev ? { dev: { rawError: error } } : {}),
   };
 }
 

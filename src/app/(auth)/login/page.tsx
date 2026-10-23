@@ -38,6 +38,7 @@ function LoginForm() {
   const suspendedMessage = searchParams.get('message');
   const isTenantMismatch = searchParams.get('reason') === 'tenant_mismatch';
   const mismatchDomain = searchParams.get('domain');
+  const [showExpiredNotice, setShowExpiredNotice] = useState(isExpired);
   const { login } = useAuth();
   const { data: branding, isLoading: isBrandingLoading } = useBranding();
   const [mounted, setMounted] = useState(false);
@@ -45,6 +46,7 @@ function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+
 
   useEffect(() => {
     setMounted(true);
@@ -123,6 +125,14 @@ function LoginForm() {
   const onSubmit = async (data: LoginInput) => {
     setIsSubmitting(true);
     setErrorState(null);
+    setShowExpiredNotice(false);
+
+    // Clean up expired parameter from the URL if present
+    if (typeof window !== 'undefined' && window.location.search.includes('reason=expired')) {
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, '', cleanUrl);
+    }
+
     try {
       await login(data);
       router.push('/');
@@ -266,7 +276,7 @@ function LoginForm() {
           </div>
 
           {/* Session Expired Notice */}
-          {isExpired && !errorState && (
+          {showExpiredNotice && !errorState && (
             <div className="p-4 rounded-xl border flex items-start space-x-3 text-xs bg-amber-500/10 border-amber-500/25 text-amber-600 dark:text-amber-400">
               <Clock className="h-5 w-5 shrink-0 mt-0.5" />
               <div className="space-y-1 flex-1">
@@ -315,9 +325,20 @@ function LoginForm() {
               <div className="space-y-1 flex-1">
                 <p className="font-bold text-xs">{errorState.title}</p>
                 <p className="text-[11px] leading-relaxed opacity-95">{errorState.message}</p>
+                {errorState.dev && (
+                  <details className="mt-2 text-[10px] opacity-85 cursor-pointer">
+                    <summary className="font-mono font-medium hover:underline text-rose-500">
+                      Developer Diagnostics ({errorState.code})
+                    </summary>
+                    <pre className="mt-1.5 p-2 rounded-lg bg-black/40 text-[9px] font-mono whitespace-pre-wrap overflow-x-auto max-h-36 border border-rose-500/20">
+                      {JSON.stringify(errorState.dev, null, 2)}
+                    </pre>
+                  </details>
+                )}
               </div>
             </div>
           )}
+
 
           {/* Authentication Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
