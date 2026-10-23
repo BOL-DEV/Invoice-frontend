@@ -56,16 +56,9 @@ function LoginForm() {
 
   const isCustomDomain = Boolean(branding?.isCustomDomain || isCustomHost);
 
-  // Dynamic branding parameters based on custom domain vs root platform
-  const isLaoSteel = Boolean(
-    branding?.business?.slug === 'lao-steel' ||
-    branding?.business?.businessName?.toLowerCase().includes('lao steel') ||
-    host.includes('lao')
-  );
-
-  const defaultTenantName = isLaoSteel ? 'LAO STEEL VENTURES' : 'Tenant Workspace';
+  // Dynamic branding parameters purely driven by business data
   const businessName = isCustomDomain
-    ? (branding?.business?.businessName || defaultTenantName)
+    ? (branding?.business?.businessName || 'Workspace Portal')
     : 'BOLXolve Invoice';
 
   const rawLogo = branding?.business?.logo;
@@ -76,23 +69,16 @@ function LoginForm() {
     !rawLogo.startsWith('{')
   );
 
-  let logoSrc = '/platform-logo.svg';
-  if (hasCustomLogo) {
-    logoSrc = rawLogo as string;
-  } else if (isLaoSteel) {
-    logoSrc = '/laosteel-logo.svg';
-  }
+  const logoSrc = hasCustomLogo
+    ? (rawLogo as string)
+    : (branding?.business?.slug === 'lao-steel' ? '/laosteel-logo.svg' : '/platform-logo.svg');
 
   const badgeText = isCustomDomain
     ? `${businessName} Invoicing & Billing Portal`
     : 'BOLXolve Multi-Tenant Invoice Platform';
 
-  const defaultTagline = isLaoSteel
-    ? 'STEEL STOCKISTS, INDUSTRIAL AND BUILDING MATERIALS SUPPLIERS'
-    : 'Commercial Invoicing & Billing Portal';
-
   const tagline = isCustomDomain
-    ? (branding?.business?.tagline || defaultTagline)
+    ? (branding?.business?.tagline || 'Commercial Invoicing & Billing Portal')
     : 'Multi-Tenant Invoicing & Enterprise Billing Platform';
 
   const description = isCustomDomain
@@ -116,15 +102,9 @@ function LoginForm() {
 
   const footerBrand = isCustomDomain ? businessName : 'BOLXolve Cloud';
 
-  const defaultAddress = isLaoSteel
-    ? 'HEAD OFFICE: S/L/L.G Shop 249, Ifesowapo Iron Mkt., Section "C" Line 2, Orile-Iganmu, Lagos'
-    : 'BOLXolve Cloud Systems';
-  const defaultPhone = isLaoSteel ? '08034071931, 08052008315' : '+234 800 BOLXOLVE';
-  const defaultEmail = isLaoSteel ? 'lambeakeem74@gmail.com' : 'support@bolxolve.com';
-
-  const adminEmail = branding?.business?.email || defaultEmail;
-  const adminPhone = branding?.business?.phone || defaultPhone;
-  const address = branding?.business?.address || defaultAddress;
+  const adminEmail = branding?.business?.email || 'support@bolxolve.com';
+  const adminPhone = branding?.business?.phone || '+234 800 BOLXOLVE';
+  const address = branding?.business?.address || 'Main Commercial Office';
 
   const {
     register,

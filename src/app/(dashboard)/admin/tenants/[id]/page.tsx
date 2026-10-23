@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import {
   useTenantDetails,
@@ -251,7 +252,9 @@ export default function TenantDetailPage() {
   const [settingsPrefix, setSettingsPrefix] = useState('');
   const [settingsVat, setSettingsVat] = useState(7.5);
   const [settingsWht, setSettingsWht] = useState(2.0);
+  const [settingsLogo, setSettingsLogo] = useState<string | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
+  const settingsLogoFileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const openEditSettingsModal = () => {
     if (!tenantData?.business) return;
@@ -264,8 +267,37 @@ export default function TenantDetailPage() {
     setSettingsPrefix(tenantData.business.receiptPrefix || 'INV');
     setSettingsVat(Number(tenantData.business.defaultVatPercentage ?? 7.5));
     setSettingsWht(Number(tenantData.business.defaultWhtPercentage ?? 2.0));
+    const rawLogo = tenantData.business.logo;
+    const hasCustomLogo = Boolean(
+      rawLogo &&
+      typeof rawLogo === 'string' &&
+      (rawLogo.startsWith('/') || rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('data:image/')) &&
+      !rawLogo.startsWith('{')
+    );
+    setSettingsLogo(hasCustomLogo ? (rawLogo as string) : null);
     setSettingsError(null);
     setIsEditSettingsOpen(true);
+  };
+
+  const handleSettingsLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      modal.alert('Invalid File', 'Please select an image file (PNG, JPG, SVG, or WebP).', 'error');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      modal.alert('File Too Large', 'Please upload an image smaller than 2MB.', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setSettingsLogo(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -284,6 +316,7 @@ export default function TenantDetailPage() {
           receiptPrefix: settingsPrefix.trim().toUpperCase(),
           defaultVatPercentage: Number(settingsVat),
           defaultWhtPercentage: Number(settingsWht),
+          ...(settingsLogo !== undefined && { logo: settingsLogo || '' }),
         },
       });
       setIsEditSettingsOpen(false);
@@ -1883,6 +1916,59 @@ export default function TenantDetailPage() {
           )}
 
           <form onSubmit={handleSaveSettings} className="space-y-5 pt-2">
+            {/* Brand Logo Upload */}
+            <div className="p-3.5 rounded-2xl bg-secondary/30 border border-border flex items-center justify-between gap-3">
+              <div className="flex items-center space-x-3">
+                <div className="relative h-12 w-12 rounded-xl bg-white dark:bg-slate-900 border border-border p-1.5 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
+                  <Image
+                    src={settingsLogo || '/platform-logo.svg'}
+                    alt="Tenant Logo"
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-foreground block">Brand Logo Image</span>
+                  <span className="text-[11px] text-muted-foreground">PNG, SVG, or WebP (max 2MB)</span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="file"
+                  ref={settingsLogoFileInputRef}
+                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  onChange={handleSettingsLogoUpload}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => settingsLogoFileInputRef.current?.click()}
+                  className="rounded-xl text-xs font-semibold h-8 px-3 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 cursor-pointer"
+                >
+                  <Upload className="h-3.5 w-3.5 mr-1" />
+                  Upload
+                </Button>
+                {settingsLogo && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSettingsLogo(null);
+                      if (settingsLogoFileInputRef.current) settingsLogoFileInputRef.current.value = '';
+                    }}
+                    className="rounded-xl text-xs text-rose-500 hover:bg-rose-500/10 h-8 px-2.5 cursor-pointer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Reset
+                  </Button>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-foreground">Business Workspace Name</Label>
               <Input

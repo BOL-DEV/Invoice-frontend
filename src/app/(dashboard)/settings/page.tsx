@@ -43,6 +43,7 @@ import {
   FileText,
   Activity,
   Store,
+  Upload,
 } from 'lucide-react';
 import { BranchManagementSection } from '../../../features/branches';
 import { useModal } from '../../../components/ui/modal-provider';
@@ -147,6 +148,8 @@ export default function SettingsPage() {
   const { data: settings, isLoading: isSettingsLoading, isError: isSettingsError, refetch: refetchSettings } = useBusinessSettings();
   const updateBusinessMutation = useUpdateBusinessSettings(settings?.id || '');
   const [isBusinessSubmitting, setIsBusinessSubmitting] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const logoFileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const rawLogo = settings?.logo;
   const hasCustomLogo = Boolean(
@@ -155,13 +158,16 @@ export default function SettingsPage() {
     (rawLogo.startsWith('/') || rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('data:image/')) &&
     !rawLogo.startsWith('{')
   );
-  const logoSrc = hasCustomLogo ? (rawLogo as string) : '/platform-logo.svg';
+  const logoSrc = hasCustomLogo
+    ? (rawLogo as string)
+    : (settings?.slug === 'lao-steel' ? '/laosteel-logo.svg' : '/platform-logo.svg');
 
   const {
     register: registerBusiness,
     handleSubmit: handleBusinessSubmit,
     reset: resetBusiness,
     watch: watchBusiness,
+    setValue: setValueBusiness,
   } = useForm<Partial<BusinessSettings>>({
     defaultValues: settings || {},
   });
@@ -169,8 +175,46 @@ export default function SettingsPage() {
   useEffect(() => {
     if (settings) {
       resetBusiness(settings);
+      if (hasCustomLogo) {
+        setLogoPreview(rawLogo as string);
+      } else if (settings.slug === 'lao-steel' || settings.businessName?.toLowerCase().includes('lao steel')) {
+        setLogoPreview('/laosteel-logo.svg');
+      } else {
+        setLogoPreview(null);
+      }
     }
-  }, [settings, resetBusiness]);
+  }, [settings, resetBusiness, hasCustomLogo, rawLogo]);
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      modal.alert('Invalid File', 'Please select a valid image file (PNG, JPG, SVG, or WebP).', 'error');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      modal.alert('Image Too Large', 'Please upload an image smaller than 2MB.', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setLogoPreview(base64);
+      setValueBusiness('logo', base64, { shouldDirty: true });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoPreview(null);
+    setValueBusiness('logo', '', { shouldDirty: true });
+    if (logoFileInputRef.current) {
+      logoFileInputRef.current.value = '';
+    }
+  };
 
   const isValidPhoneNumber = (val: string): boolean => {
     if (!val || typeof val !== 'string') return false;
@@ -234,6 +278,7 @@ export default function SettingsPage() {
     try {
       const payload: any = {
         ...data,
+        ...(logoPreview !== null && { logo: logoPreview || '' }),
         defaultVatPercentage: Number(data.defaultVatPercentage) || 0,
         defaultWhtPercentage: Number(data.defaultWhtPercentage) || 0,
       };
@@ -566,8 +611,8 @@ export default function SettingsPage() {
             <form onSubmit={handleBusinessSubmit(onBusinessSubmit)}>
               <CardHeader className="p-4 sm:p-6 border-b border-border/80 bg-slate-50/50 dark:bg-slate-900/30">
                 <div className="flex items-center space-x-3">
-                  <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shrink-0 shadow-sm">
-                    <Image src={logoSrc} alt={settings.businessName || 'Company Logo'} width={32} height={32} className="w-8 h-8 object-contain" />
+                  <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
+                    <Image src={logoPreview || logoSrc} alt={settings.businessName || 'Company Logo'} width={32} height={32} className="w-8 h-8 object-contain" />
                   </div>
                   <div>
                     <CardTitle className="text-sm sm:text-base font-bold text-foreground">
@@ -580,7 +625,63 @@ export default function SettingsPage() {
                 </div>
               </CardHeader>
               
-              <CardContent className="p-4 sm:p-6 space-y-4">
+              <CardContent className="p-4 sm:p-6 space-y-5">
+                {/* Brand Logo Upload Section */}
+                <div className="p-4 rounded-2xl bg-secondary/30 border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="relative h-16 w-16 rounded-2xl bg-white dark:bg-slate-900 border border-border p-2 flex items-center justify-center shrink-0 shadow-sm overflow-hidden group">
+                      <Image
+                        src={logoPreview || logoSrc}
+                        alt={settings.businessName || 'Company Logo'}
+                        width={56}
+                        height={56}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-foreground">Brand Logo</h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Appears across invoice headers, customer receipts, sidebar, and login portal.
+                      </p>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono mt-0.5 block">
+                        Recommended: Transparent PNG, SVG, or WebP (max 2MB)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 self-end sm:self-center shrink-0">
+                    <input
+                      type="file"
+                      ref={logoFileInputRef}
+                      accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => logoFileInputRef.current?.click()}
+                      className="h-8 rounded-xl text-xs font-semibold border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
+                    >
+                      <Upload className="h-3.5 w-3.5 mr-1.5" />
+                      Upload Logo
+                    </Button>
+                    {logoPreview && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemoveLogo}
+                        className="h-8 rounded-xl text-xs text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
                 {/* Business Name & Email */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                   <div className="space-y-1.5">
