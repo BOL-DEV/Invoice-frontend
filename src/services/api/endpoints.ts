@@ -40,6 +40,7 @@ export const API_ENDPOINTS = {
     ADMIN_DETAILS: (id: string) => `/api/business/admin/${id}/details`,
     ADMIN_ONBOARD: '/api/business/admin/onboard',
     ADMIN_STATUS: (id: string) => `/api/business/admin/${id}/status`,
+    CRAFT_TEMPLATE: (id?: string) => id ? `/api/business/${id}/template/craft` : '/api/business/template/craft',
   },
   SUBSCRIPTIONS: {
     ME: '/api/subscriptions/me',

@@ -26,7 +26,9 @@ import { Label } from '../../../../../components/ui/label';
 import { Input } from '../../../../../components/ui/input';
 import { Pagination } from '../../../../../components/ui/pagination';
 import { useModal } from '../../../../../components/ui/modal-provider';
-import { PlanType, BillingMode } from '../../../../../types/api';
+import { PlanType, BillingMode, ApiResponse } from '../../../../../types/api';
+import { apiClient } from '../../../../../services/api/axios';
+import { API_ENDPOINTS } from '../../../../../services/api/endpoints';
 import { InvoiceTemplatePreviewModal } from '../../../../../components/templates/InvoiceTemplatePreviewModal';
 import {
   ArrowLeft,
@@ -69,6 +71,7 @@ import {
   Upload,
   Image as ImageIcon,
   Copy,
+  Loader2,
 } from 'lucide-react';
 
 export default function TenantDetailPage() {
@@ -162,6 +165,7 @@ export default function TenantDetailPage() {
   const [isTemplatePreviewOpen, setIsTemplatePreviewOpen] = useState(false);
   const [previewingTemplate, setPreviewingTemplate] = useState<string>('classic');
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [isCraftingTemplate, setIsCraftingTemplate] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -171,23 +175,57 @@ export default function TenantDetailPage() {
     }
   }, [tenantData?.business]);
 
-  const handleCustomTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCustomTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      modal.alert('File Too Large', 'Please upload a template image smaller than 5MB.', 'warning');
+    if (file.size > 15 * 1024 * 1024) {
+      modal.alert('File Too Large', 'Please upload a template file smaller than 15MB.', 'warning');
       return;
     }
 
+    setIsCraftingTemplate(true);
     setCustomFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      setCustomTemplateUrl(base64);
-      setSelectedTemplateId('custom');
-    };
-    reader.readAsDataURL(file);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await apiClient.post<ApiResponse<{ customTemplateUrl: string; width: number; height: number }>>(
+        API_ENDPOINTS.BUSINESS.CRAFT_TEMPLATE(tenantId),
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        }
+      );
+
+      const craftedUrl = res.data?.data?.customTemplateUrl;
+      if (craftedUrl) {
+        setCustomTemplateUrl(craftedUrl);
+        setSelectedTemplateId('custom');
+        setPreviewingTemplate('custom');
+        setIsTemplatePreviewOpen(true);
+        modal.alert(
+          'Template Crafted Successfully',
+          'Your custom invoice layout has been processed and optimized. Please inspect the preview before saving.',
+          'success'
+        );
+      }
+    } catch (err: any) {
+      console.warn('Backend template crafting failed, falling back to local preview:', err);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        setCustomTemplateUrl(base64);
+        setSelectedTemplateId('custom');
+        setPreviewingTemplate('custom');
+        setIsTemplatePreviewOpen(true);
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsCraftingTemplate(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const handleSaveTemplate = async () => {
@@ -1663,7 +1701,12 @@ export default function TenantDetailPage() {
                         Upload or replace this business&apos;s bespoke invoice template image (PNG, JPG, PDF up to 5MB).
                       </p>
 
-                      {customFileName ? (
+                      {isCraftingTemplate ? (
+                        <div className="mt-3 p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs text-purple-600 dark:text-purple-400 flex items-center space-x-2">
+                          <Loader2 className="h-4 w-4 animate-spin shrink-0 text-purple-500" />
+                          <span>Crafting & optimizing template from image...</span>
+                        </div>
+                      ) : customFileName ? (
                         <div className="mt-3 p-2.5 rounded-xl bg-background border border-border text-[11px] font-mono text-foreground flex items-center space-x-2 truncate">
                           <ImageIcon className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                           <span className="truncate">{customFileName}</span>
@@ -1689,14 +1732,24 @@ export default function TenantDetailPage() {
                         type="button"
                         variant="outline"
                         size="sm"
+                        disabled={isCraftingTemplate}
                         onClick={(e) => {
                           e.stopPropagation();
                           fileInputRef.current?.click();
                         }}
                         className="h-8 rounded-xl text-xs px-3 border-border hover:bg-secondary flex items-center space-x-1 cursor-pointer"
                       >
-                        <Upload className="h-3 w-3 mr-1 text-purple-500" />
-                        <span>{customTemplateUrl ? 'Change File' : 'Upload File'}</span>
+                        {isCraftingTemplate ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin mr-1 text-purple-500" />
+                            <span>Crafting...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-3 w-3 mr-1 text-purple-500" />
+                            <span>{customTemplateUrl ? 'Change File' : 'Upload File'}</span>
+                          </>
+                        )}
                       </Button>
 
                       {customTemplateUrl && (
@@ -1709,10 +1762,10 @@ export default function TenantDetailPage() {
                             setPreviewingTemplate('custom');
                             setIsTemplatePreviewOpen(true);
                           }}
-                          className="h-8 rounded-xl text-xs px-3 border-border hover:bg-secondary flex items-center space-x-1 cursor-pointer"
+                          className="h-8 rounded-xl text-xs px-3 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 flex items-center space-x-1 cursor-pointer"
                         >
-                          <Eye className="h-3.5 w-3.5 mr-1 text-primary" />
-                          <span>Preview</span>
+                          <Eye className="h-3.5 w-3.5 mr-1 text-purple-500" />
+                          <span>Preview Layout</span>
                         </Button>
                       )}
                     </div>
