@@ -57,4 +57,9 @@ export const API_ENDPOINTS = {
     BASE: '/api/reports',
     CASHIERS: '/api/reports/cashiers',
   },
+  BRANCHES: {
+    BASE: '/api/branches',
+    DETAIL: (id: string) => `/api/branches/${id}`,
+    WITH_HEAD: '/api/branches/with-head',
+  },
 } as const;

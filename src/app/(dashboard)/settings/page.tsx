@@ -42,11 +42,14 @@ import {
   Layers,
   FileText,
   Activity,
+  Store,
 } from 'lucide-react';
+import { BranchManagementSection } from '../../../features/branches';
 import { useModal } from '../../../components/ui/modal-provider';
 import { BusinessSettings } from '../../../types/api';
 import { getErrorDialog, getErrorMessage } from '../../../lib/api-error';
-import { useSubscription, useAddCustomDomain, useRemoveCustomDomain } from '../../../features/subscriptions/hooks/useSubscription';
+import { useSubscription } from '../../../features/subscriptions/hooks/useSubscription';
+import { InvoiceTemplatePreviewModal } from '../../../components/templates/InvoiceTemplatePreviewModal';
 
 export default function SettingsPage() {
   const { user, updateCurrentUser } = useAuth();
@@ -54,16 +57,12 @@ export default function SettingsPage() {
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const modal = useModal();
 
-  // Active Tab state: 'profile' (all users), 'business' (admin only), or 'subscription' (admin only)
-  const [activeTab, setActiveTab] = useState<'profile' | 'business' | 'subscription'>('profile');
-  const [newDomainInput, setNewDomainInput] = useState('');
-  const [isDomainSubmitting, setIsDomainSubmitting] = useState(false);
+  // Active Tab state: 'profile' (all users), 'business' (admin only), 'branches' (admin only), or 'subscription' (admin only)
+  const [activeTab, setActiveTab] = useState<'profile' | 'business' | 'branches' | 'subscription'>('profile');
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Subscription data
   const { data: subDetails, isLoading: isSubLoading, refetch: refetchSub } = useSubscription();
-  const addDomainMutation = useAddCustomDomain();
-  const removeDomainMutation = useRemoveCustomDomain();
-  const [deletingDomainId, setDeletingDomainId] = useState<string | null>(null);
 
   // --- Profile & Security Form State ---
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -149,11 +148,6 @@ export default function SettingsPage() {
   const updateBusinessMutation = useUpdateBusinessSettings(settings?.id || '');
   const [isBusinessSubmitting, setIsBusinessSubmitting] = useState(false);
 
-  const isLaoSteel = Boolean(
-    settings?.slug === 'lao-steel' ||
-    settings?.businessName?.toLowerCase().includes('lao steel') ||
-    settings?.businessName?.toLowerCase().includes('laosteel')
-  );
   const rawLogo = settings?.logo;
   const hasCustomLogo = Boolean(
     rawLogo &&
@@ -161,7 +155,7 @@ export default function SettingsPage() {
     (rawLogo.startsWith('/') || rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('data:image/')) &&
     !rawLogo.startsWith('{')
   );
-  const logoSrc = isLaoSteel ? '/laosteel-logo.svg' : (hasCustomLogo ? (rawLogo as string) : '/platform-logo.svg');
+  const logoSrc = hasCustomLogo ? (rawLogo as string) : '/platform-logo.svg';
 
   const {
     register: registerBusiness,
@@ -178,14 +172,79 @@ export default function SettingsPage() {
     }
   }, [settings, resetBusiness]);
 
+  const isValidPhoneNumber = (val: string): boolean => {
+    if (!val || typeof val !== 'string') return false;
+    const parts = val.split(/[,/]/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length === 0) return false;
+    for (const part of parts) {
+      if (!/^\+?[0-9\s\-()]{7,20}$/.test(part)) return false;
+      const digitsOnly = part.replace(/\D/g, '');
+      if (digitsOnly.length < 8 || digitsOnly.length > 15) return false;
+    }
+    return true;
+  };
+
+  const hasMultiBranch = Boolean(
+    subDetails?.capabilities?.multipleBranches ??
+    subDetails?.subscription?.hasMultipleBranches ??
+    settings?.subscription?.hasMultipleBranches ??
+    false
+  );
+
+  // Auto-switch away from branches tab if the business does not support multiple branches
+  useEffect(() => {
+    if (!hasMultiBranch && activeTab === 'branches') {
+      setActiveTab('business');
+    }
+  }, [hasMultiBranch, activeTab]);
+
+  const customUrl = watchBusiness('customTemplateUrl') || settings?.customTemplateUrl;
+  const currentReceiptTemplateId = watchBusiness('receiptTemplateId') || settings?.receiptTemplateId;
+
+  // Lao Steel's "Classic Industrial" layout is its dedicated bespoke template
+  const isLaoSteelBespoke = Boolean(
+    settings?.businessName?.toLowerCase().includes('lao steel') ||
+    settings?.slug?.toLowerCase().includes('lao') ||
+    settings?.slug?.toLowerCase().includes('steel')
+  );
+
+  const hasCustomTemplate = Boolean(
+    (customUrl && customUrl.trim().length > 0) ||
+    currentReceiptTemplateId === 'custom' ||
+    (isLaoSteelBespoke && (currentReceiptTemplateId === 'classic' || !currentReceiptTemplateId))
+  );
+
+  const effectiveTemplatePreviewId = (customUrl && customUrl.trim().length > 0)
+    ? 'custom'
+    : isLaoSteelBespoke
+    ? 'classic'
+    : (currentReceiptTemplateId || 'classic');
+
   const onBusinessSubmit = async (data: Partial<BusinessSettings>) => {
+    if (data.phone && !isValidPhoneNumber(data.phone)) {
+      modal.alert(
+        'Invalid Phone Number',
+        'Please provide a valid phone number (8 to 15 digits, e.g. +234 803 000 0000 or 0803 000 0000).',
+        'error'
+      );
+      return;
+    }
+
     setIsBusinessSubmitting(true);
     try {
-      const payload = {
+      const payload: any = {
         ...data,
         defaultVatPercentage: Number(data.defaultVatPercentage) || 0,
         defaultWhtPercentage: Number(data.defaultWhtPercentage) || 0,
       };
+
+      if (hasCustomTemplate) {
+        payload.receiptTemplateId = isLaoSteelBespoke && !customUrl ? 'classic' : 'custom';
+        if (customUrl) {
+          payload.customTemplateUrl = customUrl;
+        }
+      }
+
       await updateBusinessMutation.mutateAsync(payload);
       modal.alert('Success', 'Business configurations saved successfully', 'success');
     } catch (err) {
@@ -224,7 +283,13 @@ export default function SettingsPage() {
 
       {/* Tabs Selection (Modern Segmented Control) */}
       {isAdmin && !isSuperAdmin && (
-        <div className="p-1 rounded-xl bg-secondary/70 dark:bg-slate-900/80 border border-border/80 grid grid-cols-3 gap-1 w-full sm:max-w-lg">
+        <div
+          className={`p-1 rounded-xl bg-secondary/70 dark:bg-slate-900/80 border border-border/80 grid ${
+            hasMultiBranch
+              ? 'grid-cols-2 sm:grid-cols-4 sm:max-w-xl'
+              : 'grid-cols-3 sm:max-w-md'
+          } gap-1 w-full`}
+        >
           <button
             type="button"
             onClick={() => setActiveTab('profile')}
@@ -250,6 +315,21 @@ export default function SettingsPage() {
             <Building2 className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">Company</span>
           </button>
+
+          {hasMultiBranch && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('branches')}
+              className={`flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'branches'
+                  ? 'bg-card text-foreground shadow-sm border border-border/60 text-emerald-600 dark:text-emerald-400 font-bold'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+              }`}
+            >
+              <Store className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Branches</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -656,51 +736,92 @@ export default function SettingsPage() {
                     <span>Printable Invoice & Receipt Template</span>
                   </Label>
                   <p className="text-[11px] text-muted-foreground">
-                    Select the styling and visual layout used when generating PDF receipts and customer invoices.
+                    {hasCustomTemplate
+                      ? isLaoSteelBespoke
+                        ? 'This business operates with its exclusive tailored bespoke invoice & receipt layout configured for all generated PDF documents.'
+                        : 'This business operates with an uploaded bespoke invoice & receipt layout configured for all generated PDF customer receipts and invoices.'
+                      : 'Select the styling and visual layout used when generating PDF receipts and customer invoices.'}
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <label
-                      className={`flex items-start space-x-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
-                        watchBusiness('receiptTemplateId') === 'classic' || (!watchBusiness('receiptTemplateId') && settings?.receiptTemplateId === 'classic')
-                          ? 'border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-950/20 shadow-sm'
-                          : 'border-border/80 bg-background hover:bg-secondary/40'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        value="classic"
-                        {...registerBusiness('receiptTemplateId')}
-                        className="mt-1 text-emerald-500 focus:ring-emerald-500"
-                      />
-                      <div className="space-y-0.5">
-                        <p className="text-xs font-bold text-foreground">Classic Industrial / Thermal</p>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          Original bespoke industrial styling with ledger borders, watermark support, and structured customer guarantee terms.
-                        </p>
-                      </div>
-                    </label>
 
-                    <label
-                      className={`flex items-start space-x-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
-                        watchBusiness('receiptTemplateId') === 'modern'
-                          ? 'border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-950/20 shadow-sm'
-                          : 'border-border/80 bg-background hover:bg-secondary/40'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        value="modern"
-                        {...registerBusiness('receiptTemplateId')}
-                        className="mt-1 text-emerald-500 focus:ring-emerald-500"
-                      />
-                      <div className="space-y-0.5">
-                        <p className="text-xs font-bold text-foreground">Modern Corporate Executive</p>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          Clean minimal SaaS invoice design with modern typography, slate headers, itemized charges, and payment verification tags.
-                        </p>
+                  {hasCustomTemplate ? (
+                    <div className="p-4 sm:p-5 rounded-2xl border border-purple-500/30 bg-purple-500/5 dark:bg-purple-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2 shadow-sm">
+                      <div className="flex items-start space-x-3.5">
+                        <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-500 shrink-0 mt-0.5">
+                          <Sparkles className="h-5 w-5" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <h4 className="text-xs font-bold text-foreground">
+                              Custom Bespoke Template Active
+                            </h4>
+                            <Badge className="bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 text-[10px] font-semibold">
+                              {isLaoSteelBespoke ? 'Lao Steel Bespoke Layout' : 'Uploaded Template'}
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground leading-relaxed max-w-xl">
+                            {isLaoSteelBespoke
+                              ? 'Your exclusive tailored template layout (with brand emblem, company ledger styling, watermark, guarantee terms, and authorized signature blocks) is active for all generated receipts and invoices.'
+                              : 'All PDF receipts and invoices generated for this business are formatted according to your customized invoice template.'}
+                          </p>
+                        </div>
                       </div>
-                    </label>
-                  </div>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsPreviewOpen(true)}
+                        className="rounded-xl text-xs h-10 px-4 border-purple-500/40 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 shrink-0 flex items-center space-x-2 cursor-pointer shadow-sm"
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span>Preview Custom Template</span>
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <label
+                        className={`flex items-start space-x-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                          watchBusiness('receiptTemplateId') === 'classic' || (!watchBusiness('receiptTemplateId') && settings?.receiptTemplateId === 'classic')
+                            ? 'border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-950/20 shadow-sm'
+                            : 'border-border/80 bg-background hover:bg-secondary/40'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          value="classic"
+                          {...registerBusiness('receiptTemplateId')}
+                          className="mt-1 text-emerald-500 focus:ring-emerald-500"
+                        />
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-bold text-foreground">Classic Industrial / Thermal</p>
+                          <p className="text-[11px] text-muted-foreground leading-relaxed">
+                            Original bespoke industrial styling with ledger borders, watermark support, and structured customer guarantee terms.
+                          </p>
+                        </div>
+                      </label>
+
+                      <label
+                        className={`flex items-start space-x-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                          watchBusiness('receiptTemplateId') === 'modern'
+                            ? 'border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-950/20 shadow-sm'
+                            : 'border-border/80 bg-background hover:bg-secondary/40'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          value="modern"
+                          {...registerBusiness('receiptTemplateId')}
+                          className="mt-1 text-emerald-500 focus:ring-emerald-500"
+                        />
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-bold text-foreground">Modern Corporate Executive</p>
+                          <p className="text-[11px] text-muted-foreground leading-relaxed">
+                            Clean minimal SaaS invoice design with modern typography, slate headers, itemized charges, and payment verification tags.
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  )}
                 </div>
               </CardContent>
 
@@ -729,7 +850,14 @@ export default function SettingsPage() {
       )}
 
       {/* ========================================================= */}
-      {/* TAB 3: SUBSCRIPTION & DOMAINS (ADMIN ONLY)                 */}
+      {/* TAB 3: BRANCHES & DEPOTS (ADMIN ONLY)                     */}
+      {/* ========================================================= */}
+      {activeTab === 'branches' && hasMultiBranch && isAdmin && !isSuperAdmin && (
+        <BranchManagementSection />
+      )}
+
+      {/* ========================================================= */}
+      {/* TAB 4: SUBSCRIPTION & DOMAINS (ADMIN ONLY)                 */}
       {/* ========================================================= */}
       {activeTab === 'subscription' && isAdmin && !isSuperAdmin && (
         <div className="space-y-6">
@@ -878,125 +1006,50 @@ export default function SettingsPage() {
                     Custom Domains
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Configure your business web domain for seamless direct login and branded billing access.
+                    View active web domains and routing endpoints configured for this business workspace.
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
 
             <CardContent className="p-4 sm:p-6 space-y-4">
-              {/* Domain Input Form */}
-              {subDetails?.capabilities?.customDomain ? (
-                <div className="p-4 rounded-xl border border-border/80 bg-slate-50/50 dark:bg-slate-900/30 space-y-3">
-                  <Label htmlFor="domainInput" className="text-xs font-semibold text-foreground">
-                    Register New Custom Domain
-                  </Label>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Input
-                      id="domainInput"
-                      placeholder="e.g. invoice.mycompany.com or invoice.laosteel.local"
-                      value={newDomainInput}
-                      onChange={(e) => setNewDomainInput(e.target.value)}
-                      className="bg-background border-border/80 focus:border-emerald-500 font-mono text-xs h-10 rounded-xl"
-                    />
-                    <Button
-                      type="button"
-                      disabled={isDomainSubmitting || !newDomainInput.trim()}
-                      onClick={async () => {
-                        if (!newDomainInput.trim()) return;
-                        setIsDomainSubmitting(true);
-                        try {
-                          await addDomainMutation.mutateAsync(newDomainInput.trim());
-                          setNewDomainInput('');
-                          modal.alert('Success', `Domain ${newDomainInput.trim()} registered successfully. Point your DNS CNAME to bolxolve-invoice.vercel.app`, 'success');
-                        } catch (err) {
-                          modal.alert('Domain Error', getErrorMessage(err), 'error');
-                        } finally {
-                          setIsDomainSubmitting(false);
-                        }
-                      }}
-                      className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs h-10 px-4 rounded-xl font-semibold cursor-pointer shrink-0"
-                    >
-                      {isDomainSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1.5" />}
-                      Add Domain
-                    </Button>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Point a CNAME record from your domain to <span className="font-mono text-foreground font-bold">bolxolve-invoice.vercel.app</span>. For local development testing, you can map <span className="font-mono text-foreground font-bold">127.0.0.1 invoice.mycompany.local</span> in your Windows hosts file.
-                  </p>
-                </div>
-              ) : (
-                <div className="p-4 rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs flex items-start space-x-3">
-                  <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-bold">Custom Domains Locked</p>
-                    <p className="text-[11px] mt-0.5 leading-relaxed">
-                      Custom domain routing is available exclusively on the Enterprise plan. Contact BOLXolve platform administration to upgrade and link your business domain.
-                    </p>
-                  </div>
-                </div>
-              )}
 
-              {/* Registered Domains Table */}
+              {/* Registered Domains Table (Read-Only) */}
               <div className="space-y-2 pt-2">
-                <h4 className="text-xs font-semibold text-foreground">Active Registered Domains</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold text-foreground">Active Registered Domains</h4>
+                  <Badge variant="outline" className="text-[10px] text-muted-foreground border-border font-mono">
+                    {subDetails?.domains?.length || 0} Registered
+                  </Badge>
+                </div>
                 <div className="divide-y divide-border/80 border border-border/80 rounded-xl overflow-hidden">
                   {subDetails?.domains && subDetails.domains.length > 0 ? (
                     subDetails.domains.map((d) => (
                       <div key={d.id} className="p-3.5 flex items-center justify-between bg-card text-xs">
                         <div className="flex items-center space-x-2.5">
-                          <Globe className="h-4 w-4 text-emerald-500" />
+                          <Globe className="h-4 w-4 text-emerald-500 shrink-0" />
                           <span className="font-mono font-medium text-foreground">{d.domain}</span>
                           {d.isPrimary && (
-                            <Badge variant="outline" className="text-[10px] py-0 px-2 border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+                            <Badge variant="outline" className="text-[10px] py-0 px-2 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5">
                               Primary Platform Domain
                             </Badge>
                           )}
                           {d.isCustom && (
-                            <Badge variant="outline" className="text-[10px] py-0 px-2 border-blue-500/30 text-blue-600 dark:text-blue-400">
+                            <Badge variant="outline" className="text-[10px] py-0 px-2 border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/5">
                               Custom Brand Domain
                             </Badge>
                           )}
                         </div>
 
-                        {!d.isPrimary && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            disabled={deletingDomainId === d.id}
-                            onClick={async () => {
-                              const confirmed = await modal.confirm(
-                                'Remove Domain',
-                                `Are you sure you want to detach domain "${d.domain}"? Invoices and portals using this address will no longer route to this workspace.`
-                              );
-                              if (confirmed) {
-                                setDeletingDomainId(d.id);
-                                try {
-                                  await removeDomainMutation.mutateAsync(d.id);
-                                  await refetchSub();
-                                  modal.alert('Success', `Domain "${d.domain}" has been removed.`, 'success');
-                                } catch (err) {
-                                  modal.alert('Error', getErrorMessage(err), 'error');
-                                } finally {
-                                  setDeletingDomainId(null);
-                                }
-                              }
-                            }}
-                            className="text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 h-8 px-2.5 rounded-lg text-xs"
-                          >
-                            {deletingDomainId === d.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-3.5 w-3.5" />
-                            )}
-                          </Button>
-                        )}
+                        <div className="flex items-center space-x-2 text-[11px] text-muted-foreground font-mono">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          <span>Connected</span>
+                        </div>
                       </div>
                     ))
                   ) : (
                     <div className="p-6 text-center text-xs text-muted-foreground">
-                      No domains registered yet.
+                      No custom domains registered yet. Contact platform administration to attach your branded domain.
                     </div>
                   )}
                 </div>
@@ -1005,6 +1058,22 @@ export default function SettingsPage() {
           </Card>
         </div>
       )}
+
+      {/* Template Preview Modal */}
+      <InvoiceTemplatePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        templateId={effectiveTemplatePreviewId}
+        customTemplateUrl={customUrl || settings?.customTemplateUrl}
+        businessName={settings?.businessName}
+        tagline={settings?.tagline || undefined}
+        address={settings?.address}
+        phone={settings?.phone}
+        email={settings?.email}
+        receiptPrefix={settings?.receiptPrefix}
+        tin={settings?.tin || undefined}
+        cacOrRegNumber={settings?.cacOrRegNumber || undefined}
+      />
     </div>
   );
 }

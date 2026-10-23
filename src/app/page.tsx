@@ -31,13 +31,7 @@ export default function Home() {
   const { data: stats, isLoading: statsLoading, isError, error, refetch } = useDashboardStats();
   const { data: businessSettings } = useBusinessSettings();
 
-  const isLaoSteel = Boolean(
-    businessSettings?.slug === 'lao-steel' ||
-    businessSettings?.businessName?.toLowerCase().includes('lao steel') ||
-    businessSettings?.businessName?.toLowerCase().includes('laosteel')
-  );
-
-  const businessName = businessSettings?.businessName || (isLaoSteel ? 'Lao Steel Ventures' : 'BOLXolve Invoice');
+  const businessName = businessSettings?.businessName || 'BOLXolve Invoice';
   const rawLogo = businessSettings?.logo;
   const hasCustomLogo = Boolean(
     rawLogo &&
@@ -46,7 +40,7 @@ export default function Home() {
     !rawLogo.startsWith('{')
   );
 
-  const logoSrc = isLaoSteel ? '/laosteel-logo.svg' : (hasCustomLogo ? (rawLogo as string) : '/platform-logo.svg');
+  const logoSrc = hasCustomLogo ? (rawLogo as string) : '/platform-logo.svg';
 
   if (authLoading || !user) {
     return (
@@ -337,7 +331,7 @@ export default function Home() {
                   <CardDescription className="text-xs mt-1">
                     {isAdmin
                       ? 'Daily aggregate volume generated across all depot sales.'
-                      : 'Your daily sales volume generated from finalized steel receipts.'}
+                      : 'Your daily sales volume generated from finalized receipts.'}
                   </CardDescription>
                 </div>
                 <div className="text-right">

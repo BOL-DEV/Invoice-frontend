@@ -1,8 +1,37 @@
 export type Role = 'SUPER_ADMIN' | 'ADMIN' | 'APPRENTICE';
 
+export interface Branch {
+  id: string;
+  businessId: string;
+  name: string;
+  code: string | null;
+  address: string;
+  phone: string | null;
+  email: string | null;
+  isMain: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  userCount?: number;
+  invoiceCount?: number;
+  manager?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    isSuspended?: boolean;
+  } | null;
+}
+
 export interface User {
   id: string;
   businessId?: string;
+  branchId?: string | null;
+  branch?: {
+    id: string;
+    name: string;
+    code: string | null;
+  } | null;
   email: string;
   role: Role;
   firstName: string;
@@ -256,6 +285,14 @@ export interface Invoice {
     firstName: string;
     lastName: string;
   };
+  branchId?: string | null;
+  branch?: {
+    id: string;
+    name: string;
+    code: string | null;
+    address?: string;
+    phone?: string | null;
+  } | null;
   shares?: InvoiceShare[];
 }
 
@@ -551,4 +588,5 @@ export interface ReportQueryParams {
   page?: number;
   limit?: number;
   businessId?: string;
+  branchId?: string;
 }

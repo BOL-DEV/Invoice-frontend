@@ -33,6 +33,7 @@ import {
   UserPlus,
   Loader2,
   Lock,
+  Store,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
@@ -164,18 +165,6 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
   const { data: businessSettings } = useBusinessSettings();
 
-  const currentHost = typeof window !== 'undefined' ? window.location.host.split(':')[0].toLowerCase() : '';
-  const isLaoSteelHost = currentHost.includes('laosteel');
-
-  const isLaoSteel = Boolean(
-    isLaoSteelHost ||
-    branding?.business?.slug === 'lao-steel' ||
-    branding?.business?.businessName?.toLowerCase().includes('lao') ||
-    businessSettings?.slug === 'lao-steel' ||
-    businessSettings?.businessName?.toLowerCase().includes('lao steel') ||
-    businessSettings?.businessName?.toLowerCase().includes('laosteel')
-  );
-
   const rawLogo = businessSettings?.logo;
   const hasCustomLogo = Boolean(
     rawLogo &&
@@ -186,21 +175,30 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
   const logoSrc = isSuperAdmin
     ? '/platform-logo.svg'
-    : (isLaoSteel ? '/laosteel-logo.svg' : (hasCustomLogo ? (rawLogo as string) : '/platform-logo.svg'));
+    : (hasCustomLogo ? (rawLogo as string) : '/platform-logo.svg');
 
   const displayBusinessName = isSuperAdmin
     ? 'BOLXolve Platform'
-    : (isLaoSteel ? 'Lao Steel' : (businessSettings?.businessName || 'BOLXolve'));
+    : (businessSettings?.businessName || 'BOLXolve');
 
   const displayTagline = isSuperAdmin
     ? 'Super Admin Empire'
-    : (isLaoSteel ? 'Ventures' : (businessSettings?.tagline || 'Workspace'));
+    : (businessSettings?.tagline || 'Workspace');
 
   const { data: subDetails } = useSubscription();
   const isStarterPlan = !isSuperAdmin && (
     subDetails?.subscription?.plan === 'STARTER' ||
     (subDetails?.capabilities && subDetails.capabilities.activityLogs === false)
   );
+
+  const isMainAdmin = (user?.role === 'ADMIN' && !user?.branchId) || isSuperAdmin;
+  const hasMultiBranch = Boolean(
+    subDetails?.capabilities?.multipleBranches ??
+    subDetails?.subscription?.hasMultipleBranches ??
+    businessSettings?.subscription?.hasMultipleBranches ??
+    false
+  );
+  const showBranchesTab = isMainAdmin && hasMultiBranch;
 
   // Strictly role-based navigation: Super Admin gets a dedicated platform empire menu
   const navItems = user
@@ -220,7 +218,11 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           { href: '/approvals', icon: <CheckSquare className="h-5 w-5" />, label: 'Approvals' },
           ...(isAdminOrSuper
             ? [
-                { href: '/users', icon: <Users className="h-5 w-5" />, label: 'Cashiers' },
+                {
+                  href: '/users',
+                  icon: showBranchesTab ? <Store className="h-5 w-5" /> : <Users className="h-5 w-5" />,
+                  label: showBranchesTab ? 'Branches' : 'Cashiers',
+                },
                 {
                   href: '/activity',
                   icon: <Activity className="h-5 w-5" />,

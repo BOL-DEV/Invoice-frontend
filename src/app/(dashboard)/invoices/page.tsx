@@ -48,7 +48,9 @@ import {
   Loader2,
   Share2,
   Pencil,
+  Store,
 } from 'lucide-react';
+import { useBranches } from '../../../features/branches';
 
 export default function InvoicesPage() {
   const queryClient = useQueryClient();
@@ -59,10 +61,12 @@ export default function InvoicesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [cashierFilter, setCashierFilter] = useState<string>('ALL');
+  const [branchFilter, setBranchFilter] = useState<string>('ALL');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
   const { data: usersData } = useUsersList();
+  const { data: branches = [] } = useBranches();
   const staffList = usersData || [];
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -149,12 +153,19 @@ export default function InvoicesPage() {
     isAdmin && cashierFilter !== 'ALL' ? cashierFilter : undefined
   );
 
+  const isSubAdmin = user?.role === 'ADMIN' && Boolean(user?.branchId);
+  const isCashier = user?.role === 'APPRENTICE';
+  const effectiveBranchFilter = (isSubAdmin || (isCashier && user?.branchId))
+    ? (user?.branchId || undefined)
+    : (branchFilter !== 'ALL' ? branchFilter : undefined);
+
   const { data, isLoading, isError } = useInvoicesList({
     page,
     limit: 10,
     search: search || undefined,
     status: statusFilter === 'ALL' ? undefined : (statusFilter as InvoiceStatus),
     issuedBy: isAdmin && cashierFilter !== 'ALL' ? cashierFilter : undefined,
+    branchId: effectiveBranchFilter,
     startDate: isAdmin && startDate ? startDate : undefined,
     endDate: isAdmin && endDate ? endDate : undefined,
   });
@@ -533,6 +544,41 @@ export default function InvoicesPage() {
                 </div>
               </div>
 
+              {/* Branch Filter */}
+              {isSubAdmin || (isCashier && user?.branchId) ? (
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-muted-foreground text-[11px] font-medium">Branch:</span>
+                  <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[11px] font-semibold h-9 px-2.5 rounded-xl flex items-center space-x-1">
+                    <Store className="h-3 w-3 mr-1" />
+                    <span>{branches.find((b) => b.id === user?.branchId)?.name || 'Assigned Branch'}</span>
+                  </Badge>
+                </div>
+              ) : (
+                branches.length > 0 && (
+                  <div className="flex items-center space-x-1.5">
+                    <span className="text-muted-foreground text-[11px] font-medium">Branch:</span>
+                    <div className="relative">
+                      <select
+                        value={branchFilter}
+                        onChange={(e) => {
+                          setBranchFilter(e.target.value);
+                          setPage(1);
+                        }}
+                        className="h-9 pl-3 pr-8 bg-secondary border border-border rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/30 cursor-pointer font-medium appearance-none transition-colors max-w-[180px] truncate"
+                      >
+                        <option value="ALL">All Branches</option>
+                        {branches.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name} {b.isMain ? '★' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                    </div>
+                  </div>
+                )
+              )}
+
               {/* Date Range Filter (From / To) */}
               <div className="flex items-center space-x-1.5">
                 <span className="text-muted-foreground text-[11px] font-medium">Date:</span>
@@ -726,6 +772,13 @@ export default function InvoicesPage() {
                             </span>
                           )}
                         </div>
+
+                        {inv.branch && (
+                          <div className="flex items-center space-x-1 text-[10px] text-muted-foreground font-mono">
+                            <Store className="h-3 w-3 text-emerald-500 shrink-0" />
+                            <span>{inv.branch.name}</span>
+                          </div>
+                        )}
                       </div>
                     </TableCell>
 
@@ -1070,6 +1123,15 @@ export default function InvoicesPage() {
                     {formatCurrency(invoiceDetails.total)}
                   </span>
                 </div>
+                {invoiceDetails.branch && (
+                  <div>
+                    <span className="text-muted-foreground block text-[10px] uppercase font-mono">Branch / Location</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400 text-xs flex items-center space-x-1">
+                      <Store className="h-3.5 w-3.5 shrink-0" />
+                      <span>{invoiceDetails.branch.name}</span>
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Invoice Sharing Record (if shared) */}

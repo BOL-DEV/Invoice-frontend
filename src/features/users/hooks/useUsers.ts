@@ -72,3 +72,34 @@ export const useUpdateProfile = () => {
     },
   });
 };
+
+export const useAdminUpdateUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: {
+        firstName?: string;
+        lastName?: string;
+        email?: string;
+        role?: 'ADMIN' | 'APPRENTICE';
+        branchId?: string | null;
+        newPassword?: string;
+      };
+    }) => {
+      const response = await apiClient.patch<ApiResponse<User>>(
+        API_ENDPOINTS.USERS.ADMIN_UPDATE(id),
+        payload
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['branches'] });
+    },
+  });
+};
+

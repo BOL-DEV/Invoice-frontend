@@ -51,22 +51,21 @@ function LoginForm() {
   }, []);
 
   const host = typeof window !== 'undefined' ? window.location.host.split(':')[0].toLowerCase() : '';
-  const rootHosts = ['localhost', '127.0.0.1', 'bolxolve-invoice.vercel.app', 'invoice.bolxolve.com'];
+  const rootHosts = ['localhost', '127.0.0.1', 'invoice.bolxolve.com'];
   const isCustomHost = host ? !rootHosts.includes(host) : false;
-  const isLaoSteelHost = host.includes('laosteel');
 
   const isCustomDomain = Boolean(branding?.isCustomDomain || isCustomHost);
 
-  // Determine if domain belongs to Lao Steel specifically
+  // Dynamic branding parameters based on custom domain vs root platform
   const isLaoSteel = Boolean(
-    isLaoSteelHost ||
     branding?.business?.slug === 'lao-steel' ||
-    branding?.business?.businessName?.toLowerCase().includes('lao')
+    branding?.business?.businessName?.toLowerCase().includes('lao steel') ||
+    host.includes('lao')
   );
 
-  // Dynamic branding parameters based on custom domain vs root platform
+  const defaultTenantName = isLaoSteel ? 'LAO STEEL VENTURES' : 'Tenant Workspace';
   const businessName = isCustomDomain
-    ? (branding?.business?.businessName || (isLaoSteel ? 'LAO STEEL VENTURES' : 'Tenant Workspace'))
+    ? (branding?.business?.businessName || defaultTenantName)
     : 'BOLXolve Invoice';
 
   const rawLogo = branding?.business?.logo;
@@ -77,22 +76,27 @@ function LoginForm() {
     !rawLogo.startsWith('{')
   );
 
-  const logoSrc = isLaoSteel
-    ? '/laosteel-logo.svg'
-    : (hasCustomLogo ? (rawLogo as string) : '/platform-logo.svg');
+  let logoSrc = '/platform-logo.svg';
+  if (hasCustomLogo) {
+    logoSrc = rawLogo as string;
+  } else if (isLaoSteel) {
+    logoSrc = '/laosteel-logo.svg';
+  }
 
   const badgeText = isCustomDomain
-    ? `${branding?.business?.businessName || (isLaoSteel ? 'Lao Steel Ventures' : 'Workspace')} Billing & Logistics Gateway`
+    ? `${businessName} Invoicing & Billing Portal`
     : 'BOLXolve Multi-Tenant Invoice Platform';
 
+  const defaultTagline = isLaoSteel
+    ? 'STEEL STOCKISTS, INDUSTRIAL AND BUILDING MATERIALS SUPPLIERS'
+    : 'Commercial Invoicing & Billing Portal';
+
   const tagline = isCustomDomain
-    ? (branding?.business?.tagline || (isLaoSteel ? 'STEEL STOCKISTS, INDUSTRIAL AND BUILDING MATERIALS SUPPLIERS' : 'Commercial Invoicing & Billing Portal'))
+    ? (branding?.business?.tagline || defaultTagline)
     : 'Multi-Tenant Invoicing & Enterprise Billing Platform';
 
   const description = isCustomDomain
-    ? (isLaoSteel
-        ? 'Industrial-grade billing system built for high-volume steel distribution, accurate tonnage computing, and audit-proof ledger tracking.'
-        : `Authorized invoicing, tax compliance, and automated billing portal for ${branding?.business?.businessName || 'this workspace'}.`)
+    ? `Authorized invoicing, tax compliance, and automated billing portal for ${businessName}.`
     : 'Modern cloud invoicing platform engineered for multi-tenant organizations, automated tax compliance, AI document extraction, and strict role-based access control.';
 
   const feature1Title = isCustomDomain ? 'Dynamic Line-Item Calculation' : 'Multi-Tenant Workspaces & Plans';
@@ -112,9 +116,15 @@ function LoginForm() {
 
   const footerBrand = isCustomDomain ? businessName : 'BOLXolve Cloud';
 
-  const adminEmail = branding?.business?.email || (isLaoSteel ? 'lambeakeem74@gmail.com' : 'support@bolxolve.com');
-  const adminPhone = branding?.business?.phone || (isLaoSteel ? '08034071931, 08052008315' : '+234 800 BOLXOLVE');
-  const address = branding?.business?.address || (isLaoSteel ? 'HEAD OFFICE: S/L/L.G Shop 249, Orile-Iganmu, Lagos' : 'BOLXolve Cloud Systems');
+  const defaultAddress = isLaoSteel
+    ? 'HEAD OFFICE: S/L/L.G Shop 249, Ifesowapo Iron Mkt., Section "C" Line 2, Orile-Iganmu, Lagos'
+    : 'BOLXolve Cloud Systems';
+  const defaultPhone = isLaoSteel ? '08034071931, 08052008315' : '+234 800 BOLXOLVE';
+  const defaultEmail = isLaoSteel ? 'lambeakeem74@gmail.com' : 'support@bolxolve.com';
+
+  const adminEmail = branding?.business?.email || defaultEmail;
+  const adminPhone = branding?.business?.phone || defaultPhone;
+  const address = branding?.business?.address || defaultAddress;
 
   const {
     register,
@@ -342,7 +352,7 @@ function LoginForm() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="cashier@laosteel.com"
+                  placeholder="cashier@company.com"
                   autoComplete="email"
                   autoFocus
                   {...register('email')}

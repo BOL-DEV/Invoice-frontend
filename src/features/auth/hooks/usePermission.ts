@@ -53,11 +53,20 @@ export const usePermission = () => {
     return allowedPermissions.includes(permission);
   };
 
+  const isMainAdmin = (user?.role === 'ADMIN' && !user?.branchId) || user?.role === 'SUPER_ADMIN';
+  const isSubAdmin = user?.role === 'ADMIN' && Boolean(user?.branchId);
+  const isCashier = user?.role === 'APPRENTICE';
+
   return {
+    user,
     hasPermission,
     role: user?.role || null,
     isAdmin: user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN',
     isSuperAdmin: user?.role === 'SUPER_ADMIN',
+    isMainAdmin,
+    isSubAdmin,
+    isCashier,
+    userBranchId: user?.branchId || null,
     isLoading,
     isAuthenticated: !!user,
   };

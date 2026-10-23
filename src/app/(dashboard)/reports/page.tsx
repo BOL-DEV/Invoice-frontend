@@ -31,7 +31,9 @@ import {
   Clock,
   Building2,
   Eye,
+  Store,
 } from 'lucide-react';
+import { useBranches } from '../../../features/branches';
 
 type DatePreset = 'all_time' | 'today' | 'yesterday' | 'this_week' | 'this_month' | 'last_30_days' | 'custom';
 
@@ -48,12 +50,20 @@ export default function ReportsPage() {
   const [cashierId, setCashierId] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'FINALIZED' | 'DRAFT'>('ALL');
   const [customerSearch, setCustomerSearch] = useState<string>('');
+  const [branchId, setBranchId] = useState<string>('all');
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [selectedInvoice, setSelectedInvoice] = useState<ReportInvoiceItem | null>(null);
 
   // Super admin tenants list
   const { data: tenants = [] } = useTenantsList();
+  const { data: branches = [] } = useBranches();
+
+  const isSubAdmin = user?.role === 'ADMIN' && Boolean(user?.branchId);
+  const isCashier = user?.role === 'APPRENTICE';
+  const effectiveBranchId = (isSubAdmin || (isCashier && user?.branchId))
+    ? (user?.branchId || undefined)
+    : (branchId !== 'all' ? branchId : undefined);
 
   // Query parameters
   const queryParams = useMemo(() => {
@@ -63,12 +73,13 @@ export default function ReportsPage() {
       endDate: preset === 'custom' && endDate ? endDate : undefined,
       businessId: isSuperAdmin && businessId !== 'all' ? businessId : undefined,
       cashierId: cashierId !== 'all' ? cashierId : undefined,
+      branchId: effectiveBranchId,
       status: statusFilter !== 'ALL' ? (statusFilter as any) : undefined,
       customerName: customerSearch.trim() || undefined,
       page,
       limit,
     };
-  }, [preset, startDate, endDate, isSuperAdmin, businessId, cashierId, statusFilter, customerSearch, page, limit]);
+  }, [preset, startDate, endDate, isSuperAdmin, businessId, cashierId, effectiveBranchId, statusFilter, customerSearch, page, limit]);
 
   // Queries - pass businessId to useReportCashiers so cashiers dropdown filters by business!
   const { data: report, isLoading, isFetching, refetch } = useReportData(queryParams);
@@ -89,6 +100,7 @@ export default function ReportsPage() {
     setEndDate('');
     setBusinessId('all');
     setCashierId('all');
+    setBranchId('all');
     setStatusFilter('ALL');
     setCustomerSearch('');
     setPage(1);
@@ -359,6 +371,57 @@ export default function ReportsPage() {
                   {user?.firstName} {user?.lastName} (Self)
                 </div>
               </div>
+            )}
+
+            {/* Branch Filter */}
+            {isSubAdmin || (isCashier && user?.branchId) ? (
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold text-muted-foreground flex items-center">
+                  <Store className="h-3 w-3 mr-1 text-primary" />
+                  Assigned Branch
+                </Label>
+                <div className="h-9 px-3 rounded-xl text-xs bg-slate-900 border border-slate-700/80 flex items-center text-emerald-400 font-semibold truncate">
+                  <Store className="h-3.5 w-3.5 mr-1.5 text-emerald-500 shrink-0" />
+                  <span className="truncate">
+                    {branches.find((b) => b.id === user?.branchId)?.name || 'Assigned Branch'}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              branches.length > 0 && (
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-muted-foreground flex items-center">
+                    <Store className="h-3 w-3 mr-1 text-primary" />
+                    Branch / Depot
+                  </Label>
+                  <div className="relative">
+                    <select
+                      value={branchId}
+                      onChange={(e) => {
+                        setBranchId(e.target.value);
+                        setPage(1);
+                      }}
+                      style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}
+                      className="w-full h-9 pl-3 pr-8 rounded-xl text-xs bg-slate-900 border border-slate-700/80 text-slate-100 focus:outline-none focus:ring-1 focus:ring-primary shadow-inner cursor-pointer appearance-none truncate"
+                    >
+                      <option value="all" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }} className="bg-slate-900 text-slate-100 font-bold">
+                        All Branches (Cross-Business)
+                      </option>
+                      {branches.map((b) => (
+                        <option
+                          key={b.id}
+                          value={b.id}
+                          style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}
+                          className="bg-slate-900 text-slate-100"
+                        >
+                          {b.name} {b.isMain ? '★ (Main)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="h-4 w-4 absolute right-2.5 top-2.5 text-slate-400 pointer-events-none" />
+                  </div>
+                </div>
+              )
             )}
 
             {/* Invoice Status Filter - Custom Dark Themed Select Box */}

@@ -48,7 +48,9 @@ import {
   Lock,
   Sparkles,
   RotateCcw,
+  Store,
 } from 'lucide-react';
+import { useBranches } from '../../branches/hooks/useBranches';
 
 interface InvoiceFormProps {
   mode: 'create' | 'edit';
@@ -99,6 +101,10 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   const [showCalculator, setShowCalculator] = useState(false);
   const [showWeightCalculator, setShowWeightCalculator] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+
+  // Branch Selection State
+  const { data: branches = [] } = useBranches();
+  const [selectedBranchId, setSelectedBranchId] = useState<string>('');
   
   // Dynamic custom charge state
   const [chargeType, setChargeType] = useState<'custom' | 'vat' | 'wht'>('custom');
@@ -237,6 +243,9 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   useEffect(() => {
     if (mode === 'edit' && existingInvoice) {
       loadInvoice(existingInvoice);
+      if (existingInvoice.branchId) {
+        setSelectedBranchId(existingInvoice.branchId);
+      }
     } else if (mode === 'create' && !isDraftRestoredRef.current) {
       isDraftRestoredRef.current = true;
       try {
@@ -423,6 +432,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       const payload = {
         ...getFormPayload(),
         status: targetStatus,
+        ...(selectedBranchId ? { branchId: selectedBranchId } : {}),
       };
       try {
         if (mode === 'create') {
@@ -697,6 +707,29 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                   className="bg-background h-10 rounded-xl"
                 />
               </div>
+
+              {/* Branch Selector */}
+              {branches.length > 0 && (
+                <div className="space-y-1.5 sm:col-span-2 md:col-span-1">
+                  <Label htmlFor="invoice-branch" className="text-xs font-semibold flex items-center gap-1.5">
+                    <Store className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>Issuing Branch / Depot</span>
+                  </Label>
+                  <select
+                    id="invoice-branch"
+                    value={selectedBranchId}
+                    onChange={(e) => setSelectedBranchId(e.target.value)}
+                    className="w-full bg-background h-10 rounded-xl border border-input px-3 text-xs text-foreground focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  >
+                    <option value="">Headquarters / General Depot</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} {b.isMain ? '★ (Main Branch)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </CardContent>
           </Card>
 

@@ -49,6 +49,18 @@ export const RESERVED_SLUGS = [
   'portal', 'dashboard', 'cdn', 'assets', 'static'
 ];
 
+export const isValidPhoneNumber = (val: string): boolean => {
+  if (!val || typeof val !== 'string') return false;
+  const parts = val.split(/[,/]/).map((p) => p.trim()).filter(Boolean);
+  if (parts.length === 0) return false;
+  for (const part of parts) {
+    if (!/^\+?[0-9\s\-()]{7,20}$/.test(part)) return false;
+    const digitsOnly = part.replace(/\D/g, '');
+    if (digitsOnly.length < 8 || digitsOnly.length > 15) return false;
+  }
+  return true;
+};
+
 export default function OnboardBusinessPage() {
   const router = useRouter();
   const modal = useModal();
@@ -126,12 +138,14 @@ export default function OnboardBusinessPage() {
 
     // Auto-suggest Live & Dev domains
     if (generatedSlug) {
-      if (plan === 'ENTERPRISE') {
+      if (plan === 'ENTERPRISE' && hasCustomDomain) {
         if (enterpriseDomainChoice === 'subdomain') {
           setCustomDomain(`${generatedSlug}.bolxolve.com`);
         } else if (!customDomain || customDomain.endsWith('.bolxolve.com')) {
           setCustomDomain(`invoice.${generatedSlug}.com`);
         }
+      } else {
+        setCustomDomain('');
       }
       setDevDomain(`${generatedSlug}.localhost`);
       if (receiptPrefix === 'INV' || receiptPrefix === slug.slice(0, 3).toUpperCase()) {
@@ -207,6 +221,11 @@ export default function OnboardBusinessPage() {
 
     if (!adminPassword || adminPassword.length < 6) {
       setErrorMessage('Administrator password must be at least 6 characters.');
+      return;
+    }
+
+    if (!isValidPhoneNumber(phone)) {
+      setErrorMessage('Please provide a valid official phone number (e.g. +234 803 000 0000 or 0803 000 0000). Standard phone numbers must contain 8 to 15 digits.');
       return;
     }
 
@@ -513,7 +532,7 @@ export default function OnboardBusinessPage() {
                 <Input
                   value={businessName}
                   onChange={(e) => handleBusinessNameChange(e.target.value)}
-                  placeholder="e.g. Lao Steel Ventures"
+                  placeholder="e.g. Acme Global Industries"
                   required
                   className="h-11 rounded-xl text-sm px-4 bg-background border-border"
                 />
@@ -528,7 +547,7 @@ export default function OnboardBusinessPage() {
                     setSlug(s);
                     setDevDomain(`${s}.localhost`);
                   }}
-                  placeholder="e.g. lao-steel"
+                  placeholder="e.g. acme-global"
                   required
                   className={`h-11 rounded-xl text-sm font-mono px-4 bg-background ${
                     slug && RESERVED_SLUGS.includes(slug) ? 'border-rose-500 ring-1 ring-rose-500' : 'border-border'
@@ -548,7 +567,7 @@ export default function OnboardBusinessPage() {
               <Input
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="e.g. Shop 249, Ifesowapo Iron Mkt., Section C, Orile, Lagos"
+                placeholder="e.g. Suite 104, Commercial Avenue, Ikeja, Lagos"
                 required
                 className="h-11 rounded-xl text-sm px-4 bg-background border-border"
               />
@@ -560,10 +579,20 @@ export default function OnboardBusinessPage() {
                 <Input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="e.g. +234 803 407 1931"
+                  placeholder="e.g. +234 803 000 0000 or 0803 000 0000"
                   required
-                  className="h-11 rounded-xl text-sm px-4 bg-background border-border"
+                  className={`h-11 rounded-xl text-sm px-4 bg-background ${
+                    phone && !isValidPhoneNumber(phone)
+                      ? 'border-rose-500 ring-1 ring-rose-500'
+                      : 'border-border'
+                  }`}
                 />
+                {phone && !isValidPhoneNumber(phone) && (
+                  <p className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3 shrink-0" />
+                    Please enter a valid phone number (8 to 15 digits, e.g. +234 803 000 0000).
+                  </p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-foreground">Official Business Email *</Label>
@@ -571,7 +600,7 @@ export default function OnboardBusinessPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. billing@laosteel.com"
+                  placeholder="e.g. billing@acme-global.com"
                   required
                   className="h-11 rounded-xl text-sm px-4 bg-background border-border"
                 />
@@ -584,7 +613,7 @@ export default function OnboardBusinessPage() {
                 <Input
                   value={receiptPrefix}
                   onChange={(e) => setReceiptPrefix(e.target.value.toUpperCase())}
-                  placeholder="e.g. LSV"
+                  placeholder="e.g. INV"
                   className="h-11 rounded-xl text-sm font-mono uppercase px-4 bg-background border-border"
                 />
               </div>
@@ -593,7 +622,7 @@ export default function OnboardBusinessPage() {
                 <Input
                   value={tagline}
                   onChange={(e) => setTagline(e.target.value)}
-                  placeholder="e.g. Premium Iron, Steel & Building Materials"
+                  placeholder="e.g. Premium Industrial & Commercial Solutions"
                   className="h-11 rounded-xl text-sm px-4 bg-background border-border"
                 />
               </div>
@@ -676,7 +705,7 @@ export default function OnboardBusinessPage() {
                       <Input
                         value={customDomain}
                         onChange={(e) => setCustomDomain(e.target.value)}
-                        placeholder="e.g. laosteel.bolxolve.com"
+                        placeholder="e.g. acme.bolxolve.com"
                         required
                         className="h-10 rounded-xl text-xs font-mono px-3 bg-background border-border"
                       />
@@ -690,7 +719,7 @@ export default function OnboardBusinessPage() {
                       <Input
                         value={customDomain}
                         onChange={(e) => setCustomDomain(e.target.value)}
-                        placeholder="e.g. invoice.laosteel.com"
+                        placeholder="e.g. invoice.acme.com"
                         required
                         className="h-10 rounded-xl text-xs font-mono px-3 bg-background border-border"
                       />
@@ -715,7 +744,7 @@ export default function OnboardBusinessPage() {
                   <Input
                     value={devDomain || (slug ? `${slug}.localhost` : '')}
                     onChange={(e) => setDevDomain(e.target.value)}
-                    placeholder="e.g. laosteel.localhost"
+                    placeholder="e.g. acme.localhost"
                     required
                     className="h-11 rounded-xl text-sm font-mono px-4 bg-background border-border"
                   />
@@ -1008,7 +1037,7 @@ export default function OnboardBusinessPage() {
                   type="email"
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
-                  placeholder="e.g. admin@laosteel.com"
+                  placeholder="e.g. admin@acme-global.com"
                   required
                   className="h-11 rounded-xl text-sm px-4 bg-background border-border"
                 />

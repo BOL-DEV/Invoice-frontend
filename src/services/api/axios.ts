@@ -5,7 +5,7 @@ const isServer = typeof window === 'undefined';
 export const getBaseURL = () => {
   // Server-side (SSR/SSG): connect directly to internal backend
   if (isServer) {
-    return process.env.INTERNAL_BACKEND_URL || 'http://localhost:5000';
+    return process.env.INTERNAL_BACKEND_URL || 'https://invoice-backend-murex.vercel.app';
   }
   // Client-side (Browser): use relative URL so Next.js server proxies the request
   // This completely hides backend domain/IP from client bundles and network inspection

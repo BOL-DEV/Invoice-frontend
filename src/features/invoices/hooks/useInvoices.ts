@@ -11,6 +11,7 @@ interface ListParams {
   issuedBy?: string;
   startDate?: string;
   endDate?: string;
+  branchId?: string;
 }
 
 export const useInvoicesList = (params: ListParams) => {

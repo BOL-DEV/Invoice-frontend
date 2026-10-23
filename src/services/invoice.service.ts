@@ -11,6 +11,7 @@ interface ListInvoicesParams {
   issuedBy?: string;
   startDate?: string;
   endDate?: string;
+  branchId?: string;
 }
 
 interface ListInvoicesResponse {
