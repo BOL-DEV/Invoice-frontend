@@ -95,14 +95,10 @@ export default function UsersPage() {
     false
   );
 
-  // Quotas definition:
-  // - Multi-Branch Enterprise: allows up to 2 sub-admins and 8 cashiers (or higher if maxStaffCount exceeds 8)
-  // - Single-Branch / Non-Multi-Branch: strictly respects the business's actual subscription maxStaffCount (defaults to 2)
-  const maxSubAdmins = isEnterprise && hasMultiBranch ? 2 : 1;
-  const configuredStaffCount = subscription?.maxStaffCount ?? subDetails?.usage?.maxStaffCount;
-  const maxCashiers = hasMultiBranch && isEnterprise
-    ? (configuredStaffCount && configuredStaffCount > 8 ? configuredStaffCount : 8)
-    : (configuredStaffCount ?? 2);
+  // Unified Staff Quota:
+  // Apart from the main business admin (ADMIN without branchId), all other users (branch head managers & cashiers)
+  // are staff members counting against the tenant's maxStaffCount quota.
+  const maxStaffQuota = subscription?.maxStaffCount ?? subDetails?.usage?.maxStaffCount ?? (isEnterprise ? 10 : 2);
 
   const subAdmins = useMemo(
     () => users.filter((u) => u.role === 'ADMIN' && Boolean(u.branchId) && !u.isDeleted),
@@ -115,8 +111,9 @@ export default function UsersPage() {
 
   const activeSubAdminCount = subAdmins.length;
   const activeCashierCount = cashiers.length;
-  const isSubAdminQuotaReached = activeSubAdminCount >= maxSubAdmins;
-  const isCashierQuotaReached = activeCashierCount >= maxCashiers;
+  const totalStaffCount = activeSubAdminCount + activeCashierCount;
+  const isStaffQuotaReached = totalStaffCount >= maxStaffQuota;
+
 
   // Filtered staff list based on role and active filters
   const displayedUsers = useMemo(() => {
@@ -189,10 +186,10 @@ export default function UsersPage() {
 
   // Open "Create Branch & Head Manager"
   const handleOpenBranchWithHead = () => {
-    if (isSubAdminQuotaReached) {
+    if (isStaffQuotaReached) {
       modal.alert(
-        'Sub-Admin Quota Limit',
-        `Your organization has reached the limit of ${maxSubAdmins} Sub-Admins (Branch Managers). Upgrade your subscription or manage existing managers before creating a new branch with head.`,
+        'Staff Quota Limit',
+        `Your organization has reached the maximum quota of ${maxStaffQuota} staff members (${totalStaffCount}/${maxStaffQuota} allocated across branch managers and cashiers). Upgrade your subscription or manage existing staff before creating a new branch with head.`,
         'warning'
       );
       return;
@@ -205,10 +202,10 @@ export default function UsersPage() {
 
   // Open "Add Cashier"
   const handleOpenAddCashier = (preselectedBranchId?: string) => {
-    if (isCashierQuotaReached) {
+    if (isStaffQuotaReached) {
       modal.alert(
-        'Cashier Quota Limit',
-        `Your organization has reached the limit of ${maxCashiers} cashiers (${activeCashierCount}/${maxCashiers} registered). Upgrade your plan or deactivate unused accounts to add more cashiers.`,
+        'Staff Quota Limit',
+        `Your organization has reached the limit of ${maxStaffQuota} staff members (${totalStaffCount}/${maxStaffQuota} allocated across branch managers and cashiers). Upgrade your subscription or deactivate unused accounts to add more cashiers.`,
         'warning'
       );
       return;
@@ -404,34 +401,18 @@ export default function UsersPage() {
               <span className="font-semibold text-foreground">
                 Plan: <span className="uppercase text-emerald-600 dark:text-emerald-400 font-bold">{subscription.plan}</span>
               </span>
-              {hasMultiBranch && isEnterprise ? (
-                <>
-                  <span className="text-muted-foreground">•</span>
-                  <span className="text-muted-foreground">
-                    Sub-Admins:{' '}
-                    <strong className={isSubAdminQuotaReached ? 'text-rose-500 font-bold' : 'text-foreground font-semibold'}>
-                      {activeSubAdminCount} / {maxSubAdmins}
-                    </strong>
+              <span className="text-muted-foreground">•</span>
+              <span className="text-muted-foreground">
+                Staff Quota:{' '}
+                <strong className={isStaffQuotaReached ? 'text-rose-500 font-bold' : 'text-foreground font-semibold'}>
+                  {totalStaffCount} / {maxStaffQuota}
+                </strong>
+                {hasMultiBranch && (
+                  <span className="text-[11px] ml-1 text-muted-foreground">
+                    ({activeSubAdminCount} managers, {activeCashierCount} cashiers)
                   </span>
-                  <span className="text-muted-foreground">•</span>
-                  <span className="text-muted-foreground">
-                    Cashiers:{' '}
-                    <strong className={isCashierQuotaReached ? 'text-rose-500 font-bold' : 'text-foreground font-semibold'}>
-                      {activeCashierCount} / {maxCashiers}
-                    </strong>
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span className="text-muted-foreground">•</span>
-                  <span className="text-muted-foreground">
-                    Cashiers:{' '}
-                    <strong className={isCashierQuotaReached ? 'text-rose-500 font-bold' : 'text-foreground font-semibold'}>
-                      {activeCashierCount} / {maxCashiers}
-                    </strong>
-                  </span>
-                </>
-              )}
+                )}
+              </span>
             </div>
           ) : null}
 
@@ -485,8 +466,8 @@ export default function UsersPage() {
             </Badge>
           </div>
         </div>
-      ) : hasMultiBranch && isEnterprise ? (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      ) : hasMultiBranch ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="p-3.5 rounded-xl border border-border bg-card flex items-center justify-between shadow-sm">
             <div className="flex items-center space-x-2.5">
               <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
@@ -513,7 +494,7 @@ export default function UsersPage() {
               </div>
             </div>
             <Badge className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-mono text-xs font-bold">
-              {activeSubAdminCount} / {maxSubAdmins}
+              {activeSubAdminCount} Managers
             </Badge>
           </div>
 
@@ -528,28 +509,60 @@ export default function UsersPage() {
               </div>
             </div>
             <Badge className="bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 font-mono text-xs font-bold">
-              {activeCashierCount} / {maxCashiers}
+              {activeCashierCount} Cashiers
+            </Badge>
+          </div>
+
+          <div className="p-3.5 rounded-xl border border-border bg-card flex items-center justify-between shadow-sm">
+            <div className="flex items-center space-x-2.5">
+              <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500">
+                <Users className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-foreground">Total Staff Allocation</p>
+                <p className="text-[11px] text-muted-foreground">Managers & cashiers combined</p>
+              </div>
+            </div>
+            <Badge
+              className={cn(
+                'font-mono text-xs font-bold border',
+                isStaffQuotaReached
+                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                  : totalStaffCount >= maxStaffQuota * 0.8
+                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+              )}
+            >
+              {totalStaffCount} / {maxStaffQuota}
             </Badge>
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="p-3.5 rounded-xl border border-border bg-card flex items-center justify-between shadow-sm">
             <div className="flex items-center space-x-2.5">
               <div className="p-2 rounded-lg bg-sky-500/10 text-sky-500">
                 <Users className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-xs font-bold text-foreground">Registered Cashiers</p>
-                <p className="text-[11px] text-muted-foreground">Authorized point-of-sale operators</p>
+                <p className="text-xs font-bold text-foreground">Staff & Cashiers</p>
+                <p className="text-[11px] text-muted-foreground">Authorized staff operators</p>
               </div>
             </div>
-            <Badge className="bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 font-mono text-xs font-bold">
-              {activeCashierCount} / {maxCashiers}
+            <Badge
+              className={cn(
+                'font-mono text-xs font-bold border',
+                isStaffQuotaReached
+                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                  : 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20'
+              )}
+            >
+              {totalStaffCount} / {maxStaffQuota}
             </Badge>
           </div>
         </div>
       )}
+
 
       {/* ======================================================== */}
       {/* BRANCHES NETWORK OVERVIEW (Main Admin on Multi-Branch)   */}
