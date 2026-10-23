@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   useTenantsList,
   useOnboardTenant,
@@ -547,16 +548,51 @@ export default function TenantsAdminPage() {
                     >
                       {/* Business & Workspace */}
                       <td className="px-6 py-4">
-                        <div className="font-semibold text-foreground text-sm flex items-center space-x-2 group-hover:text-emerald-500 transition-colors">
-                          <span>{t.businessName}</span>
-                          <ArrowRight className="h-3.5 w-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-emerald-500" />
-                        </div>
-                        <div className="flex items-center space-x-2 mt-1 font-mono text-[11px] text-muted-foreground">
-                          <span className="px-1.5 py-0.5 rounded bg-secondary border border-border">
-                            {t.slug || 'no-slug'}
-                          </span>
-                          <span>•</span>
-                          <span>{t.email}</span>
+                        <div className="flex items-center space-x-3">
+                          {(() => {
+                            const rawLogo = t.logo;
+                            const hasCustomLogo = Boolean(
+                              rawLogo &&
+                              typeof rawLogo === 'string' &&
+                              rawLogo !== '/platform-logo.svg' &&
+                              !rawLogo.startsWith('{') &&
+                              (rawLogo.startsWith('/') || rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('data:image/'))
+                            );
+
+                            if (hasCustomLogo) {
+                              return (
+                                <div className="h-9 w-9 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
+                                  <Image
+                                    src={rawLogo as string}
+                                    alt={t.businessName}
+                                    width={32}
+                                    height={32}
+                                    className="w-full h-full object-contain"
+                                  />
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-bold text-xs shrink-0">
+                                {t.businessName.charAt(0).toUpperCase()}
+                              </div>
+                            );
+                          })()}
+
+                          <div>
+                            <div className="font-semibold text-foreground text-sm flex items-center space-x-2 group-hover:text-emerald-500 transition-colors">
+                              <span>{t.businessName}</span>
+                              <ArrowRight className="h-3.5 w-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-emerald-500" />
+                            </div>
+                            <div className="flex items-center space-x-2 mt-1 font-mono text-[11px] text-muted-foreground">
+                              <span className="px-1.5 py-0.5 rounded bg-secondary border border-border">
+                                {t.slug || 'no-slug'}
+                              </span>
+                              <span>•</span>
+                              <span>{t.email}</span>
+                            </div>
+                          </div>
                         </div>
                       </td>
 

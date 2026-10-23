@@ -690,9 +690,36 @@ export default function TenantDetailPage() {
       {/* ========================================================= */}
       <div className="p-6 rounded-2xl bg-card border border-border shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-center space-x-4">
-          <div className="h-16 w-16 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-extrabold text-2xl shadow-sm shrink-0">
-            {business.businessName.charAt(0).toUpperCase()}
-          </div>
+          {(() => {
+            const rawLogo = business.logo;
+            const hasCustomLogo = Boolean(
+              rawLogo &&
+              typeof rawLogo === 'string' &&
+              rawLogo !== '/platform-logo.svg' &&
+              !rawLogo.startsWith('{') &&
+              (rawLogo.startsWith('/') || rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('data:image/'))
+            );
+
+            if (hasCustomLogo) {
+              return (
+                <div className="relative h-16 w-16 rounded-2xl bg-white dark:bg-slate-900 border border-border p-2 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
+                  <Image
+                    src={rawLogo as string}
+                    alt={business.businessName}
+                    width={56}
+                    height={56}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              );
+            }
+
+            return (
+              <div className="h-16 w-16 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-extrabold text-2xl shadow-sm shrink-0">
+                {business.businessName.charAt(0).toUpperCase()}
+              </div>
+            );
+          })()}
           <div className="space-y-1">
             <div className="flex items-center space-x-2.5 flex-wrap gap-y-1">
               <h2 className="text-xl font-bold text-foreground font-heading">{business.businessName}</h2>
