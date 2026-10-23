@@ -60,6 +60,7 @@ export default function SettingsPage() {
   // Active Tab state: 'profile' (all users), 'business' (admin only), or 'subscription' (admin only)
   const [activeTab, setActiveTab] = useState<'profile' | 'business' | 'subscription'>('profile');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewTemplateId, setPreviewTemplateId] = useState<string>('classic');
 
   // Subscription data
   const { data: subDetails, isLoading: isSubLoading, refetch: refetchSub } = useSubscription();
@@ -842,7 +843,10 @@ export default function SettingsPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => setIsPreviewOpen(true)}
+                        onClick={() => {
+                          setPreviewTemplateId(effectiveTemplatePreviewId);
+                          setIsPreviewOpen(true);
+                        }}
                         className="rounded-xl text-xs h-10 px-4 border-purple-500/40 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 shrink-0 flex items-center space-x-2 cursor-pointer shadow-sm"
                       >
                         <Eye className="h-4 w-4" />
@@ -851,47 +855,91 @@ export default function SettingsPage() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                      <label
-                        className={`flex items-start space-x-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                      <div
+                        onClick={() => setValueBusiness('receiptTemplateId', 'classic', { shouldDirty: true })}
+                        className={`flex flex-col justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
                           watchBusiness('receiptTemplateId') === 'classic' || (!watchBusiness('receiptTemplateId') && settings?.receiptTemplateId === 'classic')
                             ? 'border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-950/20 shadow-sm'
                             : 'border-border/80 bg-background hover:bg-secondary/40'
                         }`}
                       >
-                        <input
-                          type="radio"
-                          value="classic"
-                          {...registerBusiness('receiptTemplateId')}
-                          className="mt-1 text-emerald-500 focus:ring-emerald-500"
-                        />
-                        <div className="space-y-0.5">
-                          <p className="text-xs font-bold text-foreground">Classic Industrial / Thermal</p>
-                          <p className="text-[11px] text-muted-foreground leading-relaxed">
-                            Original bespoke industrial styling with ledger borders, watermark support, and structured customer guarantee terms.
-                          </p>
+                        <div className="flex items-start space-x-3">
+                          <input
+                            type="radio"
+                            value="classic"
+                            checked={watchBusiness('receiptTemplateId') === 'classic' || (!watchBusiness('receiptTemplateId') && settings?.receiptTemplateId !== 'modern')}
+                            onChange={() => setValueBusiness('receiptTemplateId', 'classic', { shouldDirty: true })}
+                            className="mt-1 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                          />
+                          <div className="space-y-0.5">
+                            <p className="text-xs font-bold text-foreground">Classic Industrial / Thermal</p>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed">
+                              Original bespoke industrial styling with ledger borders, watermark support, and structured customer guarantee terms.
+                            </p>
+                          </div>
                         </div>
-                      </label>
 
-                      <label
-                        className={`flex items-start space-x-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
-                          watchBusiness('receiptTemplateId') === 'modern'
+                        <div className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-between">
+                          <span className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider font-semibold">Standard Ledger</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewTemplateId('classic');
+                              setIsPreviewOpen(true);
+                            }}
+                            className="h-7 px-2.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg flex items-center space-x-1 cursor-pointer transition-colors"
+                          >
+                            <Eye className="h-3.5 w-3.5 mr-1" />
+                            <span>Preview Layout</span>
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div
+                        onClick={() => setValueBusiness('receiptTemplateId', 'modern', { shouldDirty: true })}
+                        className={`flex flex-col justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
+                          watchBusiness('receiptTemplateId') === 'modern' || (!watchBusiness('receiptTemplateId') && settings?.receiptTemplateId === 'modern')
                             ? 'border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-950/20 shadow-sm'
                             : 'border-border/80 bg-background hover:bg-secondary/40'
                         }`}
                       >
-                        <input
-                          type="radio"
-                          value="modern"
-                          {...registerBusiness('receiptTemplateId')}
-                          className="mt-1 text-emerald-500 focus:ring-emerald-500"
-                        />
-                        <div className="space-y-0.5">
-                          <p className="text-xs font-bold text-foreground">Modern Corporate Executive</p>
-                          <p className="text-[11px] text-muted-foreground leading-relaxed">
-                            Clean minimal SaaS invoice design with modern typography, slate headers, itemized charges, and payment verification tags.
-                          </p>
+                        <div className="flex items-start space-x-3">
+                          <input
+                            type="radio"
+                            value="modern"
+                            checked={watchBusiness('receiptTemplateId') === 'modern'}
+                            onChange={() => setValueBusiness('receiptTemplateId', 'modern', { shouldDirty: true })}
+                            className="mt-1 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                          />
+                          <div className="space-y-0.5">
+                            <p className="text-xs font-bold text-foreground">Modern Corporate Executive</p>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed">
+                              Clean minimal SaaS invoice design with modern typography, slate headers, itemized charges, and payment verification tags.
+                            </p>
+                          </div>
                         </div>
-                      </label>
+
+                        <div className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-between">
+                          <span className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider font-semibold">Minimal SaaS</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewTemplateId('modern');
+                              setIsPreviewOpen(true);
+                            }}
+                            className="h-7 px-2.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg flex items-center space-x-1 cursor-pointer transition-colors"
+                          >
+                            <Eye className="h-3.5 w-3.5 mr-1" />
+                            <span>Preview Layout</span>
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -972,10 +1020,10 @@ export default function SettingsPage() {
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-semibold text-foreground flex items-center space-x-1.5">
                         <User className="h-3.5 w-3.5 text-emerald-500" />
-                        <span>Cashier / Apprentice Seats</span>
+                        <span>Staff Members Allocation</span>
                       </span>
                       <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                        {subDetails.usage.staffCount} of {subDetails.usage.maxStaffCount} cashiers registered
+                        {subDetails.usage.staffCount} of {subDetails.usage.maxStaffCount} staff registered
                       </span>
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
@@ -986,11 +1034,18 @@ export default function SettingsPage() {
                         }}
                       />
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      {subDetails.subscription.plan === 'STARTER' && 'Starter plan includes 2 cashier/apprentice seats plus 1 business administrator.'}
-                      {subDetails.subscription.plan === 'BUSINESS' && 'Business plan includes 4 cashier/apprentice seats plus 1 business administrator.'}
-                      {subDetails.subscription.plan === 'ENTERPRISE' && 'Enterprise custom cashier quota plus 1 business administrator managed by Super Administrator.'}
-                    </p>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-muted-foreground mt-1 gap-1">
+                      <p>
+                        {subDetails.subscription.plan === 'STARTER' && 'Starter plan includes 2 staff seats (branch managers & cashiers) plus 1 business administrator.'}
+                        {subDetails.subscription.plan === 'BUSINESS' && 'Business plan includes 4 staff seats (branch managers & cashiers) plus 1 business administrator.'}
+                        {subDetails.subscription.plan === 'ENTERPRISE' && 'Enterprise custom staff quota (branch managers & cashiers) plus 1 business administrator managed by Super Administrator.'}
+                      </p>
+                      {(subDetails.usage.cashierCount !== undefined || subDetails.usage.managerCount !== undefined) && (
+                        <span className="font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                          Breakdown: {subDetails.usage.managerCount ?? 0} branch {subDetails.usage.managerCount === 1 ? 'manager' : 'managers'}, {subDetails.usage.cashierCount ?? 0} {subDetails.usage.cashierCount === 1 ? 'cashier' : 'cashiers'}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Feature Capabilities Grid */}
@@ -1014,7 +1069,11 @@ export default function SettingsPage() {
                       <div>
                         <p className="font-semibold text-foreground">Custom Branded Domain</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {subDetails.capabilities.customDomain ? 'Active (Enterprise Plan)' : 'Locked on Starter & Business'}
+                          {subDetails.capabilities.customDomain
+                            ? 'Active (Branded Domain Configured)'
+                            : subDetails.subscription.plan === 'ENTERPRISE'
+                            ? 'Feature Available on Enterprise (Disabled)'
+                            : 'Locked on Starter & Business'}
                         </p>
                       </div>
                     </div>
@@ -1138,7 +1197,7 @@ export default function SettingsPage() {
       <InvoiceTemplatePreviewModal
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
-        templateId={effectiveTemplatePreviewId}
+        templateId={previewTemplateId}
         customTemplateUrl={customUrl || settings?.customTemplateUrl}
         businessName={settings?.businessName}
         tagline={settings?.tagline || undefined}
@@ -1148,6 +1207,10 @@ export default function SettingsPage() {
         receiptPrefix={settings?.receiptPrefix}
         tin={settings?.tin || undefined}
         cacOrRegNumber={settings?.cacOrRegNumber || undefined}
+        onSelectTemplate={(tpl) => {
+          setValueBusiness('receiptTemplateId', tpl, { shouldDirty: true });
+          setIsPreviewOpen(false);
+        }}
       />
     </div>
   );

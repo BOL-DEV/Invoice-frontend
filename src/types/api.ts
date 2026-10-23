@@ -143,7 +143,10 @@ export interface SubscriptionDetails {
   usage: {
     staffCount: number;
     maxStaffCount: number;
+    cashierCount?: number;
+    managerCount?: number;
   };
+
   aiScans?: {
     used: number;
     limit: number;
