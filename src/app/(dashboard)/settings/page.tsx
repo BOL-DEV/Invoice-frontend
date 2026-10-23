@@ -45,7 +45,6 @@ import {
   Store,
   Upload,
 } from 'lucide-react';
-import { BranchManagementSection } from '../../../features/branches';
 import { useModal } from '../../../components/ui/modal-provider';
 import { BusinessSettings } from '../../../types/api';
 import { getErrorDialog, getErrorMessage } from '../../../lib/api-error';
@@ -58,8 +57,8 @@ export default function SettingsPage() {
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const modal = useModal();
 
-  // Active Tab state: 'profile' (all users), 'business' (admin only), 'branches' (admin only), or 'subscription' (admin only)
-  const [activeTab, setActiveTab] = useState<'profile' | 'business' | 'branches' | 'subscription'>('profile');
+  // Active Tab state: 'profile' (all users), 'business' (admin only), or 'subscription' (admin only)
+  const [activeTab, setActiveTab] = useState<'profile' | 'business' | 'subscription'>('profile');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Subscription data
@@ -228,19 +227,12 @@ export default function SettingsPage() {
     return true;
   };
 
-  const hasMultiBranch = Boolean(
-    subDetails?.capabilities?.multipleBranches ??
-    subDetails?.subscription?.hasMultipleBranches ??
-    settings?.subscription?.hasMultipleBranches ??
+  const hasCustomDomainEnabled = Boolean(
+    subDetails?.capabilities?.customDomain ??
+    subDetails?.subscription?.hasCustomDomain ??
+    settings?.subscription?.hasCustomDomain ??
     false
   );
-
-  // Auto-switch away from branches tab if the business does not support multiple branches
-  useEffect(() => {
-    if (!hasMultiBranch && activeTab === 'branches') {
-      setActiveTab('business');
-    }
-  }, [hasMultiBranch, activeTab]);
 
   const customUrl = watchBusiness('customTemplateUrl') || settings?.customTemplateUrl;
   const currentReceiptTemplateId = watchBusiness('receiptTemplateId') || settings?.receiptTemplateId;
@@ -328,13 +320,7 @@ export default function SettingsPage() {
 
       {/* Tabs Selection (Modern Segmented Control) */}
       {isAdmin && !isSuperAdmin && (
-        <div
-          className={`p-1 rounded-xl bg-secondary/70 dark:bg-slate-900/80 border border-border/80 grid ${
-            hasMultiBranch
-              ? 'grid-cols-2 sm:grid-cols-4 sm:max-w-xl'
-              : 'grid-cols-3 sm:max-w-md'
-          } gap-1 w-full`}
-        >
+        <div className="p-1 rounded-xl bg-secondary/70 dark:bg-slate-900/80 border border-border/80 grid grid-cols-3 sm:max-w-md gap-1 w-full">
           <button
             type="button"
             onClick={() => setActiveTab('profile')}
@@ -361,21 +347,6 @@ export default function SettingsPage() {
             <span className="truncate">Company</span>
           </button>
 
-          {hasMultiBranch && (
-            <button
-              type="button"
-              onClick={() => setActiveTab('branches')}
-              className={`flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'branches'
-                  ? 'bg-card text-foreground shadow-sm border border-border/60 text-emerald-600 dark:text-emerald-400 font-bold'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-              }`}
-            >
-              <Store className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">Branches</span>
-            </button>
-          )}
-
           <button
             type="button"
             onClick={() => setActiveTab('subscription')}
@@ -386,7 +357,7 @@ export default function SettingsPage() {
             }`}
           >
             <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">Plan & Domains</span>
+            <span className="truncate">{hasCustomDomainEnabled ? 'Plan & Domains' : 'Plan & Quotas'}</span>
           </button>
         </div>
       )}
@@ -950,12 +921,6 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      {/* ========================================================= */}
-      {/* TAB 3: BRANCHES & DEPOTS (ADMIN ONLY)                     */}
-      {/* ========================================================= */}
-      {activeTab === 'branches' && hasMultiBranch && isAdmin && !isSuperAdmin && (
-        <BranchManagementSection />
-      )}
 
       {/* ========================================================= */}
       {/* TAB 4: SUBSCRIPTION & DOMAINS (ADMIN ONLY)                 */}
@@ -1095,70 +1060,79 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Custom Domains Manager */}
-          <Card className="border-border/80 bg-card shadow-premium rounded-2xl overflow-hidden">
-            <CardHeader className="p-4 sm:p-6 border-b border-border/80 bg-slate-50/50 dark:bg-slate-900/30">
-              <div className="flex items-center space-x-3">
-                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
-                  <Globe className="h-5 w-5" />
+          {/* Custom Domains Manager - only visible when customDomain capability is toggled ON */}
+          {hasCustomDomainEnabled && (
+            <Card className="border-border/80 bg-card shadow-premium rounded-2xl overflow-hidden">
+              <CardHeader className="p-4 sm:p-6 border-b border-border/80 bg-slate-50/50 dark:bg-slate-900/30">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+                    <Globe className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-sm sm:text-base font-bold text-foreground">
+                      Custom Domains
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      View active web domains and routing endpoints configured for this business workspace.
+                    </CardDescription>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle className="text-sm sm:text-base font-bold text-foreground">
-                    Custom Domains
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    View active web domains and routing endpoints configured for this business workspace.
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
+              </CardHeader>
 
-            <CardContent className="p-4 sm:p-6 space-y-4">
-
-              {/* Registered Domains Table (Read-Only) */}
-              <div className="space-y-2 pt-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold text-foreground">Active Registered Domains</h4>
-                  <Badge variant="outline" className="text-[10px] text-muted-foreground border-border font-mono">
-                    {subDetails?.domains?.length || 0} Registered
-                  </Badge>
-                </div>
-                <div className="divide-y divide-border/80 border border-border/80 rounded-xl overflow-hidden">
-                  {subDetails?.domains && subDetails.domains.length > 0 ? (
-                    subDetails.domains.map((d) => (
-                      <div key={d.id} className="p-3.5 flex items-center justify-between bg-card text-xs">
-                        <div className="flex items-center space-x-2.5">
-                          <Globe className="h-4 w-4 text-emerald-500 shrink-0" />
-                          <span className="font-mono font-medium text-foreground">{d.domain}</span>
-                          {d.isPrimary && (
-                            <Badge variant="outline" className="text-[10px] py-0 px-2 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5">
-                              Primary Platform Domain
-                            </Badge>
-                          )}
-                          {d.isCustom && (
-                            <Badge variant="outline" className="text-[10px] py-0 px-2 border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/5">
-                              Custom Brand Domain
-                            </Badge>
-                          )}
-                        </div>
-
-                        <div className="flex items-center space-x-2 text-[11px] text-muted-foreground font-mono">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                          <span>Connected</span>
-                        </div>
+              <CardContent className="p-4 sm:p-6 space-y-4">
+                {/* Registered Domains Table (Read-Only) */}
+                {(() => {
+                  const validDomains = (subDetails?.domains || []).filter(
+                    (d) => d.domain && !d.domain.endsWith('.localhost')
+                  );
+                  return (
+                    <div className="space-y-2 pt-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-semibold text-foreground">Active Registered Domains</h4>
+                        <Badge variant="outline" className="text-[10px] text-muted-foreground border-border font-mono">
+                          {validDomains.length} Registered
+                        </Badge>
                       </div>
-                    ))
-                  ) : (
-                    <div className="p-6 text-center text-xs text-muted-foreground">
-                      No custom domains registered yet. Contact platform administration to attach your branded domain.
+                      <div className="divide-y divide-border/80 border border-border/80 rounded-xl overflow-hidden">
+                        {validDomains.length > 0 ? (
+                          validDomains.map((d) => (
+                            <div key={d.id} className="p-3.5 flex items-center justify-between bg-card text-xs">
+                              <div className="flex items-center space-x-2.5">
+                                <Globe className="h-4 w-4 text-emerald-500 shrink-0" />
+                                <span className="font-mono font-medium text-foreground">{d.domain}</span>
+                                {d.isPrimary && (
+                                  <Badge variant="outline" className="text-[10px] py-0 px-2 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5">
+                                    Primary Platform Domain
+                                  </Badge>
+                                )}
+                                {d.isCustom && (
+                                  <Badge variant="outline" className="text-[10px] py-0 px-2 border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/5">
+                                    Custom Brand Domain
+                                  </Badge>
+                                )}
+                              </div>
+
+                              <div className="flex items-center space-x-2 text-[11px] text-muted-foreground font-mono">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                <span>Connected</span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-6 text-center text-xs text-muted-foreground">
+                            No custom domains registered yet. Contact platform administration to attach your branded domain.
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
+
 
       {/* Template Preview Modal */}
       <InvoiceTemplatePreviewModal
