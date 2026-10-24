@@ -33,46 +33,80 @@ import {
 } from 'lucide-react';
 import { apiClient } from '../../services/api/axios';
 import { API_ENDPOINTS } from '../../services/api/endpoints';
-import { CustomTemplateConfig } from '../../types/api';
+import { CustomTemplateConfig, CustomTemplateColumn } from '../../types/api';
 
 const DEFAULT_CONFIG: CustomTemplateConfig = {
   templateName: 'AI Custom Crafted Template',
   description: 'Bespoke custom invoice layout extracted and crafted from uploaded sample design.',
+  archetype: 'commercial-docket',
   theme: {
-    primaryColor: '#0f2942',
-    secondaryColor: '#0d9488',
-    accentColor: '#f59e0b',
+    primaryColor: '#0052cc',
+    secondaryColor: '#172b4d',
+    accentColor: '#0052cc',
     backgroundColor: '#ffffff',
-    textColor: '#0f172a',
-    mutedTextColor: '#64748b',
+    textColor: '#172b4d',
+    mutedTextColor: '#5e6c84',
     fontFamily: 'sans',
   },
   header: {
-    layout: 'modern-split',
+    layout: 'classic-centered',
+    style: 'centered-commercial',
     showLogo: true,
-    logoPosition: 'left',
-    titleText: 'COMMERCIAL INVOICE',
+    logoPosition: 'center',
+    titleText: 'CASH SALES/INVOICE',
+    titleBadge: {
+      style: 'pill',
+      text: 'CASH SALES/INVOICE',
+      alignment: 'left',
+      badgeColor: '#0052cc',
+      badgeTextColor: '#ffffff',
+    },
+    metaBox: {
+      style: 'day-month-year-grid',
+      fields: ['date_grid', 'lpo_number'],
+    },
+  },
+  customer: {
+    style: 'dotted-ledger',
+    showBilledToPill: false,
+    nameLabel: 'Name:',
+    addressLabel: 'Address:',
   },
   table: {
-    headerBackground: '#0f2942',
+    headerBackground: '#0052cc',
     headerTextColor: '#ffffff',
-    alternateRowStriping: true,
-    alternateRowColor: '#f8fafc',
-    borderStyle: 'horizontal-only',
-    borderColor: '#e2e8f0',
+    alternateRowStriping: false,
+    borderStyle: 'grid',
+    gridStyle: 'full-grid',
+    borderColor: '#0052cc',
+    columns: [
+      { id: 'qty', label: 'QTY.', field: 'qty', widthPercent: 15, align: 'center' },
+      { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 45, align: 'left' },
+      { id: 'price', label: 'UNIT PRICE', field: 'unit_price', widthPercent: 20, align: 'right' },
+      { id: 'amt', label: 'AMOUNT', field: 'amount', widthPercent: 20, align: 'right' },
+    ],
+    fillBlankRows: true,
+    minRows: 8,
   },
   summary: {
     position: 'right',
-    highlightTotalBackground: '#0f2942',
-    highlightTotalTextColor: '#ffffff',
-    showAmountInWords: true,
+    layout: 'table-integrated',
+    totalLabel: 'GRAND TOTAL',
+    highlightTotalBackground: '#ffffff',
+    highlightTotalTextColor: '#0052cc',
+    showAmountInWords: false,
   },
   footer: {
-    guaranteeText: 'Guaranteed goods are not returnable after purchase. No refund of money after payment.',
+    guaranteeText: 'GOODS SOLD OUT ARE NOT RETURNABLE',
+    courtesyGreeting: 'THANKS FOR DOING BUSINESS WITH US',
+    centerGraphic: 'handshake',
     showSignatures: true,
-    signatureCount: 2,
-    signatureLabels: ["Customer's Acceptance", 'Authorized Signatory'],
-    termsAndConditions: 'Payment is due within payment terms. All trade dispute terms governed by commercial laws.',
+    signatureCount: 1,
+    signatureLabels: ['Customer Signature'],
+    signatureBlocks: [
+      { label: 'Customer Signature', style: 'dotted', position: 'left' },
+    ],
+    termsAndConditions: 'Goods sold out are not returnable.',
   },
 };
 
@@ -184,9 +218,10 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
       }
     } catch (err: any) {
       console.error('Refinement failed:', err);
+      const errMsg = err?.response?.data?.message || err?.message || 'Could not apply AI change. Please try again or rephrase.';
       setChatHistory((prev) => [
         ...prev,
-        { role: 'assistant', content: 'Could not apply AI change. Please try again or rephrase.' },
+        { role: 'assistant', content: errMsg },
       ]);
     } finally {
       setIsRefining(false);
@@ -271,40 +306,183 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
           <div className="flex-1 overflow-y-auto overflow-x-auto p-3 sm:p-6 flex flex-col items-center justify-start relative">
             {/* View Mode Toggle when on Custom Tab */}
             {activeTab === 'custom' && (
-              <div className="w-full max-w-[760px] flex items-center justify-between pb-3 text-xs mb-2">
-                <div className="flex items-center space-x-1 bg-slate-900 border border-slate-800 p-1 rounded-xl">
+              <>
+                <div className="w-full max-w-[760px] flex items-center justify-between pb-3 text-xs mb-2">
+                  <div className="flex items-center space-x-1 bg-slate-900 border border-slate-800 p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('template')}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
+                        viewMode === 'template'
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      <span>Dynamic Template</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('reference')}
+                      disabled={!aiConfig.rawImagePreviewUrl}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
+                        viewMode === 'reference'
+                          ? 'bg-purple-600 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed'
+                      }`}
+                    >
+                      <ImageIcon className="h-3.5 w-3.5" />
+                      <span>Original Upload Sample</span>
+                    </button>
+                  </div>
+
+                  <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">
+                    {aiConfig.templateName || 'AI Extracted Layout'}
+                  </Badge>
+                </div>
+
+                {/* 1-Click Archetype & Layout Quick-Switcher Toolbar */}
+                <div className="w-full max-w-[760px] bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2 shadow-lg mb-2">
+                <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                  <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1 mr-1">
+                    <Sliders className="h-3 w-3 text-purple-400" />
+                    <span>Archetype:</span>
+                  </span>
                   <button
                     type="button"
-                    onClick={() => setViewMode('template')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
-                      viewMode === 'template'
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white'
+                    onClick={() => setAiConfig(prev => ({
+                      ...prev,
+                      archetype: 'commercial-docket',
+                      header: {
+                        ...prev.header,
+                        style: 'centered-commercial',
+                        layout: 'classic-centered',
+                        titleBadge: {
+                          style: 'pill',
+                          text: prev.header.titleBadge?.text || prev.header.titleText || 'CASH SALES/INVOICE',
+                          alignment: 'left',
+                          badgeColor: prev.theme.primaryColor,
+                          badgeTextColor: '#ffffff',
+                        },
+                      },
+                      customer: { ...prev.customer, style: 'dotted-ledger' },
+                      table: {
+                        ...prev.table,
+                        gridStyle: 'full-grid',
+                        fillBlankRows: true,
+                        columns: [
+                          { id: 'qty', label: 'QTY.', field: 'qty', widthPercent: 15, align: 'center' },
+                          { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 45, align: 'left' },
+                          { id: 'price', label: 'UNIT PRICE', field: 'unit_price', widthPercent: 20, align: 'right' },
+                          { id: 'amt', label: 'AMOUNT', field: 'amount', widthPercent: 20, align: 'right' },
+                        ],
+                      },
+                      summary: { ...prev.summary, layout: 'table-integrated' },
+                      footer: { ...prev.footer, centerGraphic: 'handshake' },
+                    }))}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      (aiConfig.archetype === 'commercial-docket' || aiConfig.header.style === 'centered-commercial')
+                        ? 'bg-purple-600 text-white shadow-sm'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     }`}
                   >
-                    <FileText className="h-3.5 w-3.5" />
-                    <span>Dynamic Template</span>
+                    Commercial Docket
                   </button>
                   <button
                     type="button"
-                    onClick={() => setViewMode('reference')}
-                    disabled={!aiConfig.rawImagePreviewUrl}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
-                      viewMode === 'reference'
+                    onClick={() => setAiConfig(prev => ({
+                      ...prev,
+                      archetype: 'modern-split',
+                      header: { ...prev.header, style: 'split-modern', layout: 'modern-split' },
+                      customer: { ...prev.customer, style: 'card-bordered' },
+                      table: {
+                        ...prev.table,
+                        gridStyle: 'horizontal-ledger',
+                        fillBlankRows: false,
+                        columns: [
+                          { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 45, align: 'left' },
+                          { id: 'qty', label: 'QTY', field: 'qty', widthPercent: 15, align: 'center' },
+                          { id: 'price', label: 'RATE (₦)', field: 'unit_price', widthPercent: 20, align: 'right' },
+                          { id: 'amt', label: 'AMOUNT (₦)', field: 'amount', widthPercent: 20, align: 'right' },
+                        ],
+                      },
+                      summary: { ...prev.summary, layout: 'card-bottom-right' },
+                    }))}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      (aiConfig.archetype === 'modern-split' || aiConfig.header.style === 'split-modern')
                         ? 'bg-purple-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     }`}
                   >
-                    <ImageIcon className="h-3.5 w-3.5" />
-                    <span>Original Upload Sample</span>
+                    Modern SaaS
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAiConfig(prev => ({
+                      ...prev,
+                      archetype: 'banner',
+                      header: { ...prev.header, style: 'banner', layout: 'banner' },
+                    }))}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      aiConfig.header.style === 'banner'
+                        ? 'bg-purple-600 text-white shadow-sm'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    Top Banner
                   </button>
                 </div>
 
-                <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">
-                  {aiConfig.templateName || 'AI Extracted Layout'}
-                </Badge>
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Columns:</span>
+                  <button
+                    type="button"
+                    onClick={() => setAiConfig(prev => ({
+                      ...prev,
+                      table: {
+                        ...prev.table,
+                        columns: [
+                          { id: 'qty', label: 'QTY.', field: 'qty', widthPercent: 15, align: 'center' },
+                          { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 45, align: 'left' },
+                          { id: 'price', label: 'UNIT PRICE', field: 'unit_price', widthPercent: 20, align: 'right' },
+                          { id: 'amt', label: 'AMOUNT', field: 'amount', widthPercent: 20, align: 'right' },
+                        ],
+                      },
+                    }))}
+                    className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                      aiConfig.table.columns?.[0]?.field === 'qty'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    QTY First
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAiConfig(prev => ({
+                      ...prev,
+                      table: {
+                        ...prev.table,
+                        columns: [
+                          { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 45, align: 'left' },
+                          { id: 'qty', label: 'QTY', field: 'qty', widthPercent: 15, align: 'center' },
+                          { id: 'price', label: 'RATE (₦)', field: 'unit_price', widthPercent: 20, align: 'right' },
+                          { id: 'amt', label: 'AMOUNT (₦)', field: 'amount', widthPercent: 20, align: 'right' },
+                        ],
+                      },
+                    }))}
+                    className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                      aiConfig.table.columns?.[0]?.field === 'description'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    Desc First
+                  </button>
+                </div>
               </div>
-            )}
+            </>
+          )}
 
             {/* ========================================================= */}
             {/* 1. CLASSIC INDUSTRIAL / THERMAL TEMPLATE                  */}
@@ -516,177 +694,356 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                   />
                 )}
 
-                {/* Header Layout */}
-                {aiConfig.header.layout === 'banner' ? (
-                  <div
-                    className="p-4 rounded-xl mb-6 flex flex-col sm:flex-row justify-between items-center gap-3"
-                    style={{
-                      backgroundColor: aiConfig.header.bannerBackground || aiConfig.theme.primaryColor,
-                      color: aiConfig.header.bannerTextColor || '#ffffff',
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
+                {/* Header & Sub-Header Layout */}
+                {aiConfig.archetype === 'commercial-docket' || aiConfig.header.style === 'centered-commercial' ? (
+                  /* 1. Centered Commercial Docket Layout (exact match to paper receipt/invoice) */
+                  <div className="mb-4">
+                    {/* Centered Business Header */}
+                    <div className="text-center pb-3 mb-3 border-b-2" style={{ borderColor: aiConfig.theme.primaryColor }}>
                       {(logoUrl || logo) && (
-                        <img
-                          src={(logoUrl || logo) as string}
-                          alt={bizName}
-                          className="h-12 w-12 object-contain bg-white rounded-lg p-1 shadow-sm shrink-0"
-                        />
+                        <div className="flex justify-center mb-1.5">
+                          <img
+                            src={(logoUrl || logo) as string}
+                            alt={bizName}
+                            className="h-12 max-w-[160px] object-contain"
+                          />
+                        </div>
                       )}
-                      <div>
-                        <h2 className="text-xl font-bold font-heading">{bizName}</h2>
-                        <p className="text-xs opacity-90 mt-0.5">{address} • {phone}</p>
-                      </div>
+                      <h2 className="text-2xl sm:text-3xl font-black font-heading uppercase tracking-tight" style={{ color: aiConfig.theme.primaryColor }}>
+                        {bizName}
+                      </h2>
+                      {tagline && (
+                        <p className="text-xs font-bold uppercase tracking-wider mt-0.5" style={{ color: aiConfig.theme.primaryColor }}>
+                          {tagline}
+                        </p>
+                      )}
+                      <p className="text-xs font-semibold uppercase mt-0.5 text-slate-700">
+                        {address}
+                      </p>
+                      <p className="text-xs font-mono font-bold mt-0.5" style={{ color: aiConfig.theme.primaryColor }}>
+                        TEL: {phone}
+                      </p>
                     </div>
-                    <div className="text-right">
-                      <span className="text-xl font-black">{aiConfig.header.titleText || 'INVOICE'}</span>
-                      <p className="text-xs font-mono font-bold mt-0.5">{prefix}-0000042</p>
+
+                    {/* Sub-header Dual-Box: Left Customer Dotted Ledger Box + Right Date/LPO Grid Box */}
+                    <div className="flex flex-col sm:flex-row items-end justify-between gap-3">
+                      {/* Left Column: Pill Badge + Customer Dotted Ledger Box */}
+                      <div className="w-full sm:w-[60%] space-y-2">
+                        <div>
+                          <span
+                            className="px-5 py-1.5 rounded-full font-black text-xs sm:text-sm uppercase tracking-wider shadow-sm inline-block text-white"
+                            style={{
+                              backgroundColor: aiConfig.header.titleBadge?.badgeColor || aiConfig.theme.primaryColor,
+                              color: aiConfig.header.titleBadge?.badgeTextColor || '#ffffff',
+                            }}
+                          >
+                            {aiConfig.header.titleBadge?.text || aiConfig.header.titleText || 'CASH SALES/INVOICE'}
+                          </span>
+                        </div>
+
+                        <div
+                          className="border-2 rounded-xl p-2.5 sm:p-3"
+                          style={{ borderColor: aiConfig.table.borderColor }}
+                        >
+                          <div className="space-y-2 text-xs">
+                            <div className="flex items-baseline gap-2">
+                              <span className="font-bold shrink-0 text-xs uppercase" style={{ color: aiConfig.theme.primaryColor }}>
+                                {aiConfig.customer?.nameLabel || 'Name:'}
+                              </span>
+                              <span
+                                className="flex-1 border-b-2 border-dotted pb-0.5 font-bold font-sans text-slate-900 text-xs"
+                                style={{ borderColor: aiConfig.table.borderColor }}
+                              >
+                                Alhaji Musa Dangote &amp; Sons Ltd.
+                              </span>
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="font-bold shrink-0 text-xs uppercase" style={{ color: aiConfig.theme.primaryColor }}>
+                                {aiConfig.customer?.addressLabel || 'Address:'}
+                              </span>
+                              <span
+                                className="flex-1 border-b-2 border-dotted pb-0.5 font-sans text-slate-700 text-xs"
+                                style={{ borderColor: aiConfig.table.borderColor }}
+                              >
+                                Plot 14, Commercial District, Ikeja
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Column: 3-Column Date Box + LPO Number */}
+                      <div className="w-full sm:w-[37%] flex flex-col justify-end">
+                        <div
+                          className="border-2 rounded-xl overflow-hidden text-center text-[10px]"
+                          style={{ borderColor: aiConfig.table.borderColor }}
+                        >
+                          <div
+                            className="grid grid-cols-3 font-bold py-1 px-1 uppercase tracking-wide text-white"
+                            style={{ backgroundColor: aiConfig.header.titleBadge?.badgeColor || aiConfig.theme.primaryColor }}
+                          >
+                            <span className="px-1">Day</span>
+                            <span className="px-1 border-l border-r border-white/30">Month</span>
+                            <span className="px-1">Year</span>
+                          </div>
+                          <div
+                            className="grid grid-cols-3 font-mono py-1.5 px-1 bg-white font-bold"
+                            style={{ color: aiConfig.theme.textColor }}
+                          >
+                            <span className="px-1">{new Date().getDate().toString().padStart(2, '0')}</span>
+                            <span className="px-1 border-l border-r" style={{ borderColor: aiConfig.table.borderColor }}>
+                              {(new Date().getMonth() + 1).toString().padStart(2, '0')}
+                            </span>
+                            <span className="px-1">{new Date().getFullYear()}</span>
+                          </div>
+                          <div className="p-1.5 bg-slate-50 border-t flex items-center justify-between text-xs font-mono" style={{ borderColor: aiConfig.table.borderColor }}>
+                            <span className="font-bold text-[11px]" style={{ color: aiConfig.theme.primaryColor }}>L.P.O #:</span>
+                            <span
+                              className="border-b-2 border-dotted w-20 inline-block pb-0.5 text-center font-bold"
+                              style={{ borderColor: aiConfig.table.borderColor }}
+                            >
+                              0429
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                ) : aiConfig.header.layout === 'classic-centered' ? (
-                  <div className="text-center pb-5 mb-5 border-b-2" style={{ borderColor: aiConfig.theme.primaryColor }}>
-                    {(logoUrl || logo) && (
-                      <div className="flex justify-center mb-2.5">
-                        <img
-                          src={(logoUrl || logo) as string}
-                          alt={bizName}
-                          className="h-14 max-w-[180px] object-contain"
-                        />
+                ) : aiConfig.header.style === 'banner' || aiConfig.header.layout === 'banner' ? (
+                  /* 2. Top Banner Layout */
+                  <div>
+                    <div
+                      className="p-4 rounded-xl mb-4 flex flex-col sm:flex-row justify-between items-center gap-3"
+                      style={{
+                        backgroundColor: aiConfig.header.bannerBackground || aiConfig.theme.primaryColor,
+                        color: aiConfig.header.bannerTextColor || '#ffffff',
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        {(logoUrl || logo) && (
+                          <img
+                            src={(logoUrl || logo) as string}
+                            alt={bizName}
+                            className="h-12 w-12 object-contain bg-white rounded-lg p-1 shadow-sm shrink-0"
+                          />
+                        )}
+                        <div>
+                          <h2 className="text-xl font-bold font-heading">{bizName}</h2>
+                          <p className="text-xs opacity-90 mt-0.5">{address} • {phone}</p>
+                        </div>
                       </div>
-                    )}
-                    <h2 className="text-2xl font-black font-heading uppercase tracking-tight" style={{ color: aiConfig.theme.primaryColor }}>
-                      {bizName}
-                    </h2>
-                    {tagline && (
-                      <p className="text-xs italic mt-1" style={{ color: aiConfig.theme.secondaryColor }}>
-                        &ldquo;{tagline}&rdquo;
-                      </p>
-                    )}
-                    <p className="text-xs text-slate-600 mt-1">{address}</p>
-                    <p className="text-xs font-mono text-slate-500 mt-0.5">Mobile: {phone} • Email: {email}</p>
-                    {cacOrRegNumber && <p className="text-[11px] font-mono font-bold mt-1">RC: {cacOrRegNumber} | TIN: {tin || '24891023-0001'}</p>}
+                      <div className="text-right">
+                        <span className="text-xl font-black">{aiConfig.header.titleText || 'INVOICE'}</span>
+                        <p className="text-xs font-mono font-bold mt-0.5">{prefix}-0000042</p>
+                      </div>
+                    </div>
+                    {/* Customer section for banner */}
+                    <div
+                      className="rounded-xl p-3 mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs gap-2 border"
+                      style={{
+                        backgroundColor: aiConfig.table.alternateRowColor || '#f8fafc',
+                        borderColor: aiConfig.table.borderColor,
+                      }}
+                    >
+                      <div>
+                        <span className="text-[10px] font-bold uppercase" style={{ color: aiConfig.theme.mutedTextColor }}>Billed To:</span>
+                        <p className="font-bold text-sm text-slate-900 mt-0.5">Alhaji Musa Dangote & Sons Ltd.</p>
+                        <p className="text-slate-600 text-xs">08023456789 • Orile Commercial Depot</p>
+                      </div>
+                      <Badge className="font-mono text-xs" style={{ backgroundColor: aiConfig.theme.accentColor || '#f59e0b', color: '#ffffff' }}>
+                        FINALIZED ORDER
+                      </Badge>
+                    </div>
                   </div>
                 ) : (
-                  // Modern split
-                  <div className="flex justify-between items-start pb-5 mb-5 border-b" style={{ borderColor: aiConfig.table.borderColor }}>
-                    <div className="flex items-start gap-3">
-                      {(logoUrl || logo) && (
-                        <img
-                          src={(logoUrl || logo) as string}
-                          alt={bizName}
-                          className="h-12 w-12 object-contain rounded-xl border border-slate-200 bg-white p-1 shadow-sm shrink-0"
-                        />
-                      )}
-                      <div>
-                        <h2 className="text-xl font-black font-heading" style={{ color: aiConfig.theme.primaryColor }}>
-                          {bizName}
-                        </h2>
-                        {tagline && <p className="text-xs italic mt-0.5" style={{ color: aiConfig.theme.secondaryColor }}>{tagline}</p>}
-                        <p className="text-xs text-slate-600 mt-1">{address}</p>
-                        <p className="text-xs font-mono text-slate-500 mt-0.5">{phone} • {email}</p>
+                  /* 3. Modern Split Layout */
+                  <div>
+                    <div className="flex justify-between items-start pb-5 mb-4 border-b" style={{ borderColor: aiConfig.table.borderColor }}>
+                      <div className="flex items-start gap-3">
+                        {(logoUrl || logo) && (
+                          <img
+                            src={(logoUrl || logo) as string}
+                            alt={bizName}
+                            className="h-12 w-12 object-contain rounded-xl border border-slate-200 bg-white p-1 shadow-sm shrink-0"
+                          />
+                        )}
+                        <div>
+                          <h2 className="text-xl font-black font-heading" style={{ color: aiConfig.theme.primaryColor }}>
+                            {bizName}
+                          </h2>
+                          {tagline && <p className="text-xs italic mt-0.5" style={{ color: aiConfig.theme.secondaryColor }}>{tagline}</p>}
+                          <p className="text-xs text-slate-600 mt-2">{address}</p>
+                          <p className="text-xs font-mono text-slate-500 mt-0.5">{phone} • {email}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-2xl font-black" style={{ color: aiConfig.theme.primaryColor }}>
+                          {aiConfig.header.titleText || 'INVOICE'}
+                        </span>
+                        <p className="text-xs font-mono font-bold mt-1" style={{ color: aiConfig.theme.secondaryColor }}>
+                          {prefix}-0000042
+                        </p>
+                        <p className="text-xs text-slate-500 mt-0.5">{new Date().toLocaleDateString('en-GB')}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-2xl font-black" style={{ color: aiConfig.theme.primaryColor }}>
-                        {aiConfig.header.titleText || 'INVOICE'}
-                      </span>
-                      <p className="text-xs font-mono font-bold mt-1" style={{ color: aiConfig.theme.secondaryColor }}>
-                        {prefix}-0000042
-                      </p>
-                      <p className="text-xs text-slate-500 mt-0.5">{new Date().toLocaleDateString('en-GB')}</p>
+
+                    {/* Customer section for modern split */}
+                    <div
+                      className="rounded-xl p-3 sm:p-4 mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs gap-2 border"
+                      style={{
+                        backgroundColor: aiConfig.table.alternateRowColor || '#f8fafc',
+                        borderColor: aiConfig.table.borderColor,
+                      }}
+                    >
+                      <div>
+                        <span className="text-[10px] font-bold uppercase" style={{ color: aiConfig.theme.mutedTextColor }}>Billed To:</span>
+                        <p className="font-bold text-sm text-slate-900 mt-0.5">Alhaji Musa Dangote & Sons Ltd.</p>
+                        <p className="text-slate-600 text-xs">08023456789 • Orile Commercial Depot</p>
+                      </div>
+                      <Badge className="font-mono text-xs" style={{ backgroundColor: aiConfig.theme.accentColor || '#f59e0b', color: '#ffffff' }}>
+                        FINALIZED ORDER
+                      </Badge>
                     </div>
                   </div>
                 )}
 
-                {/* Customer Bill To Box */}
-                <div
-                  className="rounded-xl p-3 sm:p-4 mb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs gap-2 border"
-                  style={{
-                    backgroundColor: aiConfig.table.alternateRowColor || '#f8fafc',
-                    borderColor: aiConfig.table.borderColor,
-                  }}
-                >
-                  <div>
-                    <span className="text-[10px] font-bold uppercase" style={{ color: aiConfig.theme.mutedTextColor }}>Billed To:</span>
-                    <p className="font-bold text-sm text-slate-900 mt-0.5">Alhaji Musa Dangote & Sons Ltd.</p>
-                    <p className="text-slate-600 text-xs">08023456789 • Orile Market</p>
-                  </div>
-                  <Badge
-                    className="font-mono text-xs"
-                    style={{
-                      backgroundColor: aiConfig.theme.accentColor || '#f59e0b',
-                      color: '#ffffff',
-                    }}
-                  >
-                    FINALIZED ORDER
-                  </Badge>
-                </div>
+                {/* Dynamic Table Layout */}
+                {(() => {
+                  const activeColumns: CustomTemplateColumn[] = (aiConfig.table.columns && aiConfig.table.columns.length > 0)
+                    ? aiConfig.table.columns
+                    : [
+                        { id: 'qty', label: 'QTY.', field: 'qty', widthPercent: 15, align: 'center' },
+                        { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 45, align: 'left' },
+                        { id: 'price', label: 'UNIT PRICE', field: 'unit_price', widthPercent: 20, align: 'right' },
+                        { id: 'amt', label: 'AMOUNT', field: 'amount', widthPercent: 20, align: 'right' },
+                      ];
 
-                {/* Table */}
-                <div className="overflow-x-auto mb-5 rounded-lg border" style={{ borderColor: aiConfig.table.borderColor }}>
-                  <table className="w-full text-xs border-collapse">
-                    <thead>
-                      <tr
+                  const sampleRows = [
+                    { qty: '120 PCS', description: '12mm TMT Deformed Rebar (Length: 12m)', unit_price: '8,500.00', amount: '1,020,000.00', index: 1 },
+                    { qty: '80 PCS', description: '16mm High-Yield High-Tensile Steel Rod', unit_price: '14,200.00', amount: '1,136,000.00', index: 2 },
+                  ];
+
+                  const emptyRowCount = aiConfig.table.fillBlankRows !== false
+                    ? Math.max(3, (aiConfig.table.minRows || 8) - sampleRows.length)
+                    : 0;
+
+                  return (
+                    <div className="overflow-x-auto mb-4 rounded-xl border-2" style={{ borderColor: aiConfig.table.borderColor }}>
+                      <table className="w-full text-xs border-collapse">
+                        <thead>
+                          <tr
+                            style={{
+                              backgroundColor: aiConfig.table.headerBackground || aiConfig.theme.primaryColor,
+                              color: aiConfig.table.headerTextColor || '#ffffff',
+                            }}
+                          >
+                            {activeColumns.map((col, cIdx) => (
+                              <th
+                                key={col.id || cIdx}
+                                className={`p-2.5 font-bold uppercase tracking-wider text-xs ${
+                                  col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
+                                } ${cIdx < activeColumns.length - 1 ? 'border-r border-white/30' : ''}`}
+                                style={{ width: col.widthPercent ? `${col.widthPercent}%` : undefined }}
+                              >
+                                {col.label}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="font-mono divide-y" style={{ borderColor: aiConfig.table.borderColor }}>
+                          {sampleRows.map((row, rIdx) => (
+                            <tr
+                              key={rIdx}
+                              style={{
+                                backgroundColor: aiConfig.table.alternateRowStriping && rIdx % 2 === 1
+                                  ? aiConfig.table.alternateRowColor || '#f8fafc'
+                                  : '#ffffff',
+                              }}
+                            >
+                              {activeColumns.map((col, cIdx) => (
+                                <td
+                                  key={col.id || cIdx}
+                                  className={`p-2.5 text-xs ${
+                                    col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
+                                  } ${col.field === 'description' ? 'font-sans font-semibold' : ''} ${
+                                    col.field === 'amount' ? 'font-bold' : ''
+                                  } ${cIdx < activeColumns.length - 1 ? 'border-r' : ''}`}
+                                  style={{ borderColor: aiConfig.table.borderColor }}
+                                >
+                                  {(row as any)[col.field] || (col.field === 'index' ? rIdx + 1 : '—')}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+
+                          {/* Empty ledger rows */}
+                          {Array.from({ length: emptyRowCount }).map((_, eIdx) => (
+                            <tr key={`empty_${eIdx}`} className="h-7" style={{ backgroundColor: '#ffffff' }}>
+                              {activeColumns.map((col, cIdx) => (
+                                <td
+                                  key={`empty_col_${cIdx}`}
+                                  className={`p-2.5 ${cIdx < activeColumns.length - 1 ? 'border-r' : ''}`}
+                                  style={{ borderColor: aiConfig.table.borderColor }}
+                                >
+                                  &nbsp;
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+
+                          {/* Integrated Grand Total Row */}
+                          {aiConfig.summary.layout === 'table-integrated' && (
+                            <tr className="font-bold border-t-2" style={{ borderColor: aiConfig.table.borderColor }}>
+                              <td
+                                colSpan={Math.max(1, activeColumns.length - 1)}
+                                className="p-2.5 text-right font-black uppercase tracking-wider text-xs"
+                                style={{ color: aiConfig.theme.primaryColor }}
+                              >
+                                {aiConfig.summary.totalLabel || 'GRAND TOTAL'} (₦):
+                              </td>
+                              <td
+                                className="p-2.5 text-right font-black text-sm font-mono border-l-2"
+                                style={{
+                                  borderColor: aiConfig.table.borderColor,
+                                  backgroundColor: aiConfig.summary.highlightTotalBackground || '#ffffff',
+                                  color: aiConfig.summary.highlightTotalTextColor || aiConfig.theme.primaryColor,
+                                }}
+                              >
+                                2,156,000.00
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+
+                {/* Detached Totals Card if not table-integrated */}
+                {aiConfig.summary.layout !== 'table-integrated' && (
+                  <div className="flex justify-end mb-4">
+                    <div className="w-72 space-y-2 text-xs font-mono">
+                      <div className="flex justify-between text-slate-600">
+                        <span>Subtotal:</span>
+                        <span>₦2,156,000.00</span>
+                      </div>
+                      <div
+                        className="flex justify-between font-bold text-sm p-2.5 rounded-lg shadow-sm"
                         style={{
-                          backgroundColor: aiConfig.table.headerBackground || aiConfig.theme.primaryColor,
-                          color: aiConfig.table.headerTextColor || '#ffffff',
+                          backgroundColor: aiConfig.summary.highlightTotalBackground || aiConfig.theme.primaryColor,
+                          color: aiConfig.summary.highlightTotalTextColor || '#ffffff',
                         }}
                       >
-                        <th className="p-2.5 text-center w-10">#</th>
-                        <th className="p-2.5 text-left">DESCRIPTION OF GOODS</th>
-                        <th className="p-2.5 text-center w-20">QTY</th>
-                        <th className="p-2.5 text-right w-28">RATE (₦)</th>
-                        <th className="p-2.5 text-right w-28">AMOUNT (₦)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="font-mono divide-y" style={{ borderColor: aiConfig.table.borderColor }}>
-                      <tr style={{ backgroundColor: '#ffffff' }}>
-                        <td className="p-2.5 text-center">1</td>
-                        <td className="p-2.5 font-sans font-semibold">12mm TMT Deformed Rebar (Length: 12m)</td>
-                        <td className="p-2.5 text-center">120 PCS</td>
-                        <td className="p-2.5 text-right">8,500.00</td>
-                        <td className="p-2.5 text-right font-bold">1,020,000.00</td>
-                      </tr>
-                      <tr
-                        style={{
-                          backgroundColor: aiConfig.table.alternateRowStriping
-                            ? aiConfig.table.alternateRowColor || '#f8fafc'
-                            : '#ffffff',
-                        }}
-                      >
-                        <td className="p-2.5 text-center">2</td>
-                        <td className="p-2.5 font-sans font-semibold">16mm High-Yield High-Tensile Steel Rod</td>
-                        <td className="p-2.5 text-center">80 PCS</td>
-                        <td className="p-2.5 text-right">14,200.00</td>
-                        <td className="p-2.5 text-right font-bold">1,136,000.00</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Totals Section */}
-                <div className="flex justify-end mb-5">
-                  <div className="w-72 space-y-2 text-xs font-mono">
-                    <div className="flex justify-between text-slate-600">
-                      <span>Subtotal:</span>
-                      <span>₦2,156,000.00</span>
-                    </div>
-                    <div
-                      className="flex justify-between font-bold text-sm p-2.5 rounded-lg shadow-sm"
-                      style={{
-                        backgroundColor: aiConfig.summary.highlightTotalBackground || aiConfig.theme.primaryColor,
-                        color: aiConfig.summary.highlightTotalTextColor || '#ffffff',
-                      }}
-                    >
-                      <span>TOTAL DUE:</span>
-                      <span>₦2,156,000.00</span>
+                        <span>{aiConfig.summary.totalLabel || 'TOTAL DUE'}:</span>
+                        <span>₦2,156,000.00</span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Amount in words */}
-                {aiConfig.summary.showAmountInWords !== false && (
-                  <div className="pb-3 mb-3 border-b text-xs" style={{ borderColor: aiConfig.table.borderColor }}>
+                {aiConfig.summary.showAmountInWords && (
+                  <div className="pb-2 mb-3 border-b text-xs" style={{ borderColor: aiConfig.table.borderColor }}>
                     <span className="font-bold text-[10px] text-slate-500 uppercase mr-2">Amount in Words:</span>
                     <span className="italic font-serif" style={{ color: aiConfig.theme.primaryColor }}>
                       Two Million, One Hundred and Fifty-Six Thousand Naira Only.
@@ -694,29 +1051,73 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                   </div>
                 )}
 
-                {/* Guarantee & Terms */}
-                {aiConfig.footer.guaranteeText && (
-                  <p className="text-[10px] font-bold text-red-600 mb-2 leading-relaxed">
-                    {aiConfig.footer.guaranteeText}
-                  </p>
-                )}
-                {aiConfig.footer.termsAndConditions && (
-                  <p className="text-[9px] text-slate-500 mb-6 leading-relaxed">
-                    {aiConfig.footer.termsAndConditions}
-                  </p>
-                )}
+                {/* Footer Section */}
+                <div className="mt-3 pt-2">
+                  {/* Guarantee Disclaimer */}
+                  {aiConfig.footer.guaranteeText && (
+                    <p className="text-[11px] font-black uppercase text-red-600 mb-3 leading-tight tracking-wide">
+                      {aiConfig.footer.guaranteeText}
+                    </p>
+                  )}
 
-                {/* Signatures */}
-                {aiConfig.footer.showSignatures !== false && (
-                  <div className="flex justify-between pt-6 border-t text-[11px] text-slate-600" style={{ borderColor: aiConfig.table.borderColor }}>
-                    <div className="text-center w-44 border-t border-slate-400 pt-1">
-                      {aiConfig.footer.signatureLabels?.[0] || "Customer's Acceptance"}
+                  {/* Courtesy & Handshake Graphic & Signatures */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between my-3 gap-4">
+                    {/* Customer Signature Line */}
+                    <div className="w-56 text-left">
+                      <div className="border-b-2 border-dotted pb-0.5" style={{ borderColor: aiConfig.table.borderColor }}>
+                        &nbsp;
+                      </div>
+                      <span className="text-[10px] text-slate-700 font-bold block mt-1">
+                        {aiConfig.footer.signatureLabels?.[0] || 'Customer Signature'}
+                      </span>
                     </div>
-                    <div className="text-center w-44 border-t border-slate-400 pt-1">
-                      {aiConfig.footer.signatureLabels?.[1] || `For: ${bizName}`}
-                    </div>
+
+                    {/* Center Handshake Graphic */}
+                    {aiConfig.footer.centerGraphic === 'handshake' && (
+                      <div className="flex flex-col items-center justify-center text-center">
+                        <svg
+                          className="w-11 h-11"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke={aiConfig.theme.primaryColor}
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="m11 17 2 2a1 1 0 0 0 1.4 0l4.3-4.3a1 1 0 0 0 0-1.4l-2-2" />
+                          <path d="m13 15 2-2" />
+                          <path d="m15 13 2-2" />
+                          <path d="M7 21h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z" opacity="0.12" fill={aiConfig.theme.primaryColor} />
+                          <path d="m3 14 3-3a1 1 0 0 1 1.4 0l3 3" />
+                          <path d="M14 6l3.5 3.5a1 1 0 0 1 0 1.4L13 15.4" />
+                        </svg>
+                        {aiConfig.footer.courtesyGreeting && (
+                          <span className="text-[10px] font-black uppercase tracking-wider mt-1" style={{ color: aiConfig.theme.primaryColor }}>
+                            {aiConfig.footer.courtesyGreeting}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Authorized Signatory Line if 2 signatures */}
+                    {aiConfig.footer.signatureCount === 2 && (
+                      <div className="w-56 text-right">
+                        <div className="border-b-2 border-dotted pb-0.5" style={{ borderColor: aiConfig.table.borderColor }}>
+                          &nbsp;
+                        </div>
+                        <span className="text-[10px] text-slate-700 font-bold block mt-1">
+                          {aiConfig.footer.signatureLabels?.[1] || `For: ${bizName}`}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
+
+                  {aiConfig.footer.termsAndConditions && (
+                    <p className="text-[9px] text-slate-400 mt-2 leading-relaxed text-center">
+                      {aiConfig.footer.termsAndConditions}
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 
