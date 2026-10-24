@@ -2762,6 +2762,8 @@ export default function TenantDetailPage() {
         onClose={() => setIsTemplatePreviewOpen(false)}
         templateId={previewingTemplate}
         customTemplateUrl={customTemplateUrl}
+        logoUrl={business.logoUrl}
+        tenantId={tenantId}
         businessName={business.businessName}
         tagline={business.tagline || 'Authorized Merchant & Distributor'}
         address={business.address || ''}
@@ -2770,8 +2772,11 @@ export default function TenantDetailPage() {
         receiptPrefix={business.receiptPrefix || 'INV'}
         tin={business.tin || ''}
         cacOrRegNumber={business.cacOrRegNumber || ''}
-        onSelectTemplate={(tpl) => {
+        onSelectTemplate={(tpl, configJson) => {
           setSelectedTemplateId(tpl);
+          if (configJson) {
+            setCustomTemplateUrl(configJson);
+          }
           setIsTemplatePreviewOpen(false);
         }}
       />

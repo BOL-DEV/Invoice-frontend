@@ -1199,6 +1199,8 @@ export default function SettingsPage() {
         onClose={() => setIsPreviewOpen(false)}
         templateId={previewTemplateId}
         customTemplateUrl={customUrl || settings?.customTemplateUrl}
+        logoUrl={logoPreview || settings?.logoUrl}
+        tenantId={settings?.id}
         businessName={settings?.businessName}
         tagline={settings?.tagline || undefined}
         address={settings?.address}
@@ -1207,8 +1209,11 @@ export default function SettingsPage() {
         receiptPrefix={settings?.receiptPrefix}
         tin={settings?.tin || undefined}
         cacOrRegNumber={settings?.cacOrRegNumber || undefined}
-        onSelectTemplate={(tpl) => {
+        onSelectTemplate={(tpl, configJson) => {
           setValueBusiness('receiptTemplateId', tpl, { shouldDirty: true });
+          if (configJson) {
+            setValueBusiness('customTemplateUrl', configJson, { shouldDirty: true });
+          }
           setIsPreviewOpen(false);
         }}
       />

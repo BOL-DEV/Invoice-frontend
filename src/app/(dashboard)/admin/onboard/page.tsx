@@ -1157,7 +1157,13 @@ export default function OnboardBusinessPage() {
         phone={phone}
         email={email}
         receiptPrefix={receiptPrefix}
-        onSelectTemplate={(tid) => setReceiptTemplateId(tid as any)}
+        onSelectTemplate={(tid, configJson) => {
+          setReceiptTemplateId(tid as any);
+          if (configJson) {
+            setCustomTemplateUrl(configJson);
+          }
+          setIsPreviewOpen(false);
+        }}
       />
     </div>
   );

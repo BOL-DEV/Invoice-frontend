@@ -1,5 +1,50 @@
 export type Role = 'SUPER_ADMIN' | 'ADMIN' | 'APPRENTICE';
 
+export interface CustomTemplateConfig {
+  templateName: string;
+  description?: string;
+  theme: {
+    primaryColor: string;
+    secondaryColor: string;
+    accentColor: string;
+    backgroundColor: string;
+    textColor: string;
+    mutedTextColor: string;
+    fontFamily: 'sans' | 'serif' | 'mono';
+  };
+  header: {
+    layout: 'classic-centered' | 'modern-split' | 'banner' | 'two-column';
+    bannerBackground?: string;
+    bannerTextColor?: string;
+    showLogo: boolean;
+    logoPosition: 'left' | 'center' | 'right';
+    titleText: string;
+  };
+  table: {
+    headerBackground: string;
+    headerTextColor: string;
+    alternateRowStriping: boolean;
+    alternateRowColor?: string;
+    borderStyle: 'grid' | 'horizontal-only' | 'double-ledger' | 'minimal';
+    borderColor: string;
+  };
+  summary: {
+    position: 'right' | 'boxed' | 'split';
+    highlightTotalBackground: string;
+    highlightTotalTextColor: string;
+    showAmountInWords: boolean;
+  };
+  footer: {
+    guaranteeText?: string;
+    showSignatures: boolean;
+    signatureCount: 1 | 2;
+    signatureLabels: string[];
+    watermarkText?: string;
+    termsAndConditions?: string;
+  };
+  rawImagePreviewUrl?: string;
+}
+
 export interface Branch {
   id: string;
   businessId: string;
@@ -81,6 +126,7 @@ export interface BusinessSettings {
   phone: string;
   email: string;
   logo: string | null;
+  logoUrl?: string | null;
   tin?: string;
   cacOrRegNumber?: string;
   receiptPrefix: string;
