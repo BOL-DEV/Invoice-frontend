@@ -39,38 +39,38 @@ import { CustomTemplateConfig, CustomTemplateColumn } from '../../types/api';
 const DEFAULT_CONFIG: CustomTemplateConfig = {
   templateName: 'AI Custom Crafted Template',
   description: 'Bespoke custom invoice layout extracted and crafted from uploaded sample design.',
-  archetype: 'commercial-docket',
+  archetype: 'standard-trade',
   theme: {
-    primaryColor: '#0052cc',
-    secondaryColor: '#172b4d',
-    accentColor: '#0052cc',
+    primaryColor: '#0f2942',
+    secondaryColor: '#2563eb',
+    accentColor: '#10b981',
     backgroundColor: '#ffffff',
-    textColor: '#172b4d',
-    mutedTextColor: '#5e6c84',
+    textColor: '#0f172a',
+    mutedTextColor: '#64748b',
     fontFamily: 'sans',
   },
   header: {
-    layout: 'classic-centered',
-    style: 'centered-commercial',
+    layout: 'split',
+    style: 'split',
     showLogo: true,
-    logoPosition: 'center',
-    titleText: 'CASH SALES/INVOICE',
+    logoPosition: 'left',
+    titleText: 'INVOICE',
     titleBadge: {
       style: 'pill',
-      text: 'CASH SALES/INVOICE',
-      alignment: 'left',
-      badgeColor: '#0052cc',
+      text: 'INVOICE',
+      alignment: 'right',
+      badgeColor: '#0f2942',
       badgeTextColor: '#ffffff',
     },
     metaBox: {
-      style: 'day-month-year-grid',
-      fields: ['date_grid', 'lpo_number'],
+      style: 'clean-meta',
+      fields: ['invoice_number', 'date'],
     },
   },
   customer: {
-    style: 'dotted-ledger',
-    showBilledToPill: false,
-    nameLabel: 'Name:',
+    style: 'card',
+    showBilledToPill: true,
+    nameLabel: 'Billed To:',
     addressLabel: 'Address:',
   },
   table: {
@@ -175,8 +175,8 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
       return {
         ...DEFAULT_CONFIG,
         templateName: 'Lao Steel Bespoke Ledger',
-        description: 'Authentic industrial depot layout with dual navy border, green globe emblem, watermark, and guarantee disclaimer.',
-        archetype: 'commercial-docket',
+        description: 'Authentic Lao Steel industrial styling with green globe emblem, dual company ledger borders, LSV watermark, and guarantee terms.',
+        archetype: 'lao-steel',
         theme: {
           primaryColor: '#0f522b',
           secondaryColor: '#0d47a1',
@@ -188,33 +188,56 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
         },
         header: {
           layout: 'classic-centered',
-          style: 'centered-commercial',
+          style: 'lao-steel',
           showLogo: true,
           logoPosition: 'center',
-          titleText: 'INVOICE / DISPATCH SLIP',
+          titleText: 'INVOICE',
           titleBadge: {
-            style: 'pill',
-            text: 'INVOICE / DISPATCH SLIP',
-            alignment: 'left',
-            badgeColor: '#0d47a1',
-            badgeTextColor: '#ffffff',
+            style: 'box',
+            text: 'INVOICE',
+            alignment: 'right',
+            badgeColor: '#e8f5e9',
+            badgeTextColor: '#0f522b',
           },
-          metaBox: {
-            style: 'day-month-year-grid',
-            fields: ['date_grid', 'lpo_number'],
-          },
+        },
+        customer: {
+          style: 'classic-trade',
+          nameLabel: 'CUSTOMER NAME:',
+          addressLabel: 'PHONE:',
         },
         table: {
-          ...DEFAULT_CONFIG.table,
-          borderColor: '#0d47a1',
           headerBackground: '#0d47a1',
+          headerTextColor: '#ffffff',
+          alternateRowStriping: false,
+          borderStyle: 'double-ledger',
+          gridStyle: 'full-grid',
+          borderColor: '#0d47a1',
+          columns: [
+            { id: 'pos', label: 'ITEMS', field: 'index', widthPercent: 8, align: 'center' },
+            { id: 'qty', label: 'QTY.', field: 'qty', widthPercent: 14, align: 'center' },
+            { id: 'desc', label: 'DESCRIPTION OF GOODS', field: 'description', widthPercent: 44, align: 'left' },
+            { id: 'price', label: 'RATE (₦)', field: 'unit_price', widthPercent: 16, align: 'right' },
+            { id: 'amt', label: 'AMOUNT (₦)', field: 'amount', widthPercent: 18, align: 'right' },
+          ],
+          fillBlankRows: true,
+          minRows: 8,
+        },
+        summary: {
+          position: 'right',
+          layout: 'table-integrated',
+          totalLabel: 'TOTAL',
+          highlightTotalBackground: '#e8f0fe',
+          highlightTotalTextColor: '#0d47a1',
+          showAmountInWords: false,
         },
         footer: {
-          ...DEFAULT_CONFIG.footer,
-          watermarkText: 'LSV',
           guaranteeText: 'GUARANTEED GOODS ARE NOT RETURNABLE AFTER PURCHASE. NO REFUND OF MONEY AFTER PAYMENT.',
-          termsAndConditions: 'Guaranteed goods are not returnable after purchase. No refund of money after payment.',
+          courtesyGreeting: '',
+          showSignatures: true,
+          signatureCount: 2,
           signatureLabels: ["Customer's Signature", 'For: LAO STEEL VENTURES'],
+          watermarkText: 'LSV',
+          termsAndConditions: 'Guaranteed goods are not returnable after purchase. No refund of money after payment.',
         },
       };
     }
@@ -384,12 +407,22 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                 {/* Optional Watermark */}
                 {aiConfig.footer.watermarkText && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
-                    <span
-                      className="font-extrabold text-5xl sm:text-7xl uppercase tracking-widest rotate-[-30deg] select-none opacity-10 text-center px-4"
-                      style={{ color: aiConfig.theme.primaryColor }}
-                    >
-                      {aiConfig.footer.watermarkText}
-                    </span>
+                    {aiConfig.footer.watermarkText === 'LSV' || isLaoSteel ? (
+                      <div className="opacity-10 flex flex-col items-center justify-center scale-150 select-none">
+                        <img
+                          src="/laosteel-logo.svg"
+                          alt="LSV Watermark"
+                          className="w-48 h-48 object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <span
+                        className="font-extrabold text-5xl sm:text-7xl uppercase tracking-widest rotate-[-30deg] select-none opacity-10 text-center px-4"
+                        style={{ color: aiConfig.theme.primaryColor }}
+                      >
+                        {aiConfig.footer.watermarkText}
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -402,7 +435,91 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                 )}
 
                 {/* Header & Sub-Header Layout */}
-                {aiConfig.archetype === 'commercial-docket' || aiConfig.header.style === 'centered-commercial' ? (
+                {aiConfig.archetype === 'lao-steel' || aiConfig.header.style === 'lao-steel' || (isLaoSteel && !aiConfig.rawImagePreviewUrl) ? (
+                  /* 0. Authentic Lao Steel Bespoke Layout */
+                  <div className="mb-4">
+                    {/* Centered Business Header */}
+                    <div className="text-center pb-3 mb-3 border-b-2" style={{ borderColor: '#0f522b' }}>
+                      <div className="flex justify-center mb-2">
+                        {hasRealLogo ? (
+                          <img
+                            src={(logoUrl || logo) as string}
+                            alt={bizName}
+                            className="h-14 max-w-[180px] object-contain"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center">
+                            <img
+                              src="/laosteel-logo.svg"
+                              alt="Lao Steel Ventures"
+                              className="h-14 w-14 object-contain"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <h2 className="text-2xl sm:text-3xl font-black font-heading uppercase tracking-tight text-[#0f522b]">
+                        LAO STEEL VENTURES
+                      </h2>
+                      <p className="text-[11px] sm:text-xs font-bold uppercase tracking-wide mt-0.5 text-[#0f522b]">
+                        STEEL STOCKISTS, INDUSTRIAL AND BUILDING MATERIALS SUPPLIERS
+                      </p>
+                      <p className="text-[10px] sm:text-xs font-semibold uppercase mt-0.5 text-slate-700">
+                        HEAD OFFICE: S/L/L.G SHOP 249, IFESOWAPO IRON MKT., SECTION &quot;C&quot; LINE 2, ORILE-IGANMU, LAGOS
+                      </p>
+                      <p className="text-[10px] sm:text-xs font-mono font-bold mt-0.5 text-[#0f522b]">
+                        TEL: 08034071931, 08052008315, 08094972005
+                      </p>
+                    </div>
+
+                    {/* Customer & Invoice Row (Below divider line) */}
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4 text-xs">
+                      {/* Left Side: Customer Info (Clean Underlined Trade Lines) */}
+                      <div className="w-full sm:w-[58%] space-y-2">
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-bold text-xs uppercase tracking-wider text-slate-900 shrink-0">
+                            CUSTOMER NAME:
+                          </span>
+                          <span className="flex-1 border-b-2 border-slate-900 font-bold text-slate-900 pb-0.5">
+                            Alhaji Musa Dangote &amp; Sons Ltd.
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-bold text-xs uppercase tracking-wider text-slate-600 shrink-0">
+                            PHONE:
+                          </span>
+                          <span className="font-mono text-slate-800 font-semibold">
+                            08023456789
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-bold text-xs uppercase tracking-wider text-slate-900 shrink-0">
+                            L.P.O. No.:
+                          </span>
+                          <span className="flex-1 border-b border-slate-400 font-mono text-slate-800 pb-0.5">
+                            0429
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Right Side: INVOICE Green Box & Red Code */}
+                      <div className="w-full sm:w-[38%] flex flex-col items-start sm:items-end text-left sm:text-right">
+                        <div className="px-6 py-1.5 rounded-lg border-2 border-[#0f522b] bg-[#e8f5e9] text-center font-black text-sm text-[#0f522b] uppercase tracking-wider">
+                          INVOICE
+                        </div>
+                        <div className="mt-1.5 font-bold font-mono text-sm text-red-600">
+                          No. {prefix}-0000042
+                        </div>
+                        <div className="text-[11px] font-semibold text-slate-700 mt-0.5">
+                          DATE: {new Date().toLocaleDateString('en-GB')}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : aiConfig.archetype === 'commercial-docket' || aiConfig.header.style === 'centered-commercial' ? (
                   /* 1. Centered Commercial Docket Layout (exact match to paper receipt/invoice) */
                   <div className="mb-4">
                     {/* Centered Business Header */}
@@ -695,7 +812,12 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                                   } ${col.field === 'description' ? 'font-sans font-semibold' : ''} ${
                                     col.field === 'amount' ? 'font-bold' : ''
                                   } ${cIdx < activeColumns.length - 1 ? 'border-r' : ''}`}
-                                  style={{ borderColor: aiConfig.table.borderColor }}
+                                  style={{
+                                    borderColor: aiConfig.table.borderColor,
+                                    backgroundColor: ((aiConfig.archetype === 'lao-steel' || isLaoSteel) && (col.id === 'pos' || col.id === 'qty' || col.id === 'amt'))
+                                      ? '#e8f0fe'
+                                      : undefined,
+                                  }}
                                 >
                                   {(row as any)[col.field] || (col.field === 'index' ? rIdx + 1 : '—')}
                                 </td>
@@ -710,7 +832,12 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                                 <td
                                   key={`empty_col_${cIdx}`}
                                   className={`p-2.5 ${cIdx < activeColumns.length - 1 ? 'border-r' : ''}`}
-                                  style={{ borderColor: aiConfig.table.borderColor }}
+                                  style={{
+                                    borderColor: aiConfig.table.borderColor,
+                                    backgroundColor: ((aiConfig.archetype === 'lao-steel' || isLaoSteel) && (col.id === 'pos' || col.id === 'qty' || col.id === 'amt'))
+                                      ? '#e8f0fe'
+                                      : undefined,
+                                  }}
                                 >
                                   &nbsp;
                                 </td>
