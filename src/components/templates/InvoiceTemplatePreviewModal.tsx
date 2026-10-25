@@ -346,146 +346,176 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                   </Badge>
                 </div>
 
-                {/* 1-Click Archetype & Layout Quick-Switcher Toolbar */}
+                {/* Direct Layout Blueprint Quick-Adjust Toolbar */}
                 <div className="w-full max-w-[760px] bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2 shadow-lg mb-2">
-                <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                  <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1 mr-1">
-                    <Sliders className="h-3 w-3 text-purple-400" />
-                    <span>Archetype:</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setAiConfig(prev => ({
-                      ...prev,
-                      archetype: 'commercial-docket',
-                      header: {
-                        ...prev.header,
-                        style: 'centered-commercial',
-                        layout: 'classic-centered',
-                        titleBadge: {
-                          style: 'pill',
-                          text: prev.header.titleBadge?.text || prev.header.titleText || 'CASH SALES/INVOICE',
-                          alignment: 'left',
-                          badgeColor: prev.theme.primaryColor,
-                          badgeTextColor: '#ffffff',
+                  <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1 mr-1">
+                      <Sliders className="h-3 w-3 text-purple-400" />
+                      <span>Header:</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setAiConfig(prev => ({
+                        ...prev,
+                        header: {
+                          ...prev.header,
+                          style: 'centered-commercial',
+                          layout: 'classic-centered',
+                          titleBadge: {
+                            style: 'pill',
+                            text: prev.header.titleBadge?.text || prev.header.titleText || 'CASH SALES/INVOICE',
+                            alignment: 'left',
+                            badgeColor: prev.theme.primaryColor,
+                            badgeTextColor: '#ffffff',
+                          },
                         },
-                      },
-                      customer: { ...prev.customer, style: 'dotted-ledger' },
-                      table: {
-                        ...prev.table,
-                        gridStyle: 'full-grid',
-                        fillBlankRows: true,
-                        columns: [
-                          { id: 'qty', label: 'QTY.', field: 'qty', widthPercent: 15, align: 'center' },
-                          { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 45, align: 'left' },
-                          { id: 'price', label: 'UNIT PRICE', field: 'unit_price', widthPercent: 20, align: 'right' },
-                          { id: 'amt', label: 'AMOUNT', field: 'amount', widthPercent: 20, align: 'right' },
-                        ],
-                      },
-                      summary: { ...prev.summary, layout: 'table-integrated' },
-                      footer: { ...prev.footer, centerGraphic: 'handshake' },
-                    }))}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                      (aiConfig.archetype === 'commercial-docket' || aiConfig.header.style === 'centered-commercial')
-                        ? 'bg-purple-600 text-white shadow-sm'
-                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}
-                  >
-                    Commercial Docket
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAiConfig(prev => ({
-                      ...prev,
-                      archetype: 'modern-split',
-                      header: { ...prev.header, style: 'split-modern', layout: 'modern-split' },
-                      customer: { ...prev.customer, style: 'card-bordered' },
-                      table: {
-                        ...prev.table,
-                        gridStyle: 'horizontal-ledger',
-                        fillBlankRows: false,
-                        columns: [
-                          { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 45, align: 'left' },
-                          { id: 'qty', label: 'QTY', field: 'qty', widthPercent: 15, align: 'center' },
-                          { id: 'price', label: 'RATE (₦)', field: 'unit_price', widthPercent: 20, align: 'right' },
-                          { id: 'amt', label: 'AMOUNT (₦)', field: 'amount', widthPercent: 20, align: 'right' },
-                        ],
-                      },
-                      summary: { ...prev.summary, layout: 'card-bottom-right' },
-                    }))}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                      (aiConfig.archetype === 'modern-split' || aiConfig.header.style === 'split-modern')
-                        ? 'bg-purple-600 text-white shadow-sm'
-                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}
-                  >
-                    Modern SaaS
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAiConfig(prev => ({
-                      ...prev,
-                      archetype: 'banner',
-                      header: { ...prev.header, style: 'banner', layout: 'banner' },
-                    }))}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                      aiConfig.header.style === 'banner'
-                        ? 'bg-purple-600 text-white shadow-sm'
-                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}
-                  >
-                    Top Banner
-                  </button>
-                </div>
+                      }))}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        (aiConfig.header.style === 'centered-commercial' || aiConfig.header.layout === 'classic-centered')
+                          ? 'bg-purple-600 text-white shadow-sm'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      Centered
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiConfig(prev => ({
+                        ...prev,
+                        header: { ...prev.header, style: 'split-modern', layout: 'modern-split' },
+                      }))}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        aiConfig.header.layout === 'modern-split'
+                          ? 'bg-purple-600 text-white shadow-sm'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      Split Left/Right
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiConfig(prev => ({
+                        ...prev,
+                        header: { ...prev.header, style: 'banner', layout: 'banner' },
+                      }))}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        aiConfig.header.style === 'banner'
+                          ? 'bg-purple-600 text-white shadow-sm'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      Top Banner
+                    </button>
+                  </div>
 
-                <div className="flex items-center space-x-1.5">
-                  <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Columns:</span>
-                  <button
-                    type="button"
-                    onClick={() => setAiConfig(prev => ({
-                      ...prev,
-                      table: {
-                        ...prev.table,
-                        columns: [
-                          { id: 'qty', label: 'QTY.', field: 'qty', widthPercent: 15, align: 'center' },
-                          { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 45, align: 'left' },
-                          { id: 'price', label: 'UNIT PRICE', field: 'unit_price', widthPercent: 20, align: 'right' },
-                          { id: 'amt', label: 'AMOUNT', field: 'amount', widthPercent: 20, align: 'right' },
-                        ],
-                      },
-                    }))}
-                    className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
-                      aiConfig.table.columns?.[0]?.field === 'qty'
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}
-                  >
-                    QTY First
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAiConfig(prev => ({
-                      ...prev,
-                      table: {
-                        ...prev.table,
-                        columns: [
-                          { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 45, align: 'left' },
-                          { id: 'qty', label: 'QTY', field: 'qty', widthPercent: 15, align: 'center' },
-                          { id: 'price', label: 'RATE (₦)', field: 'unit_price', widthPercent: 20, align: 'right' },
-                          { id: 'amt', label: 'AMOUNT (₦)', field: 'amount', widthPercent: 20, align: 'right' },
-                        ],
-                      },
-                    }))}
-                    className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
-                      aiConfig.table.columns?.[0]?.field === 'description'
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}
-                  >
-                    Desc First
-                  </button>
+                  <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Customer:</span>
+                    <button
+                      type="button"
+                      onClick={() => setAiConfig(prev => ({
+                        ...prev,
+                        customer: { ...prev.customer, style: 'dotted-ledger' },
+                      }))}
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                        aiConfig.customer?.style === 'dotted-ledger'
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      Dotted Lines
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiConfig(prev => ({
+                        ...prev,
+                        customer: { ...prev.customer, style: 'card-bordered' },
+                      }))}
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                        aiConfig.customer?.style === 'card-bordered'
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      Card Box
+                    </button>
+
+                    <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider ml-1">Grid:</span>
+                    <button
+                      type="button"
+                      onClick={() => setAiConfig(prev => ({
+                        ...prev,
+                        table: { ...prev.table, gridStyle: 'full-grid', fillBlankRows: true },
+                      }))}
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                        aiConfig.table.gridStyle === 'full-grid'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      Full Grid
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiConfig(prev => ({
+                        ...prev,
+                        table: { ...prev.table, gridStyle: 'horizontal-ledger', fillBlankRows: false },
+                      }))}
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                        aiConfig.table.gridStyle === 'horizontal-ledger'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      Lines Only
+                    </button>
+
+                    <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider ml-1">Cols:</span>
+                    <button
+                      type="button"
+                      onClick={() => setAiConfig(prev => ({
+                        ...prev,
+                        table: {
+                          ...prev.table,
+                          columns: [
+                            { id: 'qty', label: 'QTY.', field: 'qty', widthPercent: 15, align: 'center' },
+                            { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 45, align: 'left' },
+                            { id: 'price', label: 'UNIT PRICE', field: 'unit_price', widthPercent: 20, align: 'right' },
+                            { id: 'amt', label: 'AMOUNT', field: 'amount', widthPercent: 20, align: 'right' },
+                          ],
+                        },
+                      }))}
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                        aiConfig.table.columns?.[0]?.field === 'qty'
+                          ? 'bg-amber-600 text-white shadow-sm'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      Qty 1st
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiConfig(prev => ({
+                        ...prev,
+                        table: {
+                          ...prev.table,
+                          columns: [
+                            { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 45, align: 'left' },
+                            { id: 'qty', label: 'QTY', field: 'qty', widthPercent: 15, align: 'center' },
+                            { id: 'price', label: 'RATE (₦)', field: 'unit_price', widthPercent: 20, align: 'right' },
+                            { id: 'amt', label: 'AMOUNT (₦)', field: 'amount', widthPercent: 20, align: 'right' },
+                          ],
+                        },
+                      }))}
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                        aiConfig.table.columns?.[0]?.field === 'description'
+                          ? 'bg-amber-600 text-white shadow-sm'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      Desc 1st
+                    </button>
+                  </div>
                 </div>
-              </div>
 
             {/* Dynamic Template View */}
             {viewMode === 'template' && (
