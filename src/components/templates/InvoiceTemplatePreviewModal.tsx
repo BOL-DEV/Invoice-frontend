@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../features/auth/context/AuthContext';
 import {
   Dialog,
   DialogContent,
@@ -126,6 +127,7 @@ interface InvoiceTemplatePreviewModalProps {
   logoUrl?: string | null;
   logo?: string | null;
   tenantId?: string;
+  isSuperAdmin?: boolean;
   onSelectTemplate?: (templateId: string, customConfigJson?: string) => void;
 }
 
@@ -145,8 +147,12 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
   tin = '24891023-0001',
   cacOrRegNumber = 'RC-1849204',
   tenantId,
+  isSuperAdmin: isSuperAdminProp,
   onSelectTemplate,
 }) => {
+  const { user } = useAuth();
+  const isSuperAdmin = isSuperAdminProp !== undefined ? isSuperAdminProp : user?.role === 'SUPER_ADMIN';
+
   const isLaoSteel = Boolean(
     businessName?.toLowerCase().includes('lao steel') ||
     receiptPrefix?.toUpperCase() === 'LSV'
@@ -232,6 +238,21 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
   const prefix = (receiptPrefix || 'INV').toUpperCase();
   const bizName = (businessName || 'BUSINESS ENTERPRISE').toUpperCase();
 
+  // Validate if business has an authentic custom logo (prevent showing platform default cube)
+  const hasRealLogo = Boolean(
+    (logoUrl || logo) &&
+    typeof (logoUrl || logo) === 'string' &&
+    !['/platform-logo.svg', '/logo.png', '/logo.svg', 'null', 'undefined', ''].includes((logoUrl || logo) as string) &&
+    !((logoUrl || logo) as string).includes('platform-logo')
+  );
+
+  const businessInitials = (businessName || 'B')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('') || 'B';
+
   // Send interactive AI chat refinement
   const handleSendPrompt = async (promptToSend?: string) => {
     const text = promptToSend || chatPrompt;
@@ -282,7 +303,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[98vw] max-w-[98vw] sm:max-w-2xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl h-[94vh] max-h-[94vh] flex flex-col p-0 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden focus:outline-none">
+      <DialogContent className={`w-[98vw] ${isSuperAdmin ? 'max-w-[98vw] sm:max-w-2xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl' : 'max-w-4xl'} h-[94vh] max-h-[94vh] flex flex-col p-0 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden focus:outline-none`}>
         {/* Modal Top Header */}
         <div className="shrink-0 p-3 sm:p-4 border-b border-slate-800 bg-slate-950/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 z-10">
           <div className="flex items-center space-x-3 pr-8 sm:pr-0">
@@ -291,10 +312,12 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
             </div>
             <div>
               <DialogTitle className="text-sm sm:text-base font-bold text-white flex items-center space-x-2 font-heading">
-                <span>Invoice & Receipt Template Studio</span>
+                <span>{isSuperAdmin ? 'Invoice & Receipt Template Studio' : 'Printable Invoice Template Preview'}</span>
               </DialogTitle>
               <DialogDescription className="text-[11px] sm:text-xs text-slate-400 mt-0.5 line-clamp-1 sm:line-clamp-none">
-                Interactive preview rendered with real company branding and dynamic customer invoice details.
+                {isSuperAdmin
+                  ? 'Interactive design studio with AI Copilot to refine layout, colors, and terms.'
+                  : 'Official visual layout used for your printable PDF receipts and customer invoices.'}
               </DialogDescription>
             </div>
           </div>
@@ -312,210 +335,40 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-slate-950/70">
           {/* LEFT: Preview Viewport Canvas */}
           <div className="flex-1 overflow-y-auto overflow-x-auto p-3 sm:p-6 flex flex-col items-center justify-start relative">
-            <div className="w-full max-w-[760px] flex items-center justify-between pb-3 text-xs mb-2">
-                  <div className="flex items-center space-x-1 bg-slate-900 border border-slate-800 p-1 rounded-xl">
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('template')}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
-                        viewMode === 'template'
-                          ? 'bg-emerald-600 text-white shadow-sm'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                      <span>Dynamic Template</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('reference')}
-                      disabled={!aiConfig.rawImagePreviewUrl}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
-                        viewMode === 'reference'
-                          ? 'bg-purple-600 text-white shadow-sm'
-                          : 'text-slate-400 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed'
-                      }`}
-                    >
-                      <ImageIcon className="h-3.5 w-3.5" />
-                      <span>Original Upload Sample</span>
-                    </button>
-                  </div>
-
-                  <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">
-                    {aiConfig.templateName || 'AI Extracted Layout'}
-                  </Badge>
+            {isSuperAdmin && aiConfig.rawImagePreviewUrl && (
+              <div className="w-full max-w-[760px] flex items-center justify-between pb-3 text-xs mb-2">
+                <div className="flex items-center space-x-1 bg-slate-900 border border-slate-800 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('template')}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
+                      viewMode === 'template'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>Dynamic Template</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('reference')}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
+                      viewMode === 'reference'
+                        ? 'bg-purple-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    <span>Original Upload Sample</span>
+                  </button>
                 </div>
 
-                {/* Direct Layout Blueprint Quick-Adjust Toolbar */}
-                <div className="w-full max-w-[760px] bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2 shadow-lg mb-2">
-                  <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                    <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1 mr-1">
-                      <Sliders className="h-3 w-3 text-purple-400" />
-                      <span>Header:</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setAiConfig(prev => ({
-                        ...prev,
-                        header: {
-                          ...prev.header,
-                          style: 'centered-commercial',
-                          layout: 'classic-centered',
-                          titleBadge: {
-                            style: 'pill',
-                            text: prev.header.titleBadge?.text || prev.header.titleText || 'CASH SALES/INVOICE',
-                            alignment: 'left',
-                            badgeColor: prev.theme.primaryColor,
-                            badgeTextColor: '#ffffff',
-                          },
-                        },
-                      }))}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        (aiConfig.header.style === 'centered-commercial' || aiConfig.header.layout === 'classic-centered')
-                          ? 'bg-purple-600 text-white shadow-sm'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
-                    >
-                      Centered
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAiConfig(prev => ({
-                        ...prev,
-                        header: { ...prev.header, style: 'split-modern', layout: 'modern-split' },
-                      }))}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        aiConfig.header.layout === 'modern-split'
-                          ? 'bg-purple-600 text-white shadow-sm'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
-                    >
-                      Split Left/Right
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAiConfig(prev => ({
-                        ...prev,
-                        header: { ...prev.header, style: 'banner', layout: 'banner' },
-                      }))}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        aiConfig.header.style === 'banner'
-                          ? 'bg-purple-600 text-white shadow-sm'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
-                    >
-                      Top Banner
-                    </button>
-                  </div>
-
-                  <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                    <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Customer:</span>
-                    <button
-                      type="button"
-                      onClick={() => setAiConfig(prev => ({
-                        ...prev,
-                        customer: { ...prev.customer, style: 'dotted-ledger' },
-                      }))}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
-                        aiConfig.customer?.style === 'dotted-ledger'
-                          ? 'bg-emerald-600 text-white shadow-sm'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
-                    >
-                      Dotted Lines
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAiConfig(prev => ({
-                        ...prev,
-                        customer: { ...prev.customer, style: 'card-bordered' },
-                      }))}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
-                        aiConfig.customer?.style === 'card-bordered'
-                          ? 'bg-emerald-600 text-white shadow-sm'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
-                    >
-                      Card Box
-                    </button>
-
-                    <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider ml-1">Grid:</span>
-                    <button
-                      type="button"
-                      onClick={() => setAiConfig(prev => ({
-                        ...prev,
-                        table: { ...prev.table, gridStyle: 'full-grid', fillBlankRows: true },
-                      }))}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
-                        aiConfig.table.gridStyle === 'full-grid'
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
-                    >
-                      Full Grid
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAiConfig(prev => ({
-                        ...prev,
-                        table: { ...prev.table, gridStyle: 'horizontal-ledger', fillBlankRows: false },
-                      }))}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
-                        aiConfig.table.gridStyle === 'horizontal-ledger'
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
-                    >
-                      Lines Only
-                    </button>
-
-                    <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider ml-1">Cols:</span>
-                    <button
-                      type="button"
-                      onClick={() => setAiConfig(prev => ({
-                        ...prev,
-                        table: {
-                          ...prev.table,
-                          columns: [
-                            { id: 'qty', label: 'QTY.', field: 'qty', widthPercent: 15, align: 'center' },
-                            { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 45, align: 'left' },
-                            { id: 'price', label: 'UNIT PRICE', field: 'unit_price', widthPercent: 20, align: 'right' },
-                            { id: 'amt', label: 'AMOUNT', field: 'amount', widthPercent: 20, align: 'right' },
-                          ],
-                        },
-                      }))}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
-                        aiConfig.table.columns?.[0]?.field === 'qty'
-                          ? 'bg-amber-600 text-white shadow-sm'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
-                    >
-                      Qty 1st
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAiConfig(prev => ({
-                        ...prev,
-                        table: {
-                          ...prev.table,
-                          columns: [
-                            { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 45, align: 'left' },
-                            { id: 'qty', label: 'QTY', field: 'qty', widthPercent: 15, align: 'center' },
-                            { id: 'price', label: 'RATE (₦)', field: 'unit_price', widthPercent: 20, align: 'right' },
-                            { id: 'amt', label: 'AMOUNT (₦)', field: 'amount', widthPercent: 20, align: 'right' },
-                          ],
-                        },
-                      }))}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
-                        aiConfig.table.columns?.[0]?.field === 'description'
-                          ? 'bg-amber-600 text-white shadow-sm'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
-                    >
-                      Desc 1st
-                    </button>
-                  </div>
-                </div>
+                <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">
+                  {aiConfig.templateName || 'AI Extracted Layout'}
+                </Badge>
+              </div>
+            )}
 
             {/* Dynamic Template View */}
             {viewMode === 'template' && (
@@ -554,15 +407,22 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                   <div className="mb-4">
                     {/* Centered Business Header */}
                     <div className="text-center pb-3 mb-3 border-b-2" style={{ borderColor: aiConfig.theme.primaryColor }}>
-                      {(logoUrl || logo) && (
-                        <div className="flex justify-center mb-1.5">
+                      <div className="flex justify-center mb-2">
+                        {hasRealLogo ? (
                           <img
                             src={(logoUrl || logo) as string}
                             alt={bizName}
                             className="h-12 max-w-[160px] object-contain"
                           />
-                        </div>
-                      )}
+                        ) : (
+                          <div
+                            className="h-12 w-12 rounded-xl flex items-center justify-center font-black text-xl text-white shadow-sm border border-white/20"
+                            style={{ backgroundColor: aiConfig.theme.primaryColor }}
+                          >
+                            {businessInitials}
+                          </div>
+                        )}
+                      </div>
                       <h2 className="text-2xl sm:text-3xl font-black font-heading uppercase tracking-tight" style={{ color: aiConfig.theme.primaryColor }}>
                         {bizName}
                       </h2>
@@ -674,12 +534,18 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                       }}
                     >
                       <div className="flex items-center gap-3">
-                        {(logoUrl || logo) && (
+                        {hasRealLogo ? (
                           <img
                             src={(logoUrl || logo) as string}
                             alt={bizName}
                             className="h-12 w-12 object-contain bg-white rounded-lg p-1 shadow-sm shrink-0"
                           />
+                        ) : (
+                          <div
+                            className="h-12 w-12 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center font-black text-xl text-white shadow-sm shrink-0"
+                          >
+                            {businessInitials}
+                          </div>
                         )}
                         <div>
                           <h2 className="text-xl font-bold font-heading">{bizName}</h2>
@@ -714,12 +580,19 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                   <div>
                     <div className="flex justify-between items-start pb-5 mb-4 border-b" style={{ borderColor: aiConfig.table.borderColor }}>
                       <div className="flex items-start gap-3">
-                        {(logoUrl || logo) && (
+                        {hasRealLogo ? (
                           <img
                             src={(logoUrl || logo) as string}
                             alt={bizName}
                             className="h-12 w-12 object-contain rounded-xl border border-slate-200 bg-white p-1 shadow-sm shrink-0"
                           />
+                        ) : (
+                          <div
+                            className="h-12 w-12 rounded-xl flex items-center justify-center font-black text-xl text-white shadow-sm shrink-0 border border-white/20"
+                            style={{ backgroundColor: aiConfig.theme.primaryColor }}
+                          >
+                            {businessInitials}
+                          </div>
                         )}
                         <div>
                           <h2 className="text-xl font-black font-heading" style={{ color: aiConfig.theme.primaryColor }}>
@@ -1010,101 +883,103 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
             )}
           </div>
 
-          {/* RIGHT: AI Copilot Chat Studio */}
-          <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-slate-800 bg-slate-950 flex flex-col shrink-0">
-            {/* Studio Header */}
-            <div className="p-3 sm:p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
-              <div className="flex items-center space-x-2">
-                <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  <Wand2 className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-white flex items-center space-x-1">
-                    <span>AI Template Copilot</span>
-                    <Badge className="bg-emerald-500/20 text-emerald-400 text-[9px] px-1 py-0">Groq Vision</Badge>
-                  </h3>
-                  <p className="text-[10px] text-slate-400">Refine layout, colors & terms live</p>
+          {/* RIGHT: AI Copilot Chat Studio (Super Admin Only) */}
+          {isSuperAdmin && (
+            <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-slate-800 bg-slate-950 flex flex-col shrink-0">
+              {/* Studio Header */}
+              <div className="p-3 sm:p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+                <div className="flex items-center space-x-2">
+                  <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <Wand2 className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-white flex items-center space-x-1">
+                      <span>AI Template Copilot</span>
+                      <Badge className="bg-emerald-500/20 text-emerald-400 text-[9px] px-1 py-0">Groq Vision</Badge>
+                    </h3>
+                    <p className="text-[10px] text-slate-400">Refine layout, colors & terms live</p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Chat Thread Messages */}
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 text-xs">
-              {/* Initial Assistant greeting */}
-              <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-slate-300 space-y-1.5 shadow-sm">
-                <p className="font-semibold text-white flex items-center space-x-1">
-                  <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                  <span>Template Extracted & Ready</span>
-                </p>
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  I analyzed your uploaded document and generated this dynamic layout with your company details.
-                  Tell me any change you want to make below!
-                </p>
-              </div>
-
-              {chatHistory.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`p-3 rounded-2xl text-xs leading-relaxed ${
-                    msg.role === 'user'
-                      ? 'bg-emerald-600 text-white ml-6 shadow-md'
-                      : 'bg-slate-900 border border-slate-800 text-slate-200 mr-4'
-                  }`}
-                >
-                  {msg.content}
+              {/* Chat Thread Messages */}
+              <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 text-xs">
+                {/* Initial Assistant greeting */}
+                <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-slate-300 space-y-1.5 shadow-sm">
+                  <p className="font-semibold text-white flex items-center space-x-1">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                    <span>Template Extracted & Ready</span>
+                  </p>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    I analyzed your uploaded document and generated this dynamic layout with your company details.
+                    Tell me any change you want to make below!
+                  </p>
                 </div>
-              ))}
 
-              {isRefining && (
-                <div className="p-3 rounded-2xl bg-slate-900/80 border border-amber-500/30 text-amber-400 text-xs flex items-center space-x-2">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-400" />
-                  <span>Redesigning template with Groq AI...</span>
-                </div>
-              )}
-            </div>
-
-            {/* Quick Prompt Suggestions */}
-            <div className="p-2 sm:p-3 border-t border-slate-800/80 bg-slate-950/90 space-y-1.5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Suggestions:</span>
-              <div className="flex flex-wrap gap-1.5">
-                {quickPrompts.map((chip, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    disabled={isRefining}
-                    onClick={() => handleSendPrompt(chip)}
-                    className="text-[10px] px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition-colors cursor-pointer text-left disabled:opacity-50"
+                {chatHistory.map((msg, i) => (
+                  <div
+                    key={i}
+                    className={`p-3 rounded-2xl text-xs leading-relaxed ${
+                      msg.role === 'user'
+                        ? 'bg-emerald-600 text-white ml-6 shadow-md'
+                        : 'bg-slate-900 border border-slate-800 text-slate-200 mr-4'
+                    }`}
                   >
-                    {chip}
-                  </button>
+                    {msg.content}
+                  </div>
                 ))}
+
+                {isRefining && (
+                  <div className="p-3 rounded-2xl bg-slate-900/80 border border-amber-500/30 text-amber-400 text-xs flex items-center space-x-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-400" />
+                    <span>Redesigning template with Groq AI...</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Prompt Suggestions */}
+              <div className="p-2 sm:p-3 border-t border-slate-800/80 bg-slate-950/90 space-y-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Suggestions:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {quickPrompts.map((chip, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      disabled={isRefining}
+                      onClick={() => handleSendPrompt(chip)}
+                      className="text-[10px] px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition-colors cursor-pointer text-left disabled:opacity-50"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Chat Input Bar */}
+              <div className="p-3 border-t border-slate-800 bg-slate-900 flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={chatPrompt}
+                  disabled={isRefining}
+                  onChange={(e) => setChatPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSendPrompt();
+                  }}
+                  placeholder="e.g. Make header deep navy with gold accent..."
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!chatPrompt.trim() || isRefining}
+                  onClick={() => handleSendPrompt()}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl h-9 px-3 shrink-0 cursor-pointer shadow-md shadow-emerald-500/20"
+                >
+                  {isRefining ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                </Button>
               </div>
             </div>
-
-            {/* Chat Input Bar */}
-            <div className="p-3 border-t border-slate-800 bg-slate-900 flex items-center space-x-2">
-              <input
-                type="text"
-                value={chatPrompt}
-                disabled={isRefining}
-                onChange={(e) => setChatPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSendPrompt();
-                }}
-                placeholder="e.g. Make header deep navy with gold accent..."
-                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
-              <Button
-                type="button"
-                size="sm"
-                disabled={!chatPrompt.trim() || isRefining}
-                onClick={() => handleSendPrompt()}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl h-9 px-3 shrink-0 cursor-pointer shadow-md shadow-emerald-500/20"
-              >
-                {isRefining ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-              </Button>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Modal Action Footer */}
@@ -1127,7 +1002,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
               Close
             </Button>
 
-            {onSelectTemplate && (
+            {isSuperAdmin && onSelectTemplate && (
               <Button
                 type="button"
                 size="sm"

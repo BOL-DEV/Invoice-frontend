@@ -892,33 +892,35 @@ export default function SettingsPage() {
                           className="h-8 px-3 text-xs font-semibold rounded-xl border-border/80 hover:bg-secondary/50 flex items-center space-x-1.5 cursor-pointer"
                         >
                           <Eye className="h-3.5 w-3.5 text-emerald-500" />
-                          <span>Open Template Studio</span>
+                          <span>{isSuperAdmin ? 'Open Template Studio' : 'Preview Invoice Template'}</span>
                         </Button>
 
-                        <Button
-                          type="button"
-                          size="sm"
-                          disabled={isCraftingTemplate}
-                          onClick={() => templateFileInputRef.current?.click()}
-                          className="h-8 px-3 text-xs font-semibold rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-sm flex items-center space-x-1.5 cursor-pointer"
-                        >
-                          {isCraftingTemplate ? (
-                            <>
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              <span>AI Crafting Layout...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="h-3.5 w-3.5" />
-                              <span>{hasCustomCraftedTemplate ? 'Replace Mockup' : 'Upload Mockup Image'}</span>
-                            </>
-                          )}
-                        </Button>
+                        {isSuperAdmin && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={isCraftingTemplate}
+                            onClick={() => templateFileInputRef.current?.click()}
+                            className="h-8 px-3 text-xs font-semibold rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-sm flex items-center space-x-1.5 cursor-pointer"
+                          >
+                            {isCraftingTemplate ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                <span>AI Crafting Layout...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-3.5 w-3.5" />
+                                <span>{hasCustomCraftedTemplate ? 'Replace Mockup' : 'Upload Mockup Image'}</span>
+                              </>
+                            )}
+                          </Button>
+                        )}
                       </div>
                     </div>
 
-                    {/* Reset / Restore Option */}
-                    {hasCustomCraftedTemplate && (
+                    {/* Reset / Restore Option (Super Admin Only) */}
+                    {isSuperAdmin && hasCustomCraftedTemplate && (
                       <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs">
                         <span className="text-[11px] text-muted-foreground">
                           {isLaoSteelBespoke
@@ -1214,7 +1216,7 @@ export default function SettingsPage() {
         onClose={() => setIsPreviewOpen(false)}
         templateId={previewTemplateId}
         customTemplateUrl={customUrl || settings?.customTemplateUrl}
-        logoUrl={logoPreview || settings?.logoUrl}
+        logoUrl={logoPreview || (hasCustomLogo ? (rawLogo as string) : null)}
         tenantId={settings?.id}
         businessName={settings?.businessName}
         tagline={settings?.tagline || undefined}
@@ -1224,6 +1226,7 @@ export default function SettingsPage() {
         receiptPrefix={settings?.receiptPrefix}
         tin={settings?.tin || undefined}
         cacOrRegNumber={settings?.cacOrRegNumber || undefined}
+        isSuperAdmin={isSuperAdmin}
         onSelectTemplate={(tpl, configJson) => {
           setValueBusiness('receiptTemplateId', tpl, { shouldDirty: true });
           if (configJson) {
