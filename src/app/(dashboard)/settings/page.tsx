@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useBusinessSettings, useUpdateBusinessSettings } from '../../../features/business/hooks/useBusinessSettings';
 import { useUpdateProfile } from '../../../features/users/hooks/useUsers';
 import { updateProfileSchema, UpdateProfileInput } from '../../../features/users/schemas';
+import { apiClient } from '../../../services/api/axios';
+import { API_ENDPOINTS } from '../../../services/api/endpoints';
 import { usePermission } from '../../../features/auth/hooks/usePermission';
 import { useAuth } from '../../../features/auth/context/AuthContext';
 import { Button } from '../../../components/ui/button';
@@ -235,9 +237,6 @@ export default function SettingsPage() {
     false
   );
 
-  const customUrl = watchBusiness('customTemplateUrl') || settings?.customTemplateUrl;
-  const currentReceiptTemplateId = watchBusiness('receiptTemplateId') || settings?.receiptTemplateId;
-
   // Lao Steel's "Classic Industrial" layout is its dedicated bespoke template
   const isLaoSteelBespoke = Boolean(
     settings?.businessName?.toLowerCase().includes('lao steel') ||
@@ -245,17 +244,56 @@ export default function SettingsPage() {
     settings?.slug?.toLowerCase().includes('steel')
   );
 
-  const hasCustomTemplate = Boolean(
-    (customUrl && customUrl.trim().length > 0) ||
-    currentReceiptTemplateId === 'custom' ||
-    (isLaoSteelBespoke && (currentReceiptTemplateId === 'classic' || !currentReceiptTemplateId))
-  );
+  const customUrl = watchBusiness('customTemplateUrl') || settings?.customTemplateUrl;
+  const currentReceiptTemplateId = watchBusiness('receiptTemplateId') || settings?.receiptTemplateId || 'classic';
+  const hasCustomCraftedTemplate = Boolean(customUrl && customUrl.trim().length > 0);
 
-  const effectiveTemplatePreviewId = (customUrl && customUrl.trim().length > 0)
-    ? 'custom'
-    : isLaoSteelBespoke
-    ? 'classic'
-    : (currentReceiptTemplateId || 'classic');
+  const templateFileInputRef = useRef<HTMLInputElement>(null);
+  const [isCraftingTemplate, setIsCraftingTemplate] = useState(false);
+
+  const handleTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!validTypes.includes(file.type)) {
+      modal.alert('Invalid File Format', 'Please upload a PNG, JPG, WEBP image or PDF of your invoice.', 'error');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      modal.alert('File Too Large', 'Please upload an image smaller than 5MB.', 'error');
+      return;
+    }
+
+    setIsCraftingTemplate(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const endpoint = API_ENDPOINTS.BUSINESS.CRAFT_TEMPLATE(settings?.id);
+      const res = await apiClient.post(endpoint, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const craftedUrl = res.data?.data?.customTemplateUrl;
+      if (craftedUrl) {
+        setValueBusiness('customTemplateUrl', craftedUrl, { shouldDirty: true });
+        setValueBusiness('receiptTemplateId', 'custom', { shouldDirty: true });
+        await updateBusinessMutation.mutateAsync({
+          receiptTemplateId: 'custom',
+          customTemplateUrl: craftedUrl,
+        });
+        modal.alert('Template Crafted Successfully', 'Your bespoke layout has been crafted from your uploaded invoice and applied.', 'success');
+        setIsPreviewOpen(true);
+      }
+    } catch (err: any) {
+      modal.alert('Crafting Failed', err?.response?.data?.message || err.message || 'Could not craft template from image.', 'error');
+    } finally {
+      setIsCraftingTemplate(false);
+      if (templateFileInputRef.current) templateFileInputRef.current.value = '';
+    }
+  };
 
   const onBusinessSubmit = async (data: Partial<BusinessSettings>) => {
     if (data.phone && !isValidPhoneNumber(data.phone)) {
@@ -274,14 +312,9 @@ export default function SettingsPage() {
         ...(logoPreview !== null && { logo: logoPreview || '' }),
         defaultVatPercentage: Number(data.defaultVatPercentage) || 0,
         defaultWhtPercentage: Number(data.defaultWhtPercentage) || 0,
+        receiptTemplateId: hasCustomCraftedTemplate ? 'custom' : (isLaoSteelBespoke ? 'classic' : 'custom'),
+        customTemplateUrl: customUrl || '',
       };
-
-      if (hasCustomTemplate) {
-        payload.receiptTemplateId = isLaoSteelBespoke && !customUrl ? 'classic' : 'custom';
-        if (customUrl) {
-          payload.customTemplateUrl = customUrl;
-        }
-      }
 
       await updateBusinessMutation.mutateAsync(payload);
       modal.alert('Success', 'Business configurations saved successfully', 'success');
@@ -809,139 +842,121 @@ export default function SettingsPage() {
                     <span>Printable Invoice & Receipt Template</span>
                   </Label>
                   <p className="text-[11px] text-muted-foreground">
-                    {hasCustomTemplate
-                      ? isLaoSteelBespoke
-                        ? 'This business operates with its exclusive tailored bespoke invoice & receipt layout configured for all generated PDF documents.'
-                        : 'This business operates with an uploaded bespoke invoice & receipt layout configured for all generated PDF customer receipts and invoices.'
-                      : 'Select the styling and visual layout used when generating PDF receipts and customer invoices.'}
+                    Select the styling and visual layout used when generating PDF receipts and customer invoices.
                   </p>
 
-                  {hasCustomTemplate ? (
-                    <div className="p-4 sm:p-5 rounded-2xl border border-purple-500/30 bg-purple-500/5 dark:bg-purple-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2 shadow-sm">
-                      <div className="flex items-start space-x-3.5">
-                        <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-500 shrink-0 mt-0.5">
-                          <Sparkles className="h-5 w-5" />
+                  {/* Single Dedicated Business Invoice Template Card */}
+                  <div className="p-4 sm:p-5 rounded-2xl border border-border/80 bg-gradient-to-br from-secondary/20 via-background to-secondary/10 shadow-sm space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <h4 className="text-sm font-bold text-foreground">
+                            {hasCustomCraftedTemplate
+                              ? 'Custom Uploaded Mockup Layout'
+                              : isLaoSteelBespoke
+                              ? 'Lao Steel Bespoke Trade Layout'
+                              : 'Standard Trade & Depot Layout'}
+                          </h4>
+                          <Badge
+                            className={
+                              hasCustomCraftedTemplate
+                                ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 text-[10px] font-semibold'
+                                : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold'
+                            }
+                          >
+                            {hasCustomCraftedTemplate
+                              ? 'Custom Active'
+                              : isLaoSteelBespoke
+                              ? 'Lao Steel Bespoke'
+                              : 'Standard Active'}
+                          </Badge>
                         </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <h4 className="text-xs font-bold text-foreground">
-                              Custom Bespoke Template Active
-                            </h4>
-                            <Badge className="bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 text-[10px] font-semibold">
-                              {isLaoSteelBespoke ? 'Lao Steel Bespoke Layout' : 'Uploaded Template'}
-                            </Badge>
-                          </div>
-                          <p className="text-[11px] text-muted-foreground leading-relaxed max-w-xl">
-                            {isLaoSteelBespoke
-                              ? 'Your exclusive tailored template layout (with brand emblem, company ledger styling, watermark, guarantee terms, and authorized signature blocks) is active for all generated receipts and invoices.'
-                              : 'All PDF receipts and invoices generated for this business are formatted according to your customized invoice template.'}
-                          </p>
-                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
+                          {hasCustomCraftedTemplate
+                            ? 'Your business is using an authentic layout crafted from your uploaded invoice mockup. Open the studio to refine headers, borders, columns, and colors with AI Copilot.'
+                            : isLaoSteelBespoke
+                            ? 'Your authentic Lao Steel industrial styling with green globe emblem, dual company ledger borders, LSV watermark, and guarantee terms is active.'
+                            : 'Standard commercial invoice layout with dual borders, clean itemization, and structured terms.'}
+                        </p>
                       </div>
 
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setPreviewTemplateId(effectiveTemplatePreviewId);
-                          setIsPreviewOpen(true);
-                        }}
-                        className="rounded-xl text-xs h-10 px-4 border-purple-500/40 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 shrink-0 flex items-center space-x-2 cursor-pointer shadow-sm"
-                      >
-                        <Eye className="h-4 w-4" />
-                        <span>Preview Custom Template</span>
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                      <div
-                        onClick={() => setValueBusiness('receiptTemplateId', 'classic', { shouldDirty: true })}
-                        className={`flex flex-col justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
-                          watchBusiness('receiptTemplateId') === 'classic' || (!watchBusiness('receiptTemplateId') && settings?.receiptTemplateId === 'classic')
-                            ? 'border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-950/20 shadow-sm'
-                            : 'border-border/80 bg-background hover:bg-secondary/40'
-                        }`}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <input
-                            type="radio"
-                            value="classic"
-                            checked={watchBusiness('receiptTemplateId') === 'classic' || (!watchBusiness('receiptTemplateId') && settings?.receiptTemplateId !== 'modern')}
-                            onChange={() => setValueBusiness('receiptTemplateId', 'classic', { shouldDirty: true })}
-                            className="mt-1 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
-                          />
-                          <div className="space-y-0.5">
-                            <p className="text-xs font-bold text-foreground">Classic Industrial / Thermal</p>
-                            <p className="text-[11px] text-muted-foreground leading-relaxed">
-                              Original bespoke industrial styling with ledger borders, watermark support, and structured customer guarantee terms.
-                            </p>
-                          </div>
-                        </div>
+                      <div className="flex items-center flex-wrap gap-2 shrink-0">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setPreviewTemplateId('custom');
+                            setIsPreviewOpen(true);
+                          }}
+                          className="h-8 px-3 text-xs font-semibold rounded-xl border-border/80 hover:bg-secondary/50 flex items-center space-x-1.5 cursor-pointer"
+                        >
+                          <Eye className="h-3.5 w-3.5 text-emerald-500" />
+                          <span>Open Template Studio</span>
+                        </Button>
 
-                        <div className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-between">
-                          <span className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider font-semibold">Standard Ledger</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPreviewTemplateId('classic');
-                              setIsPreviewOpen(true);
-                            }}
-                            className="h-7 px-2.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg flex items-center space-x-1 cursor-pointer transition-colors"
-                          >
-                            <Eye className="h-3.5 w-3.5 mr-1" />
-                            <span>Preview Layout</span>
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div
-                        onClick={() => setValueBusiness('receiptTemplateId', 'modern', { shouldDirty: true })}
-                        className={`flex flex-col justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
-                          watchBusiness('receiptTemplateId') === 'modern' || (!watchBusiness('receiptTemplateId') && settings?.receiptTemplateId === 'modern')
-                            ? 'border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-950/20 shadow-sm'
-                            : 'border-border/80 bg-background hover:bg-secondary/40'
-                        }`}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <input
-                            type="radio"
-                            value="modern"
-                            checked={watchBusiness('receiptTemplateId') === 'modern'}
-                            onChange={() => setValueBusiness('receiptTemplateId', 'modern', { shouldDirty: true })}
-                            className="mt-1 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
-                          />
-                          <div className="space-y-0.5">
-                            <p className="text-xs font-bold text-foreground">Modern Corporate Executive</p>
-                            <p className="text-[11px] text-muted-foreground leading-relaxed">
-                              Clean minimal SaaS invoice design with modern typography, slate headers, itemized charges, and payment verification tags.
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-between">
-                          <span className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider font-semibold">Minimal SaaS</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPreviewTemplateId('modern');
-                              setIsPreviewOpen(true);
-                            }}
-                            className="h-7 px-2.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg flex items-center space-x-1 cursor-pointer transition-colors"
-                          >
-                            <Eye className="h-3.5 w-3.5 mr-1" />
-                            <span>Preview Layout</span>
-                          </Button>
-                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={isCraftingTemplate}
+                          onClick={() => templateFileInputRef.current?.click()}
+                          className="h-8 px-3 text-xs font-semibold rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-sm flex items-center space-x-1.5 cursor-pointer"
+                        >
+                          {isCraftingTemplate ? (
+                            <>
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              <span>AI Crafting Layout...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-3.5 w-3.5" />
+                              <span>{hasCustomCraftedTemplate ? 'Replace Mockup' : 'Upload Mockup Image'}</span>
+                            </>
+                          )}
+                        </Button>
                       </div>
                     </div>
-                  )}
+
+                    {/* Reset / Restore Option */}
+                    {hasCustomCraftedTemplate && (
+                      <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs">
+                        <span className="text-[11px] text-muted-foreground">
+                          {isLaoSteelBespoke
+                            ? 'Want to return to the original Lao Steel corporate template?'
+                            : 'Want to reset back to the default trade layout?'}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            const confirmed = await modal.confirm(
+                              'Reset Template',
+                              isLaoSteelBespoke
+                                ? 'Are you sure you want to revert to the authentic Lao Steel bespoke layout?'
+                                : 'Are you sure you want to reset to the standard template?'
+                            );
+                            if (confirmed) {
+                              setValueBusiness('receiptTemplateId', 'classic', { shouldDirty: true });
+                              setValueBusiness('customTemplateUrl', '', { shouldDirty: true });
+                              try {
+                                await updateBusinessMutation.mutateAsync({
+                                  receiptTemplateId: 'classic',
+                                  customTemplateUrl: '',
+                                });
+                                modal.alert('Template Reset', 'Reverted to default layout.', 'success');
+                              } catch (err: any) {
+                                modal.alert('Error', err?.message || 'Could not reset template', 'error');
+                              }
+                            }
+                          }}
+                          className="h-7 px-2 text-[11px] text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-lg cursor-pointer font-medium"
+                        >
+                          {isLaoSteelBespoke ? 'Restore Lao Steel Layout' : 'Reset to Default Layout'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
 

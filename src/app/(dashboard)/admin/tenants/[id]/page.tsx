@@ -1603,11 +1603,13 @@ export default function TenantDetailPage() {
                           Classic Industrial
                         </span>
                         <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px]">
-                          Built-in Default
+                          {(business.slug === 'lao-steel' || business.receiptPrefix === 'LSV' || business.businessName?.toLowerCase().includes('lao steel')) ? 'Lao Steel Bespoke' : 'Built-in Default'}
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        Authentic trade & depot design featuring double navy outer border, circular green emblem, centered company contact header, full itemized spec table, guarantee disclaimer box, and dual verification signatures.
+                        {(business.slug === 'lao-steel' || business.receiptPrefix === 'LSV' || business.businessName?.toLowerCase().includes('lao steel'))
+                          ? 'Authentic Lao Steel trade & depot design featuring double navy outer border, circular green globe emblem, centered company contact header, full itemized spec table, guarantee disclaimer box, and dual verification signatures.'
+                          : 'Authentic trade & depot design featuring double navy outer border, circular green emblem, centered company contact header, full itemized spec table, guarantee disclaimer box, and dual verification signatures.'}
                       </p>
                     </div>
 
@@ -1753,20 +1755,42 @@ export default function TenantDetailPage() {
                       </Button>
 
                       {customTemplateUrl && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPreviewingTemplate('custom');
-                            setIsTemplatePreviewOpen(true);
-                          }}
-                          className="h-8 rounded-xl text-xs px-3 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 flex items-center space-x-1 cursor-pointer"
-                        >
-                          <Eye className="h-3.5 w-3.5 mr-1 text-purple-500" />
-                          <span>Preview Layout</span>
-                        </Button>
+                        <div className="flex items-center space-x-1.5">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewingTemplate('custom');
+                              setIsTemplatePreviewOpen(true);
+                            }}
+                            className="h-8 rounded-xl text-xs px-3 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 flex items-center space-x-1 cursor-pointer"
+                          >
+                            <Eye className="h-3.5 w-3.5 mr-1 text-purple-500" />
+                            <span>Preview</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const confirmed = await modal.confirm(
+                                'Remove Custom Template',
+                                'Detach this custom template and reset template selection to Classic Industrial?'
+                              );
+                              if (confirmed) {
+                                setCustomTemplateUrl('');
+                                setSelectedTemplateId('classic');
+                              }
+                            }}
+                            className="h-8 rounded-xl text-xs px-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 flex items-center space-x-1 cursor-pointer"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-1" />
+                            <span>Clear</span>
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>

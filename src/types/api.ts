@@ -1,8 +1,23 @@
 export type Role = 'SUPER_ADMIN' | 'ADMIN' | 'APPRENTICE';
 
+export interface CustomTemplateColumn {
+  id: string;
+  label: string;
+  field: 'index' | 'qty' | 'description' | 'unit_price' | 'amount' | 'custom';
+  widthPercent?: number;
+  align?: 'left' | 'center' | 'right';
+}
+
+export interface CustomTemplateSignature {
+  label: string;
+  style?: 'dotted' | 'solid-line';
+  position?: 'left' | 'right' | 'center';
+}
+
 export interface CustomTemplateConfig {
   templateName: string;
   description?: string;
+  archetype?: 'commercial-docket' | 'modern-split' | 'banner' | 'formal-ledger';
   theme: {
     primaryColor: string;
     secondaryColor: string;
@@ -14,11 +29,29 @@ export interface CustomTemplateConfig {
   };
   header: {
     layout: 'classic-centered' | 'modern-split' | 'banner' | 'two-column';
+    style?: 'centered-commercial' | 'split-modern' | 'banner' | 'compact-docket';
     bannerBackground?: string;
     bannerTextColor?: string;
     showLogo: boolean;
     logoPosition: 'left' | 'center' | 'right';
     titleText: string;
+    titleBadge?: {
+      style: 'pill' | 'banner' | 'plain';
+      text: string;
+      alignment: 'left' | 'center' | 'right';
+      badgeColor?: string;
+      badgeTextColor?: string;
+    };
+    metaBox?: {
+      style: 'day-month-year-grid' | 'bordered-box' | 'standard-list';
+      fields: string[];
+    };
+  };
+  customer?: {
+    style: 'dotted-ledger' | 'card-bordered' | 'minimal-plain' | 'split-columns';
+    showBilledToPill?: boolean;
+    nameLabel?: string;
+    addressLabel?: string;
   };
   table: {
     headerBackground: string;
@@ -26,24 +59,34 @@ export interface CustomTemplateConfig {
     alternateRowStriping: boolean;
     alternateRowColor?: string;
     borderStyle: 'grid' | 'horizontal-only' | 'double-ledger' | 'minimal';
+    gridStyle?: 'full-grid' | 'horizontal-ledger' | 'minimal';
     borderColor: string;
+    columns?: CustomTemplateColumn[];
+    fillBlankRows?: boolean;
+    minRows?: number;
   };
   summary: {
     position: 'right' | 'boxed' | 'split';
+    layout?: 'table-integrated' | 'card-bottom-right' | 'split-bottom';
+    totalLabel?: string;
     highlightTotalBackground: string;
     highlightTotalTextColor: string;
     showAmountInWords: boolean;
   };
   footer: {
     guaranteeText?: string;
+    courtesyGreeting?: string;
+    centerGraphic?: 'handshake' | 'seal' | 'none';
     showSignatures: boolean;
     signatureCount: 1 | 2;
     signatureLabels: string[];
+    signatureBlocks?: CustomTemplateSignature[];
     watermarkText?: string;
     termsAndConditions?: string;
   };
   rawImagePreviewUrl?: string;
 }
+
 
 export interface Branch {
   id: string;
@@ -639,3 +682,4 @@ export interface ReportQueryParams {
   businessId?: string;
   branchId?: string;
 }
+
