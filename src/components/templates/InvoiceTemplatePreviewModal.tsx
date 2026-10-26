@@ -269,66 +269,68 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="w-[98vw] max-w-4xl h-[94vh] max-h-[94vh] flex flex-col p-0 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden focus:outline-none">
         {/* Modal Top Header */}
-        <div className="shrink-0 p-3 sm:p-4 border-b border-slate-800 bg-slate-950/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 z-10">
-          <div className="flex items-center space-x-3 pr-8 sm:pr-0">
+        <div className="shrink-0 p-3 sm:p-4 border-b border-slate-800 bg-slate-950/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 z-10 pr-10 sm:pr-4">
+          <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
             <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
               <Printer className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <DialogTitle className="text-sm sm:text-base font-bold text-white flex items-center space-x-2 font-heading">
+            <div className="min-w-0">
+              <DialogTitle className="text-sm sm:text-base font-bold text-white flex items-center space-x-2 font-heading truncate">
                 <span>{isSuperAdmin ? 'Invoice & Receipt Template Studio' : 'Printable Invoice Template Preview'}</span>
               </DialogTitle>
-              <DialogDescription className="text-[11px] sm:text-xs text-slate-400 mt-0.5 line-clamp-1 sm:line-clamp-none">
+              <DialogDescription className="text-[11px] sm:text-xs text-slate-400 mt-0.5 line-clamp-1">
                 {isSuperAdmin
-                  ? 'Interactive design studio with AI Copilot to refine layout, colors, and terms.'
+                  ? 'Official A4 printable invoice design layout extracted and rendered with your business records.'
                   : 'Official visual layout used for your printable PDF receipts and customer invoices.'}
               </DialogDescription>
             </div>
           </div>
 
           {/* Template Badge */}
-          <div className="flex items-center space-x-2">
-            <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs py-1 px-3 font-semibold">
-              <Sparkles className="h-3 w-3 mr-1.5 text-amber-400" />
-              <span>{aiConfig.templateName || 'Bespoke Custom Template'}</span>
+          <div className="flex items-center space-x-2 shrink-0">
+            <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] sm:text-xs py-1 px-2.5 sm:px-3 font-semibold">
+              <Sparkles className="h-3 w-3 mr-1 text-amber-400 shrink-0" />
+              <span className="truncate max-w-[180px] sm:max-w-none">{aiConfig.templateName || 'Bespoke Custom Template'}</span>
             </Badge>
           </div>
         </div>
 
         {/* Modal Main Workspace */}
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-slate-950/70">
+        <div className="flex-1 flex flex-col overflow-hidden bg-slate-950/70">
           {/* LEFT: Preview Viewport Canvas */}
-          <div className="flex-1 overflow-y-auto overflow-x-auto p-3 sm:p-6 flex flex-col items-center justify-start relative">
+          <div className="flex-1 overflow-y-auto overflow-x-auto p-2.5 sm:p-4 md:p-6 flex flex-col items-center justify-start relative">
             {/* View Mode Toolbar */}
-            <div className="w-full max-w-[760px] flex items-center justify-between pb-3 text-xs mb-2">
-              <Badge className="bg-slate-800 text-slate-300 border border-slate-700 text-[10px] py-0.5 px-2 font-mono">
-                A4 Printable Layout
-              </Badge>
+            <div className="w-full max-w-[760px] flex flex-wrap items-center justify-between gap-2 pb-3 text-xs mb-2">
+              <div className="flex items-center gap-1.5">
+                <Badge className="bg-slate-800 text-slate-300 border border-slate-700 text-[10px] py-0.5 px-2 font-mono shrink-0">
+                  A4 Printable Layout
+                </Badge>
+              </div>
 
-              <div className="flex items-center space-x-1 bg-slate-900 border border-slate-800 p-1 rounded-xl shrink-0">
+              <div className="flex items-center space-x-1 bg-slate-900 border border-slate-800 p-1 rounded-xl shrink-0 overflow-x-auto max-w-full">
                 <button
                   type="button"
                   onClick={() => setViewMode('template')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 shrink-0 ${
                     viewMode === 'template'
                       ? 'bg-emerald-600 text-white shadow-sm'
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  <FileText className="h-3.5 w-3.5" />
-                  <span>A4 Invoice Preview</span>
+                  <FileText className="h-3.5 w-3.5 shrink-0" />
+                  <span>Preview</span>
                 </button>
                 {aiConfig.rawImagePreviewUrl && (
                   <button
                     type="button"
                     onClick={() => setViewMode('reference')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 shrink-0 ${
                       viewMode === 'reference'
                         ? 'bg-purple-600 text-white shadow-sm'
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    <ImageIcon className="h-3.5 w-3.5" />
+                    <ImageIcon className="h-3.5 w-3.5 shrink-0" />
                     <span>Original Upload</span>
                   </button>
                 )}
@@ -336,13 +338,13 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                   <button
                     type="button"
                     onClick={() => setViewMode('blueprint')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 shrink-0 ${
                       viewMode === 'blueprint'
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    <Sparkles className="h-3.5 w-3.5" />
+                    <Sparkles className="h-3.5 w-3.5 shrink-0" />
                     <span>AI Spatial Blueprint</span>
                   </button>
                 )}
@@ -352,7 +354,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
             {/* A4 Document Preview */}
             {viewMode === 'template' && (
               <div
-                  className="w-full max-w-[760px] rounded-lg shadow-2xl p-4 sm:p-8 relative select-none transition-all duration-300 border"
+                  className="w-full max-w-[760px] rounded-lg shadow-2xl p-3 sm:p-6 md:p-8 relative select-none transition-all duration-300 border"
                   style={{
                     backgroundColor: aiConfig.theme.backgroundColor || '#ffffff',
                     color: aiConfig.theme.textColor || '#0f172a',
@@ -516,17 +518,17 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                     </div>
 
                     {/* 3-Column Trade Sub-Strip: Office Address | INVOICE | Contact */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-2 pt-2 pb-2 text-xs">
-                      <div className="text-left">
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-2 pt-2 pb-2 text-xs">
+                      <div className="text-left min-w-0">
                         <span className="text-[10px] font-bold text-red-600 uppercase block tracking-wider">
                           Office Address:
                         </span>
-                        <span className="text-xs font-bold text-slate-800 leading-tight block">
+                        <span className="text-[11px] sm:text-xs font-bold text-slate-800 leading-tight block break-words">
                           {address || '19 Oguntifa Street, Off Church Street, Alapere Ketu, Lagos'}
                         </span>
                       </div>
 
-                      <div className="text-center sm:border-l sm:border-r border-slate-300 py-1">
+                      <div className="text-center sm:px-4 sm:border-l sm:border-r border-slate-300 py-1 shrink-0">
                         <span
                           className="text-xl sm:text-2xl font-black tracking-wider uppercase inline-block"
                           style={{
@@ -540,11 +542,11 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                         </span>
                       </div>
 
-                      <div className="text-left sm:text-right">
+                      <div className="text-left sm:text-right min-w-0">
                         <span className="text-[10px] font-bold text-red-600 uppercase block tracking-wider">
                           Contact:
                         </span>
-                        <span className="text-xs font-mono font-bold text-slate-900 block">
+                        <span className="text-[11px] sm:text-xs font-mono font-bold text-slate-900 block break-words">
                           {phone || '08028386659'}
                         </span>
                       </div>
@@ -559,8 +561,8 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                     {/* Underlined Customer Section: Name/Date and Address/Sign */}
                     <div className="space-y-2 mb-3 text-xs font-semibold">
                       {/* Row 1: Name and Date */}
-                      <div className="flex flex-col sm:flex-row items-baseline gap-3">
-                        <div className="flex-1 flex items-baseline gap-2">
+                      <div className="flex flex-col sm:flex-row items-baseline gap-2 sm:gap-4">
+                        <div className="flex-1 min-w-0 w-full flex items-baseline gap-2">
                           <span
                             className="font-bold shrink-0 uppercase tracking-tight text-xs"
                             style={{ color: aiConfig.theme.primaryColor || '#0052cc' }}
@@ -568,13 +570,13 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                             {aiConfig.customer?.nameLabel || 'Name:'}
                           </span>
                           <span
-                            className="flex-1 border-b-2 pb-0.5 font-bold font-sans text-slate-900 text-xs"
+                            className="flex-1 min-w-0 border-b-2 pb-0.5 font-bold font-sans text-slate-900 text-xs truncate"
                             style={{ borderColor: aiConfig.table.borderColor || '#0052cc' }}
                           >
                             Alhaji Musa Dangote &amp; Sons Ltd.
                           </span>
                         </div>
-                        <div className="w-full sm:w-60 flex items-baseline gap-2">
+                        <div className="w-full sm:w-44 flex items-baseline gap-2 shrink-0">
                           <span
                             className="font-bold shrink-0 uppercase tracking-tight text-xs"
                             style={{ color: aiConfig.theme.primaryColor || '#0052cc' }}
@@ -582,7 +584,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                             Date:
                           </span>
                           <span
-                            className="flex-1 border-b-2 pb-0.5 font-mono text-slate-900 text-xs font-bold"
+                            className="flex-1 border-b-2 pb-0.5 font-mono text-slate-900 text-xs font-bold text-center"
                             style={{ borderColor: aiConfig.table.borderColor || '#0052cc' }}
                           >
                             {new Date().toLocaleDateString('en-GB')}
@@ -591,8 +593,8 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                       </div>
 
                       {/* Row 2: Address and Sign */}
-                      <div className="flex flex-col sm:flex-row items-baseline gap-3">
-                        <div className="flex-1 flex items-baseline gap-2">
+                      <div className="flex flex-col sm:flex-row items-baseline gap-2 sm:gap-4">
+                        <div className="flex-1 min-w-0 w-full flex items-baseline gap-2">
                           <span
                             className="font-bold shrink-0 uppercase tracking-tight text-xs"
                             style={{ color: aiConfig.theme.primaryColor || '#0052cc' }}
@@ -600,13 +602,13 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                             {aiConfig.customer?.addressLabel || 'Address:'}
                           </span>
                           <span
-                            className="flex-1 border-b-2 pb-0.5 font-sans text-slate-700 text-xs"
+                            className="flex-1 min-w-0 border-b-2 pb-0.5 font-sans text-slate-700 text-xs truncate"
                             style={{ borderColor: aiConfig.table.borderColor || '#0052cc' }}
                           >
                             Plot 14, Commercial District, Ikeja, Lagos
                           </span>
                         </div>
-                        <div className="w-full sm:w-60 flex items-baseline gap-2">
+                        <div className="w-full sm:w-44 flex items-baseline gap-2 shrink-0">
                           <span
                             className="font-bold shrink-0 uppercase tracking-tight text-xs"
                             style={{ color: aiConfig.theme.primaryColor || '#0052cc' }}
@@ -935,7 +937,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                             {activeColumns.map((col, cIdx) => (
                               <th
                                 key={col.id || cIdx}
-                                className={`p-2.5 font-bold uppercase tracking-wider text-xs ${
+                                className={`p-1.5 sm:p-2.5 font-bold uppercase tracking-wider text-[10px] sm:text-xs ${
                                   col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
                                 } ${cIdx < activeColumns.length - 1 ? 'border-r border-white/30' : ''}`}
                                 style={{ width: col.widthPercent ? `${col.widthPercent}%` : undefined }}
@@ -958,7 +960,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                               {activeColumns.map((col, cIdx) => (
                                 <td
                                   key={col.id || cIdx}
-                                  className={`p-2.5 text-xs ${
+                                  className={`p-1.5 sm:p-2.5 text-[11px] sm:text-xs ${
                                     col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
                                   } ${col.field === 'description' ? 'font-sans font-semibold' : ''} ${
                                     col.field === 'amount' ? 'font-bold' : ''
@@ -978,11 +980,11 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
 
                           {/* Empty ledger rows */}
                           {Array.from({ length: emptyRowCount }).map((_, eIdx) => (
-                            <tr key={`empty_${eIdx}`} className="h-7" style={{ backgroundColor: '#ffffff' }}>
+                            <tr key={`empty_${eIdx}`} className="h-6 sm:h-7" style={{ backgroundColor: '#ffffff' }}>
                               {activeColumns.map((col, cIdx) => (
                                 <td
                                   key={`empty_col_${cIdx}`}
-                                  className={`p-2.5 ${cIdx < activeColumns.length - 1 ? 'border-r' : ''}`}
+                                  className={`p-1.5 sm:p-2.5 ${cIdx < activeColumns.length - 1 ? 'border-r' : ''}`}
                                   style={{
                                     borderColor: aiConfig.table.borderColor || '#0052cc',
                                     backgroundColor: ((aiConfig.archetype === 'lao-steel' || isLaoSteel) && (col.id === 'pos' || col.id === 'qty' || col.id === 'amt'))
@@ -1001,13 +1003,13 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                             <tr className="font-bold border-t-2" style={{ borderColor: aiConfig.table.borderColor || '#0052cc' }}>
                               <td
                                 colSpan={Math.max(1, activeColumns.length - 1)}
-                                className="p-2.5 text-center sm:text-right font-black uppercase tracking-wider text-xs"
+                                className="p-2 sm:p-2.5 text-center sm:text-right font-black uppercase tracking-wider text-[11px] sm:text-xs"
                                 style={{ color: aiConfig.theme.primaryColor || '#0052cc' }}
                               >
                                 {aiConfig.summary.totalLabel || 'TOTAL'} (₦):
                               </td>
                               <td
-                                className="p-2.5 text-right font-black text-sm font-mono border-l-2"
+                                className="p-2 sm:p-2.5 text-right font-black text-xs sm:text-sm font-mono border-l-2"
                                 style={{
                                   borderColor: aiConfig.table.borderColor || '#0052cc',
                                   backgroundColor: aiConfig.summary.highlightTotalBackground || '#ffffff',
@@ -1050,8 +1052,8 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                 {isTradeVoucher ? (
                   <div className="mt-3 space-y-3">
                     {/* Amount in words + Office Signature Stamp Box */}
-                    <div className="flex flex-col sm:flex-row items-end justify-between gap-4">
-                      <div className="flex-1 w-full sm:w-auto flex items-baseline gap-2">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3">
+                      <div className="flex-1 w-full min-w-0 flex items-baseline gap-2">
                         <span
                           className="font-bold text-xs shrink-0"
                           style={{ color: aiConfig.theme.primaryColor || '#0052cc' }}
@@ -1059,7 +1061,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                           Amount in words:
                         </span>
                         <span
-                          className="flex-1 border-b-2 pb-0.5 italic font-serif text-xs text-slate-800"
+                          className="flex-1 min-w-0 border-b-2 pb-0.5 italic font-serif text-xs text-slate-800 break-words"
                           style={{ borderColor: aiConfig.table.borderColor || '#0052cc' }}
                         >
                           Two Million, One Hundred and Fifty-Six Thousand Naira Only.
@@ -1067,7 +1069,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                       </div>
 
                       <div
-                        className="border-2 w-48 h-16 p-2 flex flex-col justify-between shrink-0 bg-white shadow-sm"
+                        className="border-2 w-40 sm:w-48 h-14 sm:h-16 p-2 flex flex-col justify-between shrink-0 bg-white shadow-sm self-end sm:self-auto"
                         style={{ borderColor: aiConfig.table.borderColor || '#0052cc' }}
                       >
                         <span
@@ -1253,21 +1255,23 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
         </div>
 
         {/* Modal Action Footer */}
-        <div className="shrink-0 p-3 sm:p-4 border-t border-slate-800 bg-slate-950/95 flex flex-col sm:flex-row items-center justify-between gap-3 z-10">
-          <div className="text-xs text-slate-400 text-center sm:text-left">
-            <span className="text-white font-semibold">{aiConfig.templateName || 'Bespoke Custom Template'}</span>
-            <span className="ml-2 text-emerald-400">
+        <div className="shrink-0 p-3 sm:p-4 border-t border-slate-800 bg-slate-950/95 flex flex-col sm:flex-row items-center justify-between gap-2.5 z-10">
+          <div className="text-xs text-slate-400 text-center sm:text-left min-w-0">
+            <span className="text-white font-semibold truncate inline-block max-w-[220px] sm:max-w-none align-bottom">
+              {aiConfig.templateName || 'Bespoke Custom Template'}
+            </span>
+            <span className="ml-1 sm:ml-2 text-emerald-400 text-[11px] sm:text-xs">
               (Live preview with {bizName} details)
             </span>
           </div>
 
-          <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
+          <div className="flex items-center space-x-2 w-full sm:w-auto justify-end shrink-0">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={onClose}
-              className="rounded-xl text-xs border-slate-700 text-slate-300 hover:bg-slate-800 h-9 px-4 cursor-pointer"
+              className="rounded-xl text-xs border-slate-700 text-slate-300 hover:bg-slate-800 h-9 px-3.5 sm:px-4 cursor-pointer flex-1 sm:flex-none"
             >
               Close
             </Button>
@@ -1280,9 +1284,9 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                   onSelectTemplate('custom', JSON.stringify(aiConfig));
                   onClose();
                 }}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold h-9 px-5 shadow-md shadow-emerald-500/20 cursor-pointer"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold h-9 px-4 sm:px-5 shadow-md shadow-emerald-500/20 cursor-pointer flex-1 sm:flex-none"
               >
-                Save & Apply Template
+                <span>Save<span className="hidden sm:inline"> &amp; Apply</span> Template</span>
               </Button>
             )}
           </div>
