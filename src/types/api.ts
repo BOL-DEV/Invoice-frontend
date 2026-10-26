@@ -17,7 +17,7 @@ export interface CustomTemplateSignature {
 export interface CustomTemplateConfig {
   templateName: string;
   description?: string;
-  archetype?: 'commercial-docket' | 'modern-split' | 'banner' | 'formal-ledger' | 'lao-steel' | 'standard-trade' | 'trade-voucher';
+  archetype?: 'commercial-docket' | 'modern-split' | 'banner' | 'formal-ledger' | 'lao-steel' | 'standard-trade' | 'trade-voucher' | 'corporate' | 'depot-docket';
   theme: {
     primaryColor: string;
     secondaryColor: string;
@@ -89,6 +89,21 @@ export interface CustomTemplateConfig {
   rawImagePreviewUrl?: string;
   htmlTemplate?: string;
   layoutDescription?: string;
+  titleSplit?: {
+    part1: string;
+    part2: string;
+    suffix?: string;
+    color1?: string;
+    color2?: string;
+  };
+  subStrip?: {
+    leftLabel?: string;
+    leftValue?: string;
+    centerTitle?: string;
+    rightLabel?: string;
+    rightValue?: string;
+  };
+  stampBoxTitle?: string;
 }
 
 
