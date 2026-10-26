@@ -874,20 +874,6 @@ export default function OnboardBusinessPage() {
                   <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
                     {receiptTemplateId === 'classic' ? '✓ Selected' : 'Click to select'}
                   </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPreviewingTemplate('classic');
-                      setIsPreviewOpen(true);
-                    }}
-                    className="h-8 rounded-xl text-[11px] px-2.5 border-border hover:bg-secondary flex items-center space-x-1 cursor-pointer"
-                  >
-                    <Eye className="h-3 w-3 mr-1 text-primary" />
-                    <span>Preview</span>
-                  </Button>
                 </div>
               </div>
 
@@ -918,20 +904,6 @@ export default function OnboardBusinessPage() {
                   <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
                     {receiptTemplateId === 'modern' ? '✓ Selected' : 'Click to select'}
                   </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPreviewingTemplate('modern');
-                      setIsPreviewOpen(true);
-                    }}
-                    className="h-8 rounded-xl text-[11px] px-2.5 border-border hover:bg-secondary flex items-center space-x-1 cursor-pointer"
-                  >
-                    <Eye className="h-3 w-3 mr-1 text-primary" />
-                    <span>Preview</span>
-                  </Button>
                 </div>
               </div>
 

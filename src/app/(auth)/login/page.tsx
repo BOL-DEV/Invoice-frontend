@@ -75,6 +75,27 @@ function LoginForm() {
     ? (rawLogo as string)
     : (branding?.business?.slug === 'lao-steel' ? '/laosteel-logo.svg' : '/platform-logo.svg');
 
+  const businessInitials = (businessName || 'B')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w: string) => w[0].toUpperCase())
+    .join('') || 'B';
+
+  const renderLoginLogo = (size: number = 48, className: string = 'w-11 h-11') => {
+    if (hasCustomLogo) {
+      return <Image src={rawLogo as string} alt={businessName} width={size} height={size} className={`${className} object-contain`} priority />;
+    }
+    if (isCustomDomain || branding?.business) {
+      return (
+        <div className="h-full w-full rounded-xl bg-emerald-600 dark:bg-emerald-500 text-white font-bold font-heading text-lg flex items-center justify-center">
+          {businessInitials}
+        </div>
+      );
+    }
+    return <Image src="/platform-logo.svg" alt={businessName} width={size} height={size} className={`${className} object-contain`} priority />;
+  };
+
   const badgeText = isCustomDomain
     ? `${businessName} Invoicing & Billing Portal`
     : 'BOLXolve Multi-Tenant Invoice Platform';
@@ -190,8 +211,8 @@ function LoginForm() {
           </div>
 
           <div className="flex items-center space-x-3.5 mb-3">
-            <div className="h-14 w-14 rounded-2xl bg-white p-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/25 shrink-0">
-              <Image src={logoSrc} alt={businessName} width={48} height={48} className="w-11 h-11 object-contain" priority />
+            <div className="h-14 w-14 rounded-2xl bg-white p-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/25 shrink-0 overflow-hidden">
+              {renderLoginLogo(48)}
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-white font-heading">
@@ -254,8 +275,8 @@ function LoginForm() {
           
           {/* Mobile Header Branding (Visible on mobile & tablets only) */}
           <div className="lg:hidden flex flex-col items-center text-center space-y-3 mb-6">
-            <div className="h-14 w-14 rounded-2xl bg-white p-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/20 border border-border shrink-0">
-              <Image src={logoSrc} alt={businessName} width={48} height={48} className="w-11 h-11 object-contain" />
+            <div className="h-14 w-14 rounded-2xl bg-white p-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/20 border border-border shrink-0 overflow-hidden">
+              {renderLoginLogo(48)}
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC] font-heading">

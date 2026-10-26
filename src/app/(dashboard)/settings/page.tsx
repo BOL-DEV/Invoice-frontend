@@ -164,6 +164,13 @@ export default function SettingsPage() {
     ? (rawLogo as string)
     : (settings?.slug === 'lao-steel' ? '/laosteel-logo.svg' : '/platform-logo.svg');
 
+  const businessInitials = (settings?.businessName || 'Business')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w: string) => w[0].toUpperCase())
+    .join('') || 'B';
+
   const {
     register: registerBusiness,
     handleSubmit: handleBusinessSubmit,
@@ -617,7 +624,13 @@ export default function SettingsPage() {
               <CardHeader className="p-4 sm:p-6 border-b border-border/80 bg-slate-50/50 dark:bg-slate-900/30">
                 <div className="flex items-center space-x-3">
                   <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
-                    <Image src={logoPreview || logoSrc} alt={settings.businessName || 'Company Logo'} width={32} height={32} className="w-8 h-8 object-contain" />
+                    {(logoPreview || hasCustomLogo) ? (
+                      <Image src={logoPreview || (rawLogo as string)} alt={settings.businessName || 'Company Logo'} width={32} height={32} className="w-8 h-8 object-contain" />
+                    ) : (
+                      <div className="h-full w-full rounded-lg bg-emerald-600 dark:bg-emerald-500 text-white font-bold font-heading text-xs flex items-center justify-center">
+                        {businessInitials}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <CardTitle className="text-sm sm:text-base font-bold text-foreground">
@@ -635,13 +648,19 @@ export default function SettingsPage() {
                 <div className="p-4 rounded-2xl bg-secondary/30 border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center space-x-4">
                     <div className="relative h-16 w-16 rounded-2xl bg-white dark:bg-slate-900 border border-border p-2 flex items-center justify-center shrink-0 shadow-sm overflow-hidden group">
-                      <Image
-                        src={logoPreview || logoSrc}
-                        alt={settings.businessName || 'Company Logo'}
-                        width={56}
-                        height={56}
-                        className="w-full h-full object-contain"
-                      />
+                      {(logoPreview || hasCustomLogo) ? (
+                        <Image
+                          src={logoPreview || (rawLogo as string)}
+                          alt={settings.businessName || 'Company Logo'}
+                          width={56}
+                          height={56}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <div className="h-full w-full rounded-xl bg-emerald-600 dark:bg-emerald-500 text-white font-bold font-heading text-lg flex items-center justify-center">
+                          {businessInitials}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-foreground">Brand Logo</h4>
@@ -892,33 +911,35 @@ export default function SettingsPage() {
                           className="h-8 px-3 text-xs font-semibold rounded-xl border-border/80 hover:bg-secondary/50 flex items-center space-x-1.5 cursor-pointer"
                         >
                           <Eye className="h-3.5 w-3.5 text-emerald-500" />
-                          <span>Open Template Studio</span>
+                          <span>{isSuperAdmin ? 'Open Template Studio' : 'Preview Invoice Template'}</span>
                         </Button>
 
-                        <Button
-                          type="button"
-                          size="sm"
-                          disabled={isCraftingTemplate}
-                          onClick={() => templateFileInputRef.current?.click()}
-                          className="h-8 px-3 text-xs font-semibold rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-sm flex items-center space-x-1.5 cursor-pointer"
-                        >
-                          {isCraftingTemplate ? (
-                            <>
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              <span>AI Crafting Layout...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="h-3.5 w-3.5" />
-                              <span>{hasCustomCraftedTemplate ? 'Replace Mockup' : 'Upload Mockup Image'}</span>
-                            </>
-                          )}
-                        </Button>
+                        {isSuperAdmin && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={isCraftingTemplate}
+                            onClick={() => templateFileInputRef.current?.click()}
+                            className="h-8 px-3 text-xs font-semibold rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-sm flex items-center space-x-1.5 cursor-pointer"
+                          >
+                            {isCraftingTemplate ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                <span>AI Crafting Layout...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-3.5 w-3.5" />
+                                <span>{hasCustomCraftedTemplate ? 'Replace Mockup' : 'Upload Mockup Image'}</span>
+                              </>
+                            )}
+                          </Button>
+                        )}
                       </div>
                     </div>
 
-                    {/* Reset / Restore Option */}
-                    {hasCustomCraftedTemplate && (
+                    {/* Reset / Restore Option (Super Admin Only) */}
+                    {isSuperAdmin && hasCustomCraftedTemplate && (
                       <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs">
                         <span className="text-[11px] text-muted-foreground">
                           {isLaoSteelBespoke
@@ -1214,7 +1235,7 @@ export default function SettingsPage() {
         onClose={() => setIsPreviewOpen(false)}
         templateId={previewTemplateId}
         customTemplateUrl={customUrl || settings?.customTemplateUrl}
-        logoUrl={logoPreview || settings?.logoUrl}
+        logoUrl={logoPreview || (hasCustomLogo ? (rawLogo as string) : null)}
         tenantId={settings?.id}
         businessName={settings?.businessName}
         tagline={settings?.tagline || undefined}
@@ -1224,6 +1245,7 @@ export default function SettingsPage() {
         receiptPrefix={settings?.receiptPrefix}
         tin={settings?.tin || undefined}
         cacOrRegNumber={settings?.cacOrRegNumber || undefined}
+        isSuperAdmin={isSuperAdmin}
         onSelectTemplate={(tpl, configJson) => {
           setValueBusiness('receiptTemplateId', tpl, { shouldDirty: true });
           if (configJson) {

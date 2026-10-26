@@ -72,6 +72,7 @@ import {
   Image as ImageIcon,
   Copy,
   Loader2,
+  PenTool,
 } from 'lucide-react';
 
 export default function TenantDetailPage() {
@@ -174,6 +175,53 @@ export default function TenantDetailPage() {
       setCustomTemplateUrl((tenantData.business as any).customTemplateUrl || '');
     }
   }, [tenantData?.business]);
+
+  const [isDescribeModalOpen, setIsDescribeModalOpen] = useState(false);
+  const [layoutDescriptionInput, setLayoutDescriptionInput] = useState('');
+
+  const handleCraftFromDescription = async () => {
+    if (!layoutDescriptionInput.trim()) {
+      modal.alert('Description Required', 'Please enter a description of the invoice graphics and layout before crafting.', 'warning');
+      return;
+    }
+
+    setIsCraftingTemplate(true);
+    try {
+      const formData = new FormData();
+      formData.append('description', layoutDescriptionInput.trim());
+
+      const res = await apiClient.post<ApiResponse<{ customTemplateUrl: string; width: number; height: number }>>(
+        API_ENDPOINTS.BUSINESS.CRAFT_TEMPLATE(tenantId),
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        }
+      );
+
+      const craftedUrl = res.data?.data?.customTemplateUrl;
+      if (craftedUrl) {
+        setCustomTemplateUrl(craftedUrl);
+        setSelectedTemplateId('custom');
+        setPreviewingTemplate('custom');
+        setIsDescribeModalOpen(false);
+        setIsTemplatePreviewOpen(true);
+        modal.alert(
+          'Bespoke Layout Crafted',
+          'AI engineered an unconstrained HTML/CSS template based on your graphic specifications. Inspect the preview in the Template Studio.',
+          'success'
+        );
+      }
+    } catch (err: any) {
+      console.error('Failed to craft template from description:', err);
+      modal.alert(
+        'Crafting Failed',
+        err?.response?.data?.message || err?.message || 'Could not craft layout from description. Please try again.',
+        'error'
+      );
+    } finally {
+      setIsCraftingTemplate(false);
+    }
+  };
 
   const handleCustomTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1511,303 +1559,177 @@ export default function TenantDetailPage() {
         {activeTab === 'template' && (
           <div className="space-y-6">
             <Card className="rounded-3xl border-border bg-card shadow-sm overflow-hidden">
-              <CardHeader className="bg-secondary/20 border-b border-border/80 p-6 sm:p-8">
+              <CardHeader className="bg-secondary/20 border-b border-border py-4 px-6 sm:px-8">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-500 flex items-center justify-center font-bold shadow-inner">
+                    <div className="h-10 w-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center font-bold shadow-inner">
                       <Printer className="h-5 w-5" />
                     </div>
                     <div>
                       <CardTitle className="text-lg sm:text-xl font-bold font-heading text-foreground">
-                        Invoice & Receipt Template Management
+                        Invoice &amp; Receipt Template Management
                       </CardTitle>
                       <CardDescription className="text-xs text-muted-foreground">
-                        Configure the physical and digital invoice layout applied to all sales receipts issued by {business.businessName}.
+                        Manage the dedicated invoice layout for {business.businessName}. Super Admins can customize with AI Copilot or upload a custom mockup.
                       </CardDescription>
                     </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2.5">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setPreviewingTemplate(selectedTemplateId);
-                        setIsTemplatePreviewOpen(true);
-                      }}
-                      className="rounded-xl text-xs font-semibold h-9 px-4 border-border hover:bg-secondary flex items-center space-x-1.5 shadow-sm"
-                    >
-                      <Eye className="h-3.5 w-3.5 text-primary" />
-                      <span>Preview Selected Layout</span>
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={handleSaveTemplate}
-                      disabled={isSavingTemplate}
-                      className="rounded-xl text-xs font-semibold h-9 px-5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-500/20 flex items-center space-x-1.5"
-                    >
-                      {isSavingTemplate ? (
-                        <>
-                          <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                          <span>Saving...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Check className="h-3.5 w-3.5" />
-                          <span>Save Template</span>
-                        </>
-                      )}
-                    </Button>
                   </div>
                 </div>
               </CardHeader>
 
               <CardContent className="p-6 sm:p-8 space-y-6">
-                {/* Active Template Status Bar */}
-                <div className="p-4 rounded-2xl bg-secondary/30 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center space-x-3">
-                    <Sparkles className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <div>
-                      <span className="text-muted-foreground">Currently Configured in Database: </span>
-                      <span className="font-bold text-foreground">
-                        {business.receiptTemplateId === 'modern'
-                          ? 'Modern Corporate Executive'
-                          : business.receiptTemplateId === 'custom'
-                          ? 'Custom Bespoke Template'
-                          : 'Classic Industrial / Thermal (Default)'}
-                      </span>
-                    </div>
-                  </div>
-                  {business.receiptTemplateId !== selectedTemplateId && (
-                    <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[11px] font-semibold">
-                      Unsaved Selection: {selectedTemplateId.toUpperCase()}
-                    </Badge>
-                  )}
-                </div>
+                {/* Single Dedicated Template Card */}
+                {(() => {
+                  const isLaoSteel = Boolean(
+                    business.slug === 'lao-steel' ||
+                    business.receiptPrefix === 'LSV' ||
+                    business.businessName?.toLowerCase().includes('lao steel')
+                  );
+                  const hasCustomCrafted = Boolean(customTemplateUrl && customTemplateUrl.trim().length > 0);
 
-                {/* Template Selection Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  {/* Option 1: Classic Industrial */}
-                  <div
-                    onClick={() => setSelectedTemplateId('classic')}
-                    className={`p-6 rounded-2xl border text-left transition-all relative cursor-pointer flex flex-col justify-between ${
-                      selectedTemplateId === 'classic'
-                        ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
-                        : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2.5">
-                        <span className="text-sm font-bold font-heading text-foreground">
-                          Classic Industrial
-                        </span>
-                        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px]">
-                          {(business.slug === 'lao-steel' || business.receiptPrefix === 'LSV' || business.businessName?.toLowerCase().includes('lao steel')) ? 'Lao Steel Bespoke' : 'Built-in Default'}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {(business.slug === 'lao-steel' || business.receiptPrefix === 'LSV' || business.businessName?.toLowerCase().includes('lao steel'))
-                          ? 'Authentic Lao Steel trade & depot design featuring double navy outer border, circular green globe emblem, centered company contact header, full itemized spec table, guarantee disclaimer box, and dual verification signatures.'
-                          : 'Authentic trade & depot design featuring double navy outer border, circular green emblem, centered company contact header, full itemized spec table, guarantee disclaimer box, and dual verification signatures.'}
-                      </p>
-                    </div>
-
-                    <div className="pt-5 flex items-center justify-between border-t border-border/60 mt-5">
-                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                        {selectedTemplateId === 'classic' ? '✓ Selected' : 'Click to select'}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPreviewingTemplate('classic');
-                          setIsTemplatePreviewOpen(true);
-                        }}
-                        className="h-8 rounded-xl text-xs px-3 border-border hover:bg-secondary flex items-center space-x-1 cursor-pointer"
-                      >
-                        <Eye className="h-3.5 w-3.5 mr-1 text-primary" />
-                        <span>Preview</span>
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Option 2: Modern Corporate Executive */}
-                  <div
-                    onClick={() => setSelectedTemplateId('modern')}
-                    className={`p-6 rounded-2xl border text-left transition-all relative cursor-pointer flex flex-col justify-between ${
-                      selectedTemplateId === 'modern'
-                        ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
-                        : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2.5">
-                        <span className="text-sm font-bold font-heading text-foreground">
-                          Modern Corporate
-                        </span>
-                        <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px]">
-                          Built-in Corporate
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Sleek executive SaaS look with dark slate header banner, clean column alignment, comprehensive itemized fee/tax breakdowns, and digital verification seal. Best for corporate distributors.
-                      </p>
-                    </div>
-
-                    <div className="pt-5 flex items-center justify-between border-t border-border/60 mt-5">
-                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                        {selectedTemplateId === 'modern' ? '✓ Selected' : 'Click to select'}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPreviewingTemplate('modern');
-                          setIsTemplatePreviewOpen(true);
-                        }}
-                        className="h-8 rounded-xl text-xs px-3 border-border hover:bg-secondary flex items-center space-x-1 cursor-pointer"
-                      >
-                        <Eye className="h-3.5 w-3.5 mr-1 text-primary" />
-                        <span>Preview</span>
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Option 3: Custom Bespoke Template */}
-                  <div
-                    onClick={() => {
-                      if (customTemplateUrl) setSelectedTemplateId('custom');
-                      else fileInputRef.current?.click();
-                    }}
-                    className={`p-6 rounded-2xl border text-left transition-all relative cursor-pointer flex flex-col justify-between ${
-                      selectedTemplateId === 'custom'
-                        ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
-                        : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2.5">
-                        <span className="text-sm font-bold font-heading text-foreground">
-                          Custom Template
-                        </span>
-                        <Badge className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-[10px]">
-                          Upload File
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Upload or replace this business&apos;s bespoke invoice template image (PNG, JPG, PDF up to 5MB).
-                      </p>
-
-                      {isCraftingTemplate ? (
-                        <div className="mt-3 p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs text-purple-600 dark:text-purple-400 flex items-center space-x-2">
-                          <Loader2 className="h-4 w-4 animate-spin shrink-0 text-purple-500" />
-                          <span>Crafting & optimizing template from image...</span>
+                  return (
+                    <div className="p-6 rounded-2xl border border-emerald-500/30 bg-card shadow-sm space-y-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center space-x-2.5">
+                            <h4 className="text-base font-bold text-foreground font-heading">
+                              {hasCustomCrafted
+                                ? 'Custom Uploaded Mockup Layout'
+                                : isLaoSteel
+                                ? 'Lao Steel Bespoke Trade Layout'
+                                : 'Standard Trade & Depot Layout'}
+                            </h4>
+                            <Badge
+                              className={
+                                hasCustomCrafted
+                                  ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 text-xs font-semibold'
+                                  : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-semibold'
+                              }
+                            >
+                              {hasCustomCrafted
+                                ? 'Custom Active'
+                                : isLaoSteel
+                                ? 'Lao Steel Bespoke'
+                                : 'Standard Active'}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">
+                            {hasCustomCrafted
+                              ? `This tenant is using an authentic layout crafted from their uploaded invoice mockup. Open the Template Studio to inspect, refine headers, borders, columns, or adjust styling with AI Copilot.`
+                              : isLaoSteel
+                              ? `Authentic Lao Steel industrial styling featuring the circular green globe emblem, dual company ledger borders, LSV watermark, itemized rebar specifications, and guarantee disclaimer.`
+                              : `Clean, professional commercial invoice layout tailored for trade, wholesale, and retail distribution with structured itemization.`}
+                          </p>
                         </div>
-                      ) : customFileName ? (
-                        <div className="mt-3 p-2.5 rounded-xl bg-background border border-border text-[11px] font-mono text-foreground flex items-center space-x-2 truncate">
-                          <ImageIcon className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                          <span className="truncate">{customFileName}</span>
-                        </div>
-                      ) : customTemplateUrl ? (
-                        <div className="mt-3 p-2.5 rounded-xl bg-background border border-border text-[11px] font-mono text-emerald-600 dark:text-emerald-400 flex items-center space-x-2 truncate">
-                          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">Custom template on file</span>
-                        </div>
-                      ) : null}
-                    </div>
 
-                    <div className="pt-5 flex items-center justify-between border-t border-border/60 mt-5 gap-2">
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        accept="image/*,.pdf"
-                        onChange={handleCustomTemplateUpload}
-                        className="hidden"
-                      />
+                        {/* Hidden file input */}
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          accept="image/*,.pdf"
+                          onChange={handleCustomTemplateUpload}
+                          className="hidden"
+                        />
 
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={isCraftingTemplate}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          fileInputRef.current?.click();
-                        }}
-                        className="h-8 rounded-xl text-xs px-3 border-border hover:bg-secondary flex items-center space-x-1 cursor-pointer"
-                      >
-                        {isCraftingTemplate ? (
-                          <>
-                            <Loader2 className="h-3 w-3 animate-spin mr-1 text-purple-500" />
-                            <span>Crafting...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="h-3 w-3 mr-1 text-purple-500" />
-                            <span>{customTemplateUrl ? 'Change File' : 'Upload File'}</span>
-                          </>
-                        )}
-                      </Button>
+                        <div className="flex items-center flex-wrap gap-2.5 shrink-0">
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={isCraftingTemplate}
+                            onClick={() => setIsDescribeModalOpen(true)}
+                            className="h-9 px-3.5 text-xs font-semibold rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-sm flex items-center space-x-1.5 cursor-pointer"
+                          >
+                            <PenTool className="h-3.5 w-3.5" />
+                            <span>Describe Layout</span>
+                          </Button>
 
-                      {customTemplateUrl && (
-                        <div className="flex items-center space-x-1.5">
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPreviewingTemplate('custom');
+                            disabled={isCraftingTemplate}
+                            onClick={() => fileInputRef.current?.click()}
+                            className="h-9 px-3.5 text-xs font-semibold rounded-xl border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 flex items-center space-x-1.5 cursor-pointer"
+                          >
+                            {isCraftingTemplate ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                <span>AI Crafting...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="h-3.5 w-3.5" />
+                                <span>{hasCustomCrafted ? 'Replace Image' : 'Upload Image'}</span>
+                              </>
+                            )}
+                          </Button>
+
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => {
                               setIsTemplatePreviewOpen(true);
                             }}
-                            className="h-8 rounded-xl text-xs px-3 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 flex items-center space-x-1 cursor-pointer"
+                            className="h-9 px-4 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-500/20 flex items-center space-x-1.5 cursor-pointer"
                           >
-                            <Eye className="h-3.5 w-3.5 mr-1 text-purple-500" />
-                            <span>Preview</span>
+                            <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                            <span>Open Template Studio</span>
                           </Button>
+                        </div>
+                      </div>
+
+                      {/* Custom Template on file details or reset option */}
+                      {hasCustomCrafted && (
+                        <div className="pt-4 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                          <div className="flex items-center space-x-2 text-muted-foreground">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                            <span>Bespoke custom template is currently saved and active for this tenant.</span>
+                          </div>
+
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={async (e) => {
-                              e.stopPropagation();
+                            onClick={async () => {
                               const confirmed = await modal.confirm(
-                                'Remove Custom Template',
-                                'Detach this custom template and reset template selection to Classic Industrial?'
+                                'Reset Template',
+                                isLaoSteel
+                                  ? 'Are you sure you want to revert to the authentic Lao Steel bespoke trade layout?'
+                                  : 'Are you sure you want to reset to the standard layout?'
                               );
                               if (confirmed) {
                                 setCustomTemplateUrl('');
                                 setSelectedTemplateId('classic');
+                                try {
+                                  await updateSettingsMutation.mutateAsync({
+                                    id: tenantId,
+                                    data: {
+                                      receiptTemplateId: 'classic',
+                                      customTemplateUrl: null,
+                                    },
+                                  });
+                                  modal.alert('Template Reset', 'Reverted to authentic layout.', 'success');
+                                } catch (err: any) {
+                                  modal.alert('Error', err?.message || 'Could not reset template', 'error');
+                                }
                               }
                             }}
-                            className="h-8 rounded-xl text-xs px-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 flex items-center space-x-1 cursor-pointer"
+                            className="h-8 px-3 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-xl cursor-pointer font-medium"
                           >
-                            <Trash2 className="h-3.5 w-3.5 mr-1" />
-                            <span>Clear</span>
+                            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                            <span>{isLaoSteel ? 'Restore Lao Steel Layout' : 'Reset to Standard Layout'}</span>
                           </Button>
                         </div>
                       )}
                     </div>
-                  </div>
-                </div>
+                  );
+                })()}
 
-                <div className="pt-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                <div className="p-4 rounded-xl bg-secondary/30 border border-border text-xs text-muted-foreground flex items-center space-x-2.5">
+                  <Sparkles className="h-4 w-4 text-amber-500 shrink-0" />
                   <p>
-                    Tip: Businesses do not have to customize immediately during onboarding. Super Admins can preview, assign, or upload custom layouts anytime from this panel.
+                    Each business operates with a single dedicated template. Uploading an invoice mockup will automatically extract layout geometry and styling, which you can further refine using the interactive AI Studio.
                   </p>
-                  <Button
-                    type="button"
-                    onClick={handleSaveTemplate}
-                    disabled={isSavingTemplate}
-                    className="rounded-xl text-xs font-semibold h-9 px-5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-500/20 shrink-0"
-                  >
-                    {isSavingTemplate ? 'Saving Changes...' : 'Save Template Changes'}
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -2779,6 +2701,111 @@ export default function TenantDetailPage() {
       </Dialog>
 
       {/* ========================================================= */}
+      {/* DESCRIBE CUSTOM INVOICE LAYOUT DIALOG                     */}
+      {/* ========================================================= */}
+      <Dialog open={isDescribeModalOpen} onOpenChange={(open) => !open && setIsDescribeModalOpen(false)}>
+        <DialogContent className="max-w-2xl bg-card border border-border rounded-2xl shadow-2xl p-6">
+          <DialogHeader>
+            <div className="flex items-center space-x-3 mb-1">
+              <div className="h-10 w-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center shrink-0">
+                <PenTool className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold font-heading text-foreground">
+                  Describe Custom Invoice Layout
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Describe the visual layout, color palette, headers, columns, and disclaimers. AI will engineer a bespoke HTML &amp; CSS template.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs font-semibold text-foreground mb-1.5 block">
+                Quick Template Style Presets
+              </Label>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  {
+                    name: 'Global Refit Trade Voucher',
+                    desc: 'Two-tone header with GLOBAL in deep blue and REFIT in bright red. 3-column sub-strip with Office Address in red, RC number, and Phone. Underlined customer fields, 5-column table (S/N, QTY, DESCRIPTION, RATE, AMOUNT) with faint red watermark, and office signature stamp box with return terms.',
+                  },
+                  {
+                    name: '3-Column Sub-strip Layout',
+                    desc: 'Header with bold business title and 3-column sub-strip containing Office Address, bold red INVOICE label, and Contact Details. Underlined customer details grid and structured borders.',
+                  },
+                  {
+                    name: 'Lao Steel Industrial Green Ledger',
+                    desc: 'Dual company ledger dark-green border (#0f522b), centered header with circular green emblem, LSV watermark across itemized rebar specifications table, and guarantee disclaimer.',
+                  },
+                  {
+                    name: 'Executive Minimalist Corporate',
+                    desc: 'Dark slate executive header table with clean white background, itemized charge breakdown with right-aligned numeric totals, and digital verification seal box.',
+                  },
+                ].map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setLayoutDescriptionInput(preset.desc)}
+                    className="text-[11px] px-2.5 py-1 rounded-lg border border-border bg-secondary/40 hover:bg-purple-500/10 hover:border-purple-500/30 text-foreground transition-all cursor-pointer font-medium"
+                  >
+                    + {preset.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold text-foreground mb-1.5 block">
+                Layout &amp; Graphic Description
+              </Label>
+              <textarea
+                value={layoutDescriptionInput}
+                onChange={(e) => setLayoutDescriptionInput(e.target.value)}
+                rows={6}
+                placeholder="e.g. Header has two-tone title 'GLOBAL REFIT' with GLOBAL in deep navy blue and REFIT in bright red. Below header is a 3-column sub-strip with Office Address in red, then Reg No RC-83491 and Phone 08028386659. Customer section has underlined rows for Name, Address, and Date. Table has 5 columns: S/N, QTY, DESCRIPTION, RATE, AMOUNT, with a centered faint red watermark 'ORIGINAL'. Footer includes an office signature stamp box and red bold disclaimer 'GOODS SOLD OUT ARE NOT RETURNABLE'."
+                className="w-full text-xs font-mono p-3 rounded-xl border border-border bg-secondary/20 text-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 placeholder:text-muted-foreground/60 resize-none leading-relaxed"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex items-center justify-between gap-3 pt-3 border-t border-border">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDescribeModalOpen(false)}
+              className="text-xs rounded-xl"
+            >
+              Cancel
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              disabled={isCraftingTemplate || !layoutDescriptionInput.trim()}
+              onClick={handleCraftFromDescription}
+              className="bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold h-9 px-5 shadow-sm flex items-center space-x-1.5 cursor-pointer"
+            >
+              {isCraftingTemplate ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                  <span>AI Engineering Layout...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-3.5 w-3.5 mr-1.5 text-amber-300" />
+                  <span>Craft Bespoke Layout</span>
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================= */}
       {/* INVOICE TEMPLATE PREVIEW MODAL                            */}
       {/* ========================================================= */}
       <InvoiceTemplatePreviewModal
@@ -2796,12 +2823,25 @@ export default function TenantDetailPage() {
         receiptPrefix={business.receiptPrefix || 'INV'}
         tin={business.tin || ''}
         cacOrRegNumber={business.cacOrRegNumber || ''}
-        onSelectTemplate={(tpl, configJson) => {
+        isSuperAdmin={true}
+        onSelectTemplate={async (tpl, configJson) => {
           setSelectedTemplateId(tpl);
           if (configJson) {
             setCustomTemplateUrl(configJson);
           }
           setIsTemplatePreviewOpen(false);
+          try {
+            await updateSettingsMutation.mutateAsync({
+              id: tenantId,
+              data: {
+                receiptTemplateId: tpl,
+                customTemplateUrl: configJson || customTemplateUrl || null,
+              },
+            });
+            modal.alert('Template Saved', 'Invoice template configuration has been updated.', 'success');
+          } catch (err: any) {
+            modal.alert('Error', err?.message || 'Could not save template', 'error');
+          }
         }}
       />
     </div>
