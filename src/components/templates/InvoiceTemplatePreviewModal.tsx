@@ -14,28 +14,10 @@ import { Badge } from '../ui/badge';
 import {
   FileText,
   Sparkles,
-  Layers,
-  Upload,
-  CheckCircle2,
-  X,
-  ExternalLink,
   Printer,
-  ShieldCheck,
-  Building2,
+  ExternalLink,
   Image as ImageIcon,
-  Send,
-  Loader2,
-  MessageSquare,
-  Wand2,
-  RefreshCw,
-  Sliders,
-  ChevronDown,
-  ChevronUp,
-  Code,
-  Copy,
 } from 'lucide-react';
-import { apiClient } from '../../services/api/axios';
-import { API_ENDPOINTS } from '../../services/api/endpoints';
 import { CustomTemplateConfig, CustomTemplateColumn } from '../../types/api';
 
 const DEFAULT_CONFIG: CustomTemplateConfig = {
@@ -248,11 +230,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
   };
 
   const [aiConfig, setAiConfig] = useState<CustomTemplateConfig>(parseConfig(customTemplateUrl));
-  const [viewMode, setViewMode] = useState<'template' | 'reference' | 'blueprint' | 'code'>('template');
-  const [chatPrompt, setChatPrompt] = useState('');
-  const [isRefining, setIsRefining] = useState(false);
-  const [chatHistory, setChatHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
-  const [isCopilotOpen, setIsCopilotOpen] = useState(true);
+  const [viewMode, setViewMode] = useState<'template' | 'reference' | 'blueprint'>('template');
 
   useEffect(() => {
     if (customTemplateUrl !== undefined) {
@@ -287,484 +265,9 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
     (Boolean(aiConfig.rawImagePreviewUrl) && !isLaoSteel)
   );
 
-  const getMasterHtmlTemplate = (
-    archetype: 'trade-voucher' | 'lao-steel' | 'corporate' | 'commercial-docket',
-    config: CustomTemplateConfig
-  ): string => {
-    const primaryColor = config.theme?.primaryColor || (archetype === 'lao-steel' ? '#0f522b' : archetype === 'corporate' ? '#0f172a' : archetype === 'commercial-docket' ? '#1e293b' : '#1a365d');
-    const accentColor = config.theme?.accentColor || (archetype === 'lao-steel' ? '#16a34a' : archetype === 'corporate' ? '#3b82f6' : archetype === 'commercial-docket' ? '#d97706' : '#dc2626');
-    const words = bizName.split(' ');
-    const part1 = config.titleSplit?.part1 || words[0] || 'GLOBAL';
-    const part2 = config.titleSplit?.part2 || words[1] || 'REFIT';
-    const suffix = config.titleSplit?.suffix || (words.length > 2 ? words.slice(2).join(' ') : 'NIGERIA LIMITED');
-    const watermark = config.footer?.watermarkText || `${part1} ${part2}`;
-    const stampTitle = config.stampBoxTitle || 'Office Signature';
-    const guarantee = config.footer?.guaranteeText || 'GOODS SOLD OUT ARE NOT RETURNABLE';
-
-    if (archetype === 'lao-steel') {
-      const green = '#0f522b';
-      return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #000; background: #fff; padding: 24px; font-size: 13px; line-height: 1.35; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .lao-card { max-width: 800px; margin: 0 auto; background: #fff; position: relative; border: 3px solid ${green}; padding: 16px; }
-  .inner-ledger-border { border: 1px solid ${green}; padding: 16px; position: relative; }
-  .header-center { text-align: center; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 2px solid ${green}; }
-  .company-title { font-size: 28px; font-weight: 900; color: ${green}; text-transform: uppercase; letter-spacing: -0.5px; line-height: 1.1; }
-  .company-tagline { font-size: 11px; font-weight: 800; color: ${green}; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px; }
-  .company-address { font-size: 10px; font-weight: 700; color: #334155; text-transform: uppercase; margin-top: 3px; line-height: 1.25; }
-  .company-tel { font-size: 11px; font-weight: 800; color: ${green}; font-family: monospace; margin-top: 3px; }
-  .cust-section { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px; font-size: 12px; }
-  .cust-left { flex: 1; }
-  .cust-line-item { display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px; }
-  .cust-label { font-weight: 800; font-size: 11px; text-transform: uppercase; color: #000; }
-  .cust-val-underlined { flex: 1; border-bottom: 2px solid #000; font-weight: 700; font-size: 12px; padding-bottom: 1px; }
-  .table-box { position: relative; border: 2px solid ${green}; margin-bottom: 12px; }
-  .lsv-watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-25deg); opacity: 0.08; pointer-events: none; font-size: 110px; font-weight: 900; color: ${green}; letter-spacing: 6px; z-index: 0; }
-  table.lao-table { width: 100%; border-collapse: collapse; position: relative; z-index: 1; }
-  table.lao-table th { background: ${green}; color: #ffffff; font-weight: 800; font-size: 11px; text-transform: uppercase; padding: 7px 8px; border-right: 1px solid rgba(255,255,255,0.4); }
-  table.lao-table th:last-child { border-right: none; }
-  table.lao-table td { padding: 7px 10px; font-size: 12px; border-right: 1px solid ${green}; border-bottom: 1px solid ${green}; color: #000; }
-  table.lao-table td:last-child { border-right: none; }
-  .total-row td { font-weight: 900; font-size: 13px; color: ${green}; border-top: 2px solid ${green}; border-bottom: none; padding: 8px 10px; }
-  .bottom-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-top: 10px; }
-  .words-box { flex: 1; display: flex; align-items: baseline; gap: 6px; }
-  .words-title { font-weight: 800; font-size: 11px; color: ${green}; text-transform: uppercase; }
-  .words-line { flex: 1; border-bottom: 2px solid ${green}; font-style: italic; font-weight: 700; font-size: 12px; }
-  .sign-box { width: 200px; text-align: right; }
-  .sign-line { border-bottom: 2px solid ${green}; height: 36px; }
-  .sign-label { font-size: 10px; font-weight: 800; color: ${green}; margin-top: 4px; text-transform: uppercase; }
-  .disclaimer { color: #dc2626; font-weight: 900; font-size: 11px; text-align: center; margin-top: 12px; letter-spacing: 0.5px; }
-  @media print { body { padding: 0; } .lao-card { max-width: 100%; } }
-</style>
-</head>
-<body>
-<div class="lao-card">
-  <div class="inner-ledger-border">
-    <div class="header-center">
-      <div style="display: flex; justify-content: center; margin-bottom: 6px;">{{logo}}</div>
-      <div class="company-title">{{businessName}}</div>
-      <div class="company-tagline">{{tagline}}</div>
-      <div class="company-address">{{address}}</div>
-      <div class="company-tel">TEL: {{phone}}</div>
-    </div>
-    <div class="cust-section">
-      <div class="cust-left">
-        <div class="cust-line-item"><span class="cust-label">CUSTOMER NAME:</span><span class="cust-val-underlined">{{customerName}}</span></div>
-        <div class="cust-line-item"><span class="cust-label">ADDRESS:</span><span class="cust-val-underlined">{{customerAddress}}</span></div>
-      </div>
-      <div style="width: 220px;">
-        <div class="cust-line-item"><span class="cust-label">DATE:</span><span class="cust-val-underlined">{{date}}</span></div>
-        <div class="cust-line-item"><span class="cust-label">INVOICE NO:</span><span class="cust-val-underlined">{{invoiceNumber}}</span></div>
-      </div>
-    </div>
-    <div class="table-box">
-      <div class="lsv-watermark">${watermark || 'LSV'}</div>
-      <table class="lao-table">
-        <thead>
-          <tr>
-            <th style="width: 8%; text-align: center;">S/N</th>
-            <th style="width: 16%; text-align: center;">QTY</th>
-            <th style="width: 46%; text-align: left;">DESCRIPTION</th>
-            <th style="width: 15%; text-align: right;">RATE (₦)</th>
-            <th style="width: 15%; text-align: right;">AMOUNT (₦)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {{itemsTableRows}}
-          <tr class="total-row">
-            <td colspan="4" style="text-align: right;">TOTAL:</td>
-            <td style="text-align: right;">{{total}}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="bottom-row">
-      <div class="words-box"><span class="words-title">Amount in words:</span><span class="words-line">{{amountInWords}}</span></div>
-      <div class="sign-box"><div class="sign-line"></div><div class="sign-label">For: {{businessName}}</div></div>
-    </div>
-    <div class="disclaimer">${guarantee}</div>
-  </div>
-</div>
-</body>
-</html>`;
-    }
-
-    if (archetype === 'corporate') {
-      const pColor = '#0f172a';
-      return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; background: #fff; padding: 30px; font-size: 13px; line-height: 1.4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .corp-card { max-width: 800px; margin: 0 auto; }
-  .corp-header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 20px; border-bottom: 2px solid ${pColor}; margin-bottom: 20px; }
-  .corp-brand h1 { font-size: 24px; font-weight: 900; color: ${pColor}; text-transform: uppercase; }
-  .corp-brand p { font-size: 12px; color: #64748b; margin-top: 2px; }
-  .corp-meta { text-align: right; }
-  .corp-title-badge { font-size: 28px; font-weight: 900; color: ${pColor}; letter-spacing: -0.5px; }
-  .corp-meta-val { font-size: 12px; font-weight: 700; color: #475569; margin-top: 4px; }
-  .bill-to-row { display: flex; justify-content: space-between; margin-bottom: 20px; }
-  .bill-box { width: 48%; }
-  .bill-title { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px; }
-  .bill-name { font-size: 14px; font-weight: 800; color: #0f172a; }
-  .bill-sub { font-size: 12px; color: #475569; margin-top: 2px; }
-  table.corp-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-  table.corp-table th { background: ${pColor}; color: #ffffff; padding: 10px 12px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
-  table.corp-table td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #e2e8f0; }
-  .total-card-row { display: flex; justify-content: flex-end; margin-bottom: 20px; }
-  .total-card { width: 280px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }
-  .total-card-line { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; color: #475569; }
-  .total-card-main { display: flex; justify-content: space-between; font-size: 15px; font-weight: 900; color: ${pColor}; border-top: 1px solid #cbd5e1; padding-top: 8px; margin-top: 6px; }
-  @media print { body { padding: 0; } .corp-card { max-width: 100%; } }
-</style>
-</head>
-<body>
-<div class="corp-card">
-  <div class="corp-header">
-    <div class="corp-brand">{{logo}}<h1>{{businessName}}</h1><p>{{tagline}}</p><p style="font-size: 11px; color: #475569; margin-top: 4px;">{{address}} | TEL: {{phone}}</p></div>
-    <div class="corp-meta"><div class="corp-title-badge">INVOICE</div><div class="corp-meta-val">NO: {{invoiceNumber}}</div><div class="corp-meta-val">DATE: {{date}}</div></div>
-  </div>
-  <div class="bill-to-row">
-    <div class="bill-box"><div class="bill-title">BILLED TO:</div><div class="bill-name">{{customerName}}</div><div class="bill-sub">{{customerAddress}}</div><div class="bill-sub">TEL: {{customerPhone}}</div></div>
-  </div>
-  <table class="corp-table">
-    <thead>
-      <tr><th style="width: 8%; text-align: center;">#</th><th style="width: 15%; text-align: center;">QTY</th><th style="width: 47%; text-align: left;">DESCRIPTION</th><th style="width: 15%; text-align: right;">UNIT PRICE</th><th style="width: 15%; text-align: right;">AMOUNT</th></tr>
-    </thead>
-    <tbody>{{itemsTableRows}}</tbody>
-  </table>
-  <div class="total-card-row">
-    <div class="total-card">
-      <div class="total-card-line"><span>Subtotal:</span><span>₦{{total}}</span></div>
-      <div class="total-card-line"><span>VAT (7.5%):</span><span>Included</span></div>
-      <div class="total-card-main"><span>TOTAL DUE:</span><span>₦{{total}}</span></div>
-    </div>
-  </div>
-</div>
-</body>
-</html>`;
-    }
-
-    if (archetype === 'commercial-docket') {
-      const pColor = '#1e293b';
-      return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace, sans-serif; color: #1e293b; background: #fff; padding: 20px; font-size: 12px; line-height: 1.3; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .docket-card { max-width: 760px; margin: 0 auto; border: 2px dashed ${pColor}; padding: 16px; background: #fff; }
-  .docket-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid ${pColor}; padding-bottom: 12px; margin-bottom: 12px; }
-  .docket-brand h2 { font-size: 20px; font-weight: 900; color: ${pColor}; text-transform: uppercase; letter-spacing: -0.5px; }
-  .docket-badge-box { text-align: right; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; }
-  .docket-title { font-size: 16px; font-weight: 900; color: ${pColor}; text-transform: uppercase; }
-  .docket-no { font-family: monospace; font-weight: 800; font-size: 13px; color: ${accentColor}; }
-  .docket-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 11px; }
-  .meta-item { display: flex; gap: 6px; }
-  .meta-label { font-weight: 800; color: #475569; text-transform: uppercase; }
-  .meta-val { font-weight: 700; color: #0f172a; }
-  table.docket-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-  table.docket-table th { background: ${pColor}; color: #ffffff; font-weight: 800; font-size: 10px; text-transform: uppercase; padding: 6px 8px; }
-  table.docket-table td { padding: 6px 8px; font-size: 11px; border-bottom: 1px solid #e2e8f0; }
-  .docket-total-row td { font-weight: 900; font-size: 13px; border-top: 2px solid ${pColor}; border-bottom: none; padding: 8px; }
-  .docket-footer { display: flex; justify-content: space-between; margin-top: 14px; padding-top: 10px; border-top: 1px dashed #cbd5e1; gap: 16px; }
-  .sig-block { flex: 1; text-align: center; }
-  .sig-line { border-bottom: 1px solid #475569; height: 32px; margin-bottom: 4px; }
-  .sig-caption { font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; }
-  @media print { body { padding: 0; } .docket-card { max-width: 100%; border: 1px solid ${pColor}; } }
-</style>
-</head>
-<body>
-<div class="docket-card">
-  <div class="docket-header"><div class="docket-brand">{{logo}}<h2>{{businessName}}</h2><p>{{address}} • TEL: {{phone}}</p></div><div class="docket-badge-box"><div class="docket-title">DISPATCH DOCKET</div><div class="docket-no">NO: {{invoiceNumber}}</div><div style="font-size: 10px; color: #64748b; margin-top: 2px;">DATE: {{date}}</div></div></div>
-  <div class="docket-meta-grid">
-    <div class="meta-item"><span class="meta-label">Customer:</span><span class="meta-val">{{customerName}}</span></div>
-    <div class="meta-item"><span class="meta-label">Phone:</span><span class="meta-val">{{customerPhone}}</span></div>
-    <div class="meta-item"><span class="meta-label">Delivery To:</span><span class="meta-val">{{customerAddress}}</span></div>
-    <div class="meta-item"><span class="meta-label">Status:</span><span class="meta-val" style="color: #16a34a;">CLEARED &amp; DISPATCHED</span></div>
-  </div>
-  <table class="docket-table">
-    <thead>
-      <tr><th style="width: 8%; text-align: center;">#</th><th style="width: 16%; text-align: center;">QTY</th><th style="width: 48%; text-align: left;">ITEM PARTICULARS</th><th style="width: 14%; text-align: right;">RATE</th><th style="width: 14%; text-align: right;">AMOUNT</th></tr>
-    </thead>
-    <tbody>
-      {{itemsTableRows}}
-      <tr class="docket-total-row">
-        <td colspan="4" style="text-align: right;">TOTAL:</td>
-        <td style="text-align: right; color: ${pColor};">₦{{total}}</td>
-      </tr>
-    </tbody>
-  </table>
-  <div style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 10px;">Amount In Words: <span style="font-style: italic; color: #0f172a;">{{amountInWords}}</span></div>
-  <div class="docket-footer">
-    <div class="sig-block"><div class="sig-line"></div><div class="sig-caption">Storekeeper / Dispatcher</div></div>
-    <div class="sig-block"><div class="sig-line"></div><div class="sig-caption">Customer / Goods Received In Good Condition</div></div>
-  </div>
-</div>
-</body>
-</html>`;
-    }
-
-    // Default: Commercial Trade Voucher (Global Refit Style)
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #000; background: #fff; padding: 24px 28px; font-size: 13px; line-height: 1.35; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .voucher-card { max-width: 800px; margin: 0 auto; background: #fff; position: relative; }
-  .header-row { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; gap: 16px; }
-  .header-logo-col { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 130px; flex-shrink: 0; }
-  .logo-sub-text { font-size: 11px; font-weight: 800; color: #000; text-align: center; margin-top: 3px; line-height: 1.15; text-transform: capitalize; }
-  .header-text-col { flex: 1; }
-  .title-split-row { font-size: 32px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.05; text-transform: uppercase; }
-  .title-part1 { color: ${primaryColor}; }
-  .title-part2 { color: ${accentColor}; }
-  .title-suffix { font-size: 22px; font-weight: 900; color: ${primaryColor}; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2px; line-height: 1.1; }
-  .tagline-text { font-size: 12px; font-weight: 700; color: #000; margin-top: 4px; line-height: 1.2; }
-  .sub-strip { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; border-top: 2px solid ${primaryColor}; border-bottom: 2px solid ${primaryColor}; padding: 6px 0; margin: 10px 0 14px 0; gap: 12px; }
-  .strip-left { text-align: left; }
-  .strip-center { text-align: center; padding: 0 16px; }
-  .strip-right { text-align: right; }
-  .strip-red-label { color: ${accentColor}; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 1px; }
-  .strip-black-val { color: #000; font-weight: 700; font-size: 11px; line-height: 1.2; }
-  .strip-title-badge { color: ${accentColor}; font-weight: 900; font-size: 26px; letter-spacing: 1px; line-height: 1; text-transform: uppercase; }
-  .cust-grid { margin-bottom: 14px; }
-  .cust-row { display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px; }
-  .cust-field-main { display: flex; align-items: baseline; gap: 6px; flex: 1; }
-  .cust-field-side { display: flex; align-items: baseline; gap: 6px; width: 240px; flex-shrink: 0; }
-  .cust-label { color: ${primaryColor}; font-weight: 800; font-size: 12px; text-transform: uppercase; flex-shrink: 0; }
-  .cust-line { flex: 1; border-bottom: 2px solid ${primaryColor}; font-weight: 700; font-size: 12px; color: #000; padding-bottom: 2px; min-height: 18px; }
-  .table-frame { position: relative; border: 2px solid ${primaryColor}; margin-bottom: 10px; }
-  .table-watermark-wrap { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; opacity: 0.08; text-align: center; z-index: 0; width: 80%; }
-  .watermark-logo-text { font-size: 120px; font-weight: 900; color: ${accentColor}; line-height: 1; letter-spacing: -2px; }
-  .watermark-sub-text { font-size: 26px; font-weight: 900; color: ${accentColor}; letter-spacing: 6px; text-transform: uppercase; margin-top: -10px; }
-  table.voucher-table { width: 100%; border-collapse: collapse; position: relative; z-index: 1; }
-  table.voucher-table th { background: #ffffff; color: ${primaryColor}; font-weight: 900; font-size: 11px; text-transform: uppercase; padding: 8px 10px; border-right: 2px solid ${primaryColor}; border-bottom: 2px solid ${primaryColor}; letter-spacing: 0.5px; }
-  table.voucher-table th:last-child { border-right: none; }
-  table.voucher-table td { padding: 7px 10px; font-size: 12px; border-right: 2px solid ${primaryColor}; border-bottom: 1px solid ${primaryColor}; color: #000; }
-  table.voucher-table td:last-child { border-right: none; }
-  .total-row td { font-weight: 900; font-size: 13px; color: #000; border-top: 2px solid ${primaryColor}; border-bottom: none; padding: 8px 10px; }
-  .footer-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-top: 10px; }
-  .words-container { flex: 1; display: flex; align-items: baseline; gap: 8px; }
-  .words-label { color: ${primaryColor}; font-weight: 800; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
-  .words-line { flex: 1; border-bottom: 2px solid ${primaryColor}; font-style: italic; font-weight: 700; font-size: 12px; color: #000; padding-bottom: 2px; min-height: 18px; }
-  .stamp-box-widget { width: 170px; flex-shrink: 0; }
-  .stamp-box-header { background: ${primaryColor}; color: #fff; font-weight: 800; font-size: 10px; text-align: center; padding: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .stamp-box-body { border: 2px solid ${primaryColor}; border-top: none; height: 52px; background: #fff; }
-  .guarantee-note { font-size: 11px; font-weight: 900; color: ${accentColor}; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 10px; }
-  @media print { body { padding: 0; } .voucher-card { max-width: 100%; } }
-</style>
-</head>
-<body>
-<div class="voucher-card">
-  <div class="header-row">
-    <div class="header-logo-col">{{logo}}<div class="logo-sub-text">{{businessName}}</div></div>
-    <div class="header-text-col">
-      <div class="title-split-row"><span class="title-part1">${part1}</span> <span class="title-part2">${part2}</span></div>
-      <div class="title-suffix">${suffix}</div>
-      <div class="tagline-text">{{tagline}}</div>
-    </div>
-  </div>
-  <div class="sub-strip">
-    <div class="strip-left"><span class="strip-red-label">Office Address:</span><span class="strip-black-val">{{address}}</span></div>
-    <div class="strip-center"><span class="strip-title-badge">${config.header?.titleText || 'INVOICE'}</span></div>
-    <div class="strip-right"><span class="strip-red-label">Contact:</span><span class="strip-black-val">{{phone}}</span></div>
-  </div>
-  <div class="cust-grid">
-    <div class="cust-row">
-      <div class="cust-field-main"><span class="cust-label">Name:</span><span class="cust-line">{{customerName}}</span></div>
-      <div class="cust-field-side"><span class="cust-label">Date:</span><span class="cust-line">{{date}}</span></div>
-    </div>
-    <div class="cust-row">
-      <div class="cust-field-main"><span class="cust-label">Address:</span><span class="cust-line">{{customerAddress}}</span></div>
-      <div class="cust-field-side"><span class="cust-label">Sign:</span><span class="cust-line">&nbsp;</span></div>
-    </div>
-  </div>
-  <div class="table-frame">
-    <div class="table-watermark-wrap">
-      <div class="watermark-logo-text">${part1}</div>
-      <div class="watermark-sub-text">${watermark}</div>
-    </div>
-    <table class="voucher-table">
-      <thead>
-        <tr>
-          <th style="width: 8%; text-align: center;">S/N</th>
-          <th style="width: 16%; text-align: center;">QTY</th>
-          <th style="width: 46%; text-align: left;">DESCRIPTION</th>
-          <th style="width: 15%; text-align: right;">RATE</th>
-          <th style="width: 15%; text-align: right;">AMOUNT</th>
-        </tr>
-      </thead>
-      <tbody>
-        {{itemsTableRows}}
-        <tr class="total-row">
-          <td colspan="4" style="text-align: right;">TOTAL:</td>
-          <td style="text-align: right;">₦{{total}}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <div class="footer-row">
-    <div class="words-container"><span class="words-label">Amount in words:</span><span class="words-line">{{amountInWords}}</span></div>
-    <div class="stamp-box-widget">
-      <div class="stamp-box-header">${stampTitle}</div>
-      <div class="stamp-box-body"></div>
-    </div>
-  </div>
-  <div class="guarantee-note">${guarantee}</div>
-</div>
-</body>
-</html>`;
-  };
-
-  const handleSwitchArchetype = (newArchetype: 'trade-voucher' | 'lao-steel' | 'corporate' | 'commercial-docket') => {
-    let pColor = aiConfig.theme.primaryColor;
-    let aColor = aiConfig.theme.accentColor || '#dc2626';
-    let tName = 'Custom Template';
-
-    if (newArchetype === 'trade-voucher') {
-      pColor = '#1a365d';
-      aColor = '#dc2626';
-      tName = 'Commercial Trade Voucher';
-    } else if (newArchetype === 'lao-steel') {
-      pColor = '#0f522b';
-      aColor = '#16a34a';
-      tName = 'Industrial Ledger Frame';
-    } else if (newArchetype === 'corporate') {
-      pColor = '#0f172a';
-      aColor = '#3b82f6';
-      tName = 'Corporate Executive Invoice';
-    } else if (newArchetype === 'commercial-docket') {
-      pColor = '#1e293b';
-      aColor = '#d97706';
-      tName = 'Warehouse Depot Docket';
-    }
-
-    const updated: CustomTemplateConfig = {
-      ...aiConfig,
-      archetype: newArchetype,
-      templateName: tName,
-      theme: {
-        ...aiConfig.theme,
-        primaryColor: pColor,
-        accentColor: aColor,
-      },
-      table: {
-        ...aiConfig.table,
-        borderColor: pColor,
-      },
-    };
-
-    updated.htmlTemplate = getMasterHtmlTemplate(newArchetype, updated);
-    setAiConfig(updated);
-    setViewMode('template');
-  };
-
-  const getInterpolatedHtml = (template: string) => {
-    const logoHtml = hasRealLogo
-      ? `<img src="${(logoUrl || logo) as string}" alt="${bizName}" style="max-height: 52px; max-width: 140px; object-fit: contain;" />`
-      : `<div style="width: 48px; height: 48px; border-radius: 10px; background: ${aiConfig.theme.primaryColor || '#0052cc'}; color: #ffffff; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; font-family: sans-serif; letter-spacing: -0.5px;">${businessInitials}</div>`;
-
-    return template
-      .replace(/\{\{businessName\}\}/g, bizName)
-      .replace(/\{\{businessInitials\}\}/g, businessInitials)
-      .replace(/\{\{tagline\}\}/g, tagline || 'Dealers in supply, repair and general services.')
-      .replace(/\{\{address\}\}/g, address || '19 Oguntifa Street, Off Church Street, Alapere Ketu, Lagos')
-      .replace(/\{\{phone\}\}/g, phone || '08028386659')
-      .replace(/\{\{email\}\}/g, email || 'billing@acme-global.com')
-      .replace(/\{\{invoiceNumber\}\}/g, `${prefix}-0000042`)
-      .replace(/\{\{date\}\}/g, new Date().toLocaleDateString('en-GB'))
-      .replace(/\{\{customerName\}\}/g, 'Alhaji Musa Dangote & Sons Ltd.')
-      .replace(/\{\{customerPhone\}\}/g, '08023456789')
-      .replace(/\{\{customerAddress\}\}/g, 'Plot 14, Commercial District, Ikeja, Lagos')
-      .replace(/\{\{itemsTableRows\}\}/g, `
-        <tr>
-          <td style="text-align: center; border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">1</td>
-          <td style="text-align: center; border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">120 PCS</td>
-          <td style="text-align: left; font-weight: 600; border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">12mm TMT Deformed Rebar (Length: 12m)</td>
-          <td style="text-align: right; border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">8,500.00</td>
-          <td style="text-align: right; font-weight: 700; border-bottom: 1px solid #0052cc; padding: 8px;">1,020,000.00</td>
-        </tr>
-        <tr>
-          <td style="text-align: center; border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">2</td>
-          <td style="text-align: center; border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">80 PCS</td>
-          <td style="text-align: left; font-weight: 600; border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">16mm High-Yield High-Tensile Steel Rod</td>
-          <td style="text-align: right; border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">14,200.00</td>
-          <td style="text-align: right; font-weight: 700; border-bottom: 1px solid #0052cc; padding: 8px;">1,136,000.00</td>
-        </tr>
-        <tr><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td></tr>
-        <tr><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td></tr>
-        <tr><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td></tr>
-        <tr><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td></tr>
-      `)
-      .replace(/\{\{logo\}\}/g, logoHtml)
-      .replace(/\{\{logoImgOrAvatar\}\}/g, logoHtml)
-      .replace(/\{\{total\}\}/g, '2,156,000.00')
-      .replace(/\{\{grandTotal\}\}/g, '2,156,000.00')
-      .replace(/\{\{amountInWords\}\}/g, 'Two Million, One Hundred and Fifty-Six Thousand Naira Only.')
-      .replace(/\{\{guaranteeText\}\}/g, aiConfig.footer?.guaranteeText || 'GOODS SOLD OUT ARE NOT RETURNABLE');
-  };
-
-  // Send interactive AI chat refinement
-  const handleSendPrompt = async (promptToSend?: string) => {
-    const text = promptToSend || chatPrompt;
-    if (!text || !text.trim() || isRefining) return;
-
-    setIsRefining(true);
-    setChatPrompt('');
-    const newHistory = [...chatHistory, { role: 'user' as const, content: text.trim() }];
-    setChatHistory(newHistory);
-
-    try {
-      const endpoint = API_ENDPOINTS.BUSINESS.REFINE_TEMPLATE(tenantId);
-      const res = await apiClient.post(endpoint, {
-        currentConfig: aiConfig,
-        prompt: text.trim(),
-        history: newHistory,
-      });
-
-      if (res.data?.data?.customTemplateConfig) {
-        const updated = res.data.data.customTemplateConfig;
-        setAiConfig(updated);
-        setChatHistory((prev) => [
-          ...prev,
-          { role: 'assistant', content: res.data.data.assistantReply || 'Updated layout template.' },
-        ]);
-        setViewMode('template'); // Auto-switch to template view so user sees changes
-      }
-    } catch (err: any) {
-      console.error('Refinement failed:', err);
-      const errMsg = err?.response?.data?.message || err?.message || 'Could not apply AI change. Please try again or rephrase.';
-      setChatHistory((prev) => [
-        ...prev,
-        { role: 'assistant', content: errMsg },
-      ]);
-    } finally {
-      setIsRefining(false);
-    }
-  };
-
-  const quickPrompts = [
-    'Global Refit Trade Voucher with Red & Blue Header',
-    '3-Column Sub-strip with Office Address & Contact',
-    'Parallel Underlined Customer Grid',
-    '5-Column Table with Centered Faint Watermark',
-    'Office Signature Stamp Box & Return Terms',
-    'Lao Steel Industrial Green Ledger Style',
-  ];
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className={`w-[98vw] ${isSuperAdmin ? 'max-w-[98vw] sm:max-w-2xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl' : 'max-w-4xl'} h-[94vh] max-h-[94vh] flex flex-col p-0 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden focus:outline-none`}>
+      <DialogContent className="w-[98vw] max-w-4xl h-[94vh] max-h-[94vh] flex flex-col p-0 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden focus:outline-none">
         {/* Modal Top Header */}
         <div className="shrink-0 p-3 sm:p-4 border-b border-slate-800 bg-slate-950/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 z-10">
           <div className="flex items-center space-x-3 pr-8 sm:pr-0">
@@ -796,129 +299,59 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-slate-950/70">
           {/* LEFT: Preview Viewport Canvas */}
           <div className="flex-1 overflow-y-auto overflow-x-auto p-3 sm:p-6 flex flex-col items-center justify-start relative">
-            {isSuperAdmin && (
-              <div className="w-full max-w-[800px] flex flex-col sm:flex-row items-center justify-between pb-3 text-xs mb-2 gap-2">
-                {/* 1-Click Master Archetype Switcher */}
-                <div className="flex items-center space-x-1 bg-slate-900 border border-slate-800 p-1 rounded-xl overflow-x-auto max-w-full">
-                  <button
-                    type="button"
-                    onClick={() => handleSwitchArchetype('trade-voucher')}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-all whitespace-nowrap ${
-                      aiConfig.archetype === 'trade-voucher' || (!aiConfig.archetype && !isLaoSteel)
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                    }`}
-                  >
-                    🛒 Commercial Voucher
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSwitchArchetype('lao-steel')}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-all whitespace-nowrap ${
-                      aiConfig.archetype === 'lao-steel' || (!aiConfig.archetype && isLaoSteel)
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                    }`}
-                  >
-                    🏗️ Industrial Ledger
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSwitchArchetype('corporate')}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-all whitespace-nowrap ${
-                      aiConfig.archetype === 'corporate'
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                    }`}
-                  >
-                    🏢 Corporate Exec
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSwitchArchetype('commercial-docket')}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-all whitespace-nowrap ${
-                      aiConfig.archetype === 'commercial-docket'
-                        ? 'bg-amber-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                    }`}
-                  >
-                    📦 Depot Docket
-                  </button>
-                </div>
+            {/* View Mode Toolbar */}
+            <div className="w-full max-w-[760px] flex items-center justify-between pb-3 text-xs mb-2">
+              <Badge className="bg-slate-800 text-slate-300 border border-slate-700 text-[10px] py-0.5 px-2 font-mono">
+                A4 Printable Layout
+              </Badge>
 
-                {/* View Modes */}
-                <div className="flex items-center space-x-1 bg-slate-900 border border-slate-800 p-1 rounded-xl shrink-0">
+              <div className="flex items-center space-x-1 bg-slate-900 border border-slate-800 p-1 rounded-xl shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('template')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
+                    viewMode === 'template'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  <span>A4 Invoice Preview</span>
+                </button>
+                {aiConfig.rawImagePreviewUrl && (
                   <button
                     type="button"
-                    onClick={() => setViewMode('template')}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center space-x-1 ${
-                      viewMode === 'template'
-                        ? 'bg-emerald-600 text-white shadow-sm'
+                    onClick={() => setViewMode('reference')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
+                      viewMode === 'reference'
+                        ? 'bg-purple-600 text-white shadow-sm'
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    <FileText className="h-3 w-3" />
-                    <span>Template</span>
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    <span>Original Upload</span>
                   </button>
-                  {aiConfig.rawImagePreviewUrl && (
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('reference')}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center space-x-1 ${
-                        viewMode === 'reference'
-                          ? 'bg-purple-600 text-white shadow-sm'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <ImageIcon className="h-3 w-3" />
-                      <span>Original</span>
-                    </button>
-                  )}
-                  {aiConfig.layoutDescription && (
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('blueprint')}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center space-x-1 ${
-                        viewMode === 'blueprint'
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Sparkles className="h-3 w-3" />
-                      <span>AI Blueprint</span>
-                    </button>
-                  )}
-                  {aiConfig.htmlTemplate && (
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('code')}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center space-x-1 ${
-                        viewMode === 'code'
-                          ? 'bg-amber-600 text-white shadow-sm'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Code className="h-3 w-3" />
-                      <span>HTML</span>
-                    </button>
-                  )}
-                </div>
+                )}
+                {isSuperAdmin && aiConfig.layoutDescription && (
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('blueprint')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
+                      viewMode === 'blueprint'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>AI Spatial Blueprint</span>
+                  </button>
+                )}
               </div>
-            )}
+            </div>
 
-            {/* Dynamic Template View */}
+            {/* A4 Document Preview */}
             {viewMode === 'template' && (
-              aiConfig.htmlTemplate ? (
-                <div className="w-full max-w-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-700 transition-all duration-300">
-                  <iframe
-                    srcDoc={getInterpolatedHtml(aiConfig.htmlTemplate)}
-                    title="Bespoke Custom Invoice Template"
-                    className="w-full h-[780px] border-0 bg-white"
-                    sandbox="allow-same-origin allow-scripts"
-                  />
-                </div>
-              ) : (
-                <div
+              <div
                   className="w-full max-w-[760px] rounded-lg shadow-2xl p-4 sm:p-8 relative select-none transition-all duration-300 border"
                   style={{
                     backgroundColor: aiConfig.theme.backgroundColor || '#ffffff',
@@ -1757,7 +1190,6 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                   </div>
                 )}
                 </div>
-              )
             )}
 
             {/* Reference Image View Mode */}
@@ -1817,126 +1249,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
               </div>
             )}
 
-            {/* HTML Code View Mode */}
-            {viewMode === 'code' && (
-              <div className="w-full max-w-[800px] h-[780px] bg-slate-900 rounded-xl p-4 font-mono text-xs text-emerald-400 overflow-auto border border-slate-800">
-                <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-800">
-                  <span className="text-slate-300 font-bold">Unconstrained HTML &amp; CSS Code</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (aiConfig.htmlTemplate) {
-                        navigator.clipboard.writeText(aiConfig.htmlTemplate);
-                      }
-                    }}
-                    className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs flex items-center space-x-1 cursor-pointer"
-                  >
-                    <Copy className="h-3 w-3 mr-1" />
-                    <span>Copy Code</span>
-                  </button>
-                </div>
-                <pre className="whitespace-pre-wrap">{aiConfig.htmlTemplate}</pre>
-              </div>
-            )}
           </div>
-
-          {/* RIGHT: AI Copilot Chat Studio (Super Admin Only) */}
-          {isSuperAdmin && (
-            <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-slate-800 bg-slate-950 flex flex-col shrink-0">
-              {/* Studio Header */}
-              <div className="p-3 sm:p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
-                <div className="flex items-center space-x-2">
-                  <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                    <Wand2 className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-white flex items-center space-x-1">
-                      <span>AI Template Copilot</span>
-                      <Badge className="bg-emerald-500/20 text-emerald-400 text-[9px] px-1 py-0">Groq Vision</Badge>
-                    </h3>
-                    <p className="text-[10px] text-slate-400">Refine layout, colors & terms live</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Chat Thread Messages */}
-              <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 text-xs">
-                {/* Initial Assistant greeting */}
-                <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-slate-300 space-y-1.5 shadow-sm">
-                  <p className="font-semibold text-white flex items-center space-x-1">
-                    <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                    <span>Template Extracted & Ready</span>
-                  </p>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
-                    I analyzed your uploaded document and generated this dynamic layout with your company details.
-                    Tell me any change you want to make below!
-                  </p>
-                </div>
-
-                {chatHistory.map((msg, i) => (
-                  <div
-                    key={i}
-                    className={`p-3 rounded-2xl text-xs leading-relaxed ${
-                      msg.role === 'user'
-                        ? 'bg-emerald-600 text-white ml-6 shadow-md'
-                        : 'bg-slate-900 border border-slate-800 text-slate-200 mr-4'
-                    }`}
-                  >
-                    {msg.content}
-                  </div>
-                ))}
-
-                {isRefining && (
-                  <div className="p-3 rounded-2xl bg-slate-900/80 border border-amber-500/30 text-amber-400 text-xs flex items-center space-x-2">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-400" />
-                    <span>Redesigning template with Groq AI...</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Quick Prompt Suggestions */}
-              <div className="p-2 sm:p-3 border-t border-slate-800/80 bg-slate-950/90 space-y-1.5">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Suggestions:</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {quickPrompts.map((chip, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      disabled={isRefining}
-                      onClick={() => handleSendPrompt(chip)}
-                      className="text-[10px] px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition-colors cursor-pointer text-left disabled:opacity-50"
-                    >
-                      {chip}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Chat Input Bar */}
-              <div className="p-3 border-t border-slate-800 bg-slate-900 flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={chatPrompt}
-                  disabled={isRefining}
-                  onChange={(e) => setChatPrompt(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSendPrompt();
-                  }}
-                  placeholder="e.g. Make header deep navy with gold accent..."
-                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={!chatPrompt.trim() || isRefining}
-                  onClick={() => handleSendPrompt()}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl h-9 px-3 shrink-0 cursor-pointer shadow-md shadow-emerald-500/20"
-                >
-                  {isRefining ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Modal Action Footer */}
