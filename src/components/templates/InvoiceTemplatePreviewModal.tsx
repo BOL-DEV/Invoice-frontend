@@ -31,6 +31,8 @@ import {
   Sliders,
   ChevronDown,
   ChevronUp,
+  Code,
+  Copy,
 } from 'lucide-react';
 import { apiClient } from '../../services/api/axios';
 import { API_ENDPOINTS } from '../../services/api/endpoints';
@@ -246,7 +248,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
   };
 
   const [aiConfig, setAiConfig] = useState<CustomTemplateConfig>(parseConfig(customTemplateUrl));
-  const [viewMode, setViewMode] = useState<'template' | 'reference'>('template');
+  const [viewMode, setViewMode] = useState<'template' | 'reference' | 'code'>('template');
   const [chatPrompt, setChatPrompt] = useState('');
   const [isRefining, setIsRefining] = useState(false);
   const [chatHistory, setChatHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
@@ -275,6 +277,60 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
     .slice(0, 2)
     .map((w) => w[0].toUpperCase())
     .join('') || 'B';
+
+  const isTradeVoucher = Boolean(
+    aiConfig.archetype === 'trade-voucher' ||
+    aiConfig.header.layout === 'trade-header' ||
+    aiConfig.header.style === 'trade-strip' ||
+    aiConfig.customer?.style === 'underlined-grid' ||
+    aiConfig.footer?.signatureBoxStyle === 'stamp-box' ||
+    (Boolean(aiConfig.rawImagePreviewUrl) && !isLaoSteel)
+  );
+
+  const getInterpolatedHtml = (template: string) => {
+    const logoHtml = hasRealLogo
+      ? `<img src="${(logoUrl || logo) as string}" alt="${bizName}" style="max-height: 52px; max-width: 140px; object-fit: contain;" />`
+      : `<div style="width: 48px; height: 48px; border-radius: 10px; background: ${aiConfig.theme.primaryColor || '#0052cc'}; color: #ffffff; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; font-family: sans-serif; letter-spacing: -0.5px;">${businessInitials}</div>`;
+
+    return template
+      .replace(/\{\{businessName\}\}/g, bizName)
+      .replace(/\{\{businessInitials\}\}/g, businessInitials)
+      .replace(/\{\{tagline\}\}/g, tagline || 'Dealers in supply, repair and general services.')
+      .replace(/\{\{address\}\}/g, address || '19 Oguntifa Street, Off Church Street, Alapere Ketu, Lagos')
+      .replace(/\{\{phone\}\}/g, phone || '08028386659')
+      .replace(/\{\{email\}\}/g, email || 'billing@acme-global.com')
+      .replace(/\{\{invoiceNumber\}\}/g, `${prefix}-0000042`)
+      .replace(/\{\{date\}\}/g, new Date().toLocaleDateString('en-GB'))
+      .replace(/\{\{customerName\}\}/g, 'Alhaji Musa Dangote & Sons Ltd.')
+      .replace(/\{\{customerPhone\}\}/g, '08023456789')
+      .replace(/\{\{customerAddress\}\}/g, 'Plot 14, Commercial District, Ikeja, Lagos')
+      .replace(/\{\{itemsTableRows\}\}/g, `
+        <tr>
+          <td style="text-align: center; border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">1</td>
+          <td style="text-align: center; border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">120 PCS</td>
+          <td style="text-align: left; font-weight: 600; border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">12mm TMT Deformed Rebar (Length: 12m)</td>
+          <td style="text-align: right; border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">8,500.00</td>
+          <td style="text-align: right; font-weight: 700; border-bottom: 1px solid #0052cc; padding: 8px;">1,020,000.00</td>
+        </tr>
+        <tr>
+          <td style="text-align: center; border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">2</td>
+          <td style="text-align: center; border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">80 PCS</td>
+          <td style="text-align: left; font-weight: 600; border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">16mm High-Yield High-Tensile Steel Rod</td>
+          <td style="text-align: right; border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">14,200.00</td>
+          <td style="text-align: right; font-weight: 700; border-bottom: 1px solid #0052cc; padding: 8px;">1,136,000.00</td>
+        </tr>
+        <tr><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td></tr>
+        <tr><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td></tr>
+        <tr><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td></tr>
+        <tr><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-right: 1px solid #0052cc; border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td><td style="border-bottom: 1px solid #0052cc; padding: 8px;">&nbsp;</td></tr>
+      `)
+      .replace(/\{\{logo\}\}/g, logoHtml)
+      .replace(/\{\{logoImgOrAvatar\}\}/g, logoHtml)
+      .replace(/\{\{total\}\}/g, '2,156,000.00')
+      .replace(/\{\{grandTotal\}\}/g, '2,156,000.00')
+      .replace(/\{\{amountInWords\}\}/g, 'Two Million, One Hundred and Fifty-Six Thousand Naira Only.')
+      .replace(/\{\{guaranteeText\}\}/g, aiConfig.footer?.guaranteeText || 'GOODS SOLD OUT ARE NOT RETURNABLE');
+  };
 
   // Send interactive AI chat refinement
   const handleSendPrompt = async (promptToSend?: string) => {
@@ -316,12 +372,12 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
   };
 
   const quickPrompts = [
-    'Deep Navy & Slate Theme',
-    'Forest Green Commercial Accent',
-    'Double Accounting Ledger Border',
-    'Add Watermark saying ORIGINAL',
-    'Single Signature for Store Manager',
-    'Minimalist Modern SaaS Layout',
+    'Global Refit Trade Voucher with Red & Blue Header',
+    '3-Column Sub-strip with Office Address & Contact',
+    'Parallel Underlined Customer Grid',
+    '5-Column Table with Centered Faint Watermark',
+    'Office Signature Stamp Box & Return Terms',
+    'Lao Steel Industrial Green Ledger Style',
   ];
 
   return (
@@ -358,8 +414,8 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-slate-950/70">
           {/* LEFT: Preview Viewport Canvas */}
           <div className="flex-1 overflow-y-auto overflow-x-auto p-3 sm:p-6 flex flex-col items-center justify-start relative">
-            {isSuperAdmin && aiConfig.rawImagePreviewUrl && (
-              <div className="w-full max-w-[760px] flex items-center justify-between pb-3 text-xs mb-2">
+            {isSuperAdmin && (aiConfig.rawImagePreviewUrl || aiConfig.htmlTemplate) && (
+              <div className="w-full max-w-[800px] flex items-center justify-between pb-3 text-xs mb-2">
                 <div className="flex items-center space-x-1 bg-slate-900 border border-slate-800 p-1 rounded-xl">
                   <button
                     type="button"
@@ -373,37 +429,63 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                     <FileText className="h-3.5 w-3.5" />
                     <span>Dynamic Template</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('reference')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
-                      viewMode === 'reference'
-                        ? 'bg-purple-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <ImageIcon className="h-3.5 w-3.5" />
-                    <span>Original Upload Sample</span>
-                  </button>
+                  {aiConfig.rawImagePreviewUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('reference')}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
+                        viewMode === 'reference'
+                          ? 'bg-purple-600 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <ImageIcon className="h-3.5 w-3.5" />
+                      <span>Original Upload Sample</span>
+                    </button>
+                  )}
+                  {aiConfig.htmlTemplate && (
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('code')}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
+                        viewMode === 'code'
+                          ? 'bg-amber-600 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Code className="h-3.5 w-3.5" />
+                      <span>HTML Code</span>
+                    </button>
+                  )}
                 </div>
 
                 <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">
-                  {aiConfig.templateName || 'AI Extracted Layout'}
+                  {aiConfig.templateName || 'Bespoke Custom Template'}
                 </Badge>
               </div>
             )}
 
             {/* Dynamic Template View */}
             {viewMode === 'template' && (
-              <div
-                className="w-full max-w-[760px] rounded-lg shadow-2xl p-4 sm:p-8 relative select-none transition-all duration-300 border"
-                style={{
-                  backgroundColor: aiConfig.theme.backgroundColor || '#ffffff',
-                  color: aiConfig.theme.textColor || '#0f172a',
-                  borderColor: aiConfig.theme.primaryColor || '#0f2942',
-                  fontFamily: aiConfig.theme.fontFamily === 'mono' ? 'monospace' : aiConfig.theme.fontFamily === 'serif' ? 'serif' : 'sans-serif',
-                }}
-              >
+              aiConfig.htmlTemplate ? (
+                <div className="w-full max-w-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-700 transition-all duration-300">
+                  <iframe
+                    srcDoc={getInterpolatedHtml(aiConfig.htmlTemplate)}
+                    title="Bespoke Custom Invoice Template"
+                    className="w-full h-[780px] border-0 bg-white"
+                    sandbox="allow-same-origin allow-scripts"
+                  />
+                </div>
+              ) : (
+                <div
+                  className="w-full max-w-[760px] rounded-lg shadow-2xl p-4 sm:p-8 relative select-none transition-all duration-300 border"
+                  style={{
+                    backgroundColor: aiConfig.theme.backgroundColor || '#ffffff',
+                    color: aiConfig.theme.textColor || '#0f172a',
+                    borderColor: aiConfig.theme.primaryColor || '#0f2942',
+                    fontFamily: aiConfig.theme.fontFamily === 'mono' ? 'monospace' : aiConfig.theme.fontFamily === 'serif' ? 'serif' : 'sans-serif',
+                  }}
+                >
                 {/* Optional Watermark */}
                 {aiConfig.footer.watermarkText && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
@@ -519,8 +601,156 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                       </div>
                     </div>
                   </div>
+                ) : isTradeVoucher ? (
+                  /* 1. Authentic Nigerian Trade Voucher Layout (Global Refit, Trade Vouchers, Extracted Mockups) */
+                  <div className="mb-4">
+                    {/* Top Header: Logo on left, Big Bold Company Name & Tagline */}
+                    <div className="flex items-center justify-between gap-4 pb-2">
+                      <div className="flex items-center gap-3.5">
+                        {hasRealLogo ? (
+                          <img
+                            src={(logoUrl || logo) as string}
+                            alt={bizName}
+                            className="h-14 max-w-[150px] object-contain"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center shrink-0">
+                            <div
+                              className="h-12 w-12 rounded-xl flex items-center justify-center font-black text-xl text-white shadow-sm"
+                              style={{ backgroundColor: aiConfig.theme.primaryColor || '#0052cc' }}
+                            >
+                              {businessInitials || 'GR'}
+                            </div>
+                            <span className="text-[9px] font-bold text-slate-600 uppercase tracking-tight mt-0.5 text-center leading-none">
+                              {bizName.split(' ').slice(0, 2).join(' ')}
+                            </span>
+                          </div>
+                        )}
+
+                        <div>
+                          <h2
+                            className="text-2xl sm:text-3xl font-black font-heading uppercase tracking-tight leading-none"
+                            style={{ color: aiConfig.theme.primaryColor || '#0052cc' }}
+                          >
+                            {bizName}
+                          </h2>
+                          <p className="text-xs font-semibold text-slate-700 mt-1 italic">
+                            {tagline || 'Dealers in supply, repair and general services.'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3-Column Trade Sub-Strip: Office Address | INVOICE | Contact */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-2 pt-2 pb-2 text-xs">
+                      <div className="text-left">
+                        <span className="text-[10px] font-bold text-red-600 uppercase block tracking-wider">
+                          Office Address:
+                        </span>
+                        <span className="text-xs font-bold text-slate-800 leading-tight block">
+                          {address || '19 Oguntifa Street, Off Church Street, Alapere Ketu, Lagos'}
+                        </span>
+                      </div>
+
+                      <div className="text-center sm:border-l sm:border-r border-slate-300 py-1">
+                        <span
+                          className="text-xl sm:text-2xl font-black tracking-wider uppercase inline-block"
+                          style={{
+                            color:
+                              aiConfig.theme.accentColor && aiConfig.theme.accentColor !== '#ffffff'
+                                ? aiConfig.theme.accentColor
+                                : '#dc2626',
+                          }}
+                        >
+                          {aiConfig.header.titleText || 'INVOICE'}
+                        </span>
+                      </div>
+
+                      <div className="text-left sm:text-right">
+                        <span className="text-[10px] font-bold text-red-600 uppercase block tracking-wider">
+                          Contact:
+                        </span>
+                        <span className="text-xs font-mono font-bold text-slate-900 block">
+                          {phone || '08028386659'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Solid Blue/Primary Divider Line */}
+                    <div
+                      className="border-b-2 mb-3 mt-1"
+                      style={{ borderColor: aiConfig.theme.primaryColor || '#0052cc' }}
+                    />
+
+                    {/* Underlined Customer Section: Name/Date and Address/Sign */}
+                    <div className="space-y-2 mb-3 text-xs font-semibold">
+                      {/* Row 1: Name and Date */}
+                      <div className="flex flex-col sm:flex-row items-baseline gap-3">
+                        <div className="flex-1 flex items-baseline gap-2">
+                          <span
+                            className="font-bold shrink-0 uppercase tracking-tight text-xs"
+                            style={{ color: aiConfig.theme.primaryColor || '#0052cc' }}
+                          >
+                            {aiConfig.customer?.nameLabel || 'Name:'}
+                          </span>
+                          <span
+                            className="flex-1 border-b-2 pb-0.5 font-bold font-sans text-slate-900 text-xs"
+                            style={{ borderColor: aiConfig.table.borderColor || '#0052cc' }}
+                          >
+                            Alhaji Musa Dangote &amp; Sons Ltd.
+                          </span>
+                        </div>
+                        <div className="w-full sm:w-60 flex items-baseline gap-2">
+                          <span
+                            className="font-bold shrink-0 uppercase tracking-tight text-xs"
+                            style={{ color: aiConfig.theme.primaryColor || '#0052cc' }}
+                          >
+                            Date:
+                          </span>
+                          <span
+                            className="flex-1 border-b-2 pb-0.5 font-mono text-slate-900 text-xs font-bold"
+                            style={{ borderColor: aiConfig.table.borderColor || '#0052cc' }}
+                          >
+                            {new Date().toLocaleDateString('en-GB')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Row 2: Address and Sign */}
+                      <div className="flex flex-col sm:flex-row items-baseline gap-3">
+                        <div className="flex-1 flex items-baseline gap-2">
+                          <span
+                            className="font-bold shrink-0 uppercase tracking-tight text-xs"
+                            style={{ color: aiConfig.theme.primaryColor || '#0052cc' }}
+                          >
+                            {aiConfig.customer?.addressLabel || 'Address:'}
+                          </span>
+                          <span
+                            className="flex-1 border-b-2 pb-0.5 font-sans text-slate-700 text-xs"
+                            style={{ borderColor: aiConfig.table.borderColor || '#0052cc' }}
+                          >
+                            Plot 14, Commercial District, Ikeja, Lagos
+                          </span>
+                        </div>
+                        <div className="w-full sm:w-60 flex items-baseline gap-2">
+                          <span
+                            className="font-bold shrink-0 uppercase tracking-tight text-xs"
+                            style={{ color: aiConfig.theme.primaryColor || '#0052cc' }}
+                          >
+                            Sign:
+                          </span>
+                          <span
+                            className="flex-1 border-b-2 pb-0.5 text-xs"
+                            style={{ borderColor: aiConfig.table.borderColor || '#0052cc' }}
+                          >
+                            &nbsp;
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ) : aiConfig.archetype === 'commercial-docket' || aiConfig.header.style === 'centered-commercial' ? (
-                  /* 1. Centered Commercial Docket Layout (exact match to paper receipt/invoice) */
+                  /* 2. Centered Commercial Docket Layout (exact match to paper receipt/invoice) */
                   <div className="mb-4">
                     {/* Centered Business Header */}
                     <div className="text-center pb-3 mb-3 border-b-2" style={{ borderColor: aiConfig.theme.primaryColor }}>
@@ -641,7 +871,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                     </div>
                   </div>
                 ) : aiConfig.header.style === 'banner' || aiConfig.header.layout === 'banner' ? (
-                  /* 2. Top Banner Layout */
+                  /* 3. Top Banner Layout */
                   <div>
                     <div
                       className="p-4 rounded-xl mb-4 flex flex-col sm:flex-row justify-between items-center gap-3"
@@ -684,16 +914,13 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                     >
                       <div>
                         <span className="text-[10px] font-bold uppercase" style={{ color: aiConfig.theme.mutedTextColor }}>Billed To:</span>
-                        <p className="font-bold text-sm text-slate-900 mt-0.5">Alhaji Musa Dangote & Sons Ltd.</p>
+                        <p className="font-bold text-sm text-slate-900 mt-0.5">Alhaji Musa Dangote &amp; Sons Ltd.</p>
                         <p className="text-slate-600 text-xs">08023456789 • Orile Commercial Depot</p>
                       </div>
-                      <Badge className="font-mono text-xs" style={{ backgroundColor: aiConfig.theme.accentColor || '#f59e0b', color: '#ffffff' }}>
-                        FINALIZED ORDER
-                      </Badge>
                     </div>
                   </div>
                 ) : (
-                  /* 3. Modern Split Layout */
+                  /* 4. Modern Split Layout */
                   <div>
                     <div className="flex justify-between items-start pb-5 mb-4 border-b" style={{ borderColor: aiConfig.table.borderColor }}>
                       <div className="flex items-start gap-3">
@@ -741,12 +968,9 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                     >
                       <div>
                         <span className="text-[10px] font-bold uppercase" style={{ color: aiConfig.theme.mutedTextColor }}>Billed To:</span>
-                        <p className="font-bold text-sm text-slate-900 mt-0.5">Alhaji Musa Dangote & Sons Ltd.</p>
+                        <p className="font-bold text-sm text-slate-900 mt-0.5">Alhaji Musa Dangote &amp; Sons Ltd.</p>
                         <p className="text-slate-600 text-xs">08023456789 • Orile Commercial Depot</p>
                       </div>
-                      <Badge className="font-mono text-xs" style={{ backgroundColor: aiConfig.theme.accentColor || '#f59e0b', color: '#ffffff' }}>
-                        FINALIZED ORDER
-                      </Badge>
                     </div>
                   </div>
                 )}
@@ -755,6 +979,14 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                 {(() => {
                   const activeColumns: CustomTemplateColumn[] = (aiConfig.table.columns && aiConfig.table.columns.length > 0)
                     ? aiConfig.table.columns
+                    : isTradeVoucher
+                    ? [
+                        { id: 'sn', label: 'S/N', field: 'index', widthPercent: 8, align: 'center' },
+                        { id: 'qty', label: 'QUALITY', field: 'qty', widthPercent: 18, align: 'center' },
+                        { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 44, align: 'left' },
+                        { id: 'price', label: 'RATE', field: 'unit_price', widthPercent: 15, align: 'right' },
+                        { id: 'amt', label: 'AMOUNT', field: 'amount', widthPercent: 15, align: 'right' },
+                      ]
                     : [
                         { id: 'qty', label: 'QTY.', field: 'qty', widthPercent: 15, align: 'center' },
                         { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 45, align: 'left' },
@@ -763,21 +995,66 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                       ];
 
                   const sampleRows = [
-                    { qty: '120 PCS', description: '12mm TMT Deformed Rebar (Length: 12m)', unit_price: '8,500.00', amount: '1,020,000.00', index: 1 },
-                    { qty: '80 PCS', description: '16mm High-Yield High-Tensile Steel Rod', unit_price: '14,200.00', amount: '1,136,000.00', index: 2 },
+                    { sn: '1', pos: '1', quality: '120 PCS', qty: '120 PCS', description: '12mm TMT Deformed Rebar (Length: 12m)', rate: '8,500.00', unit_price: '8,500.00', amount: '1,020,000.00', index: 1 },
+                    { sn: '2', pos: '2', quality: '80 PCS', qty: '80 PCS', description: '16mm High-Yield High-Tensile Steel Rod', rate: '14,200.00', unit_price: '14,200.00', amount: '1,136,000.00', index: 2 },
                   ];
+
+                  const getCellValue = (row: any, col: CustomTemplateColumn, rIdx: number) => {
+                    const f = col.field;
+                    const id = col.id?.toLowerCase() || '';
+                    const l = col.label?.toLowerCase() || '';
+
+                    if (f === 'index' || id === 'sn' || id === 's/n' || l.includes('s/n') || l === 'sn' || id === 'pos' || l.includes('item')) {
+                      return rIdx + 1;
+                    }
+                    if (f === 'qty' || id === 'quality' || l.includes('qual') || l.includes('qty')) {
+                      return row.qty || row.quality;
+                    }
+                    if (f === 'unit_price' || id === 'rate' || l.includes('rate') || l.includes('price')) {
+                      return row.rate || row.unit_price;
+                    }
+                    if (f === 'amount' || id === 'amt' || l.includes('amount')) {
+                      return row.amount;
+                    }
+                    if (f === 'description' || id === 'desc' || l.includes('desc')) {
+                      return row.description;
+                    }
+                    return (row as any)[f] || '—';
+                  };
 
                   const emptyRowCount = aiConfig.table.fillBlankRows !== false
                     ? Math.max(3, (aiConfig.table.minRows || 8) - sampleRows.length)
                     : 0;
 
                   return (
-                    <div className="overflow-x-auto mb-4 rounded-xl border-2" style={{ borderColor: aiConfig.table.borderColor }}>
-                      <table className="w-full text-xs border-collapse">
+                    <div className="relative overflow-x-auto mb-4 rounded-xl border-2" style={{ borderColor: aiConfig.table.borderColor || '#0052cc' }}>
+                      {/* Table Center Watermark */}
+                      {(hasRealLogo || aiConfig.rawImagePreviewUrl || isTradeVoucher) && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.07] select-none z-0">
+                          {hasRealLogo ? (
+                            <img
+                              src={(logoUrl || logo) as string}
+                              alt="Watermark"
+                              className="w-48 h-48 object-contain"
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center text-center">
+                              <div className="text-6xl font-black tracking-widest uppercase" style={{ color: aiConfig.theme.primaryColor || '#0052cc' }}>
+                                {businessInitials || 'GR'}
+                              </div>
+                              <div className="text-xs font-black uppercase tracking-wider mt-1" style={{ color: aiConfig.theme.primaryColor || '#0052cc' }}>
+                                {bizName}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <table className="w-full text-xs border-collapse relative z-10">
                         <thead>
                           <tr
                             style={{
-                              backgroundColor: aiConfig.table.headerBackground || aiConfig.theme.primaryColor,
+                              backgroundColor: aiConfig.table.headerBackground || aiConfig.theme.primaryColor || '#0052cc',
                               color: aiConfig.table.headerTextColor || '#ffffff',
                             }}
                           >
@@ -794,7 +1071,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                             ))}
                           </tr>
                         </thead>
-                        <tbody className="font-mono divide-y" style={{ borderColor: aiConfig.table.borderColor }}>
+                        <tbody className="font-mono divide-y" style={{ borderColor: aiConfig.table.borderColor || '#0052cc' }}>
                           {sampleRows.map((row, rIdx) => (
                             <tr
                               key={rIdx}
@@ -813,13 +1090,13 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                                     col.field === 'amount' ? 'font-bold' : ''
                                   } ${cIdx < activeColumns.length - 1 ? 'border-r' : ''}`}
                                   style={{
-                                    borderColor: aiConfig.table.borderColor,
+                                    borderColor: aiConfig.table.borderColor || '#0052cc',
                                     backgroundColor: ((aiConfig.archetype === 'lao-steel' || isLaoSteel) && (col.id === 'pos' || col.id === 'qty' || col.id === 'amt'))
                                       ? '#e8f0fe'
                                       : undefined,
                                   }}
                                 >
-                                  {(row as any)[col.field] || (col.field === 'index' ? rIdx + 1 : '—')}
+                                  {getCellValue(row, col, rIdx)}
                                 </td>
                               ))}
                             </tr>
@@ -833,7 +1110,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                                   key={`empty_col_${cIdx}`}
                                   className={`p-2.5 ${cIdx < activeColumns.length - 1 ? 'border-r' : ''}`}
                                   style={{
-                                    borderColor: aiConfig.table.borderColor,
+                                    borderColor: aiConfig.table.borderColor || '#0052cc',
                                     backgroundColor: ((aiConfig.archetype === 'lao-steel' || isLaoSteel) && (col.id === 'pos' || col.id === 'qty' || col.id === 'amt'))
                                       ? '#e8f0fe'
                                       : undefined,
@@ -846,21 +1123,21 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                           ))}
 
                           {/* Integrated Grand Total Row */}
-                          {aiConfig.summary.layout === 'table-integrated' && (
-                            <tr className="font-bold border-t-2" style={{ borderColor: aiConfig.table.borderColor }}>
+                          {(aiConfig.summary.layout === 'table-integrated' || isTradeVoucher) && (
+                            <tr className="font-bold border-t-2" style={{ borderColor: aiConfig.table.borderColor || '#0052cc' }}>
                               <td
                                 colSpan={Math.max(1, activeColumns.length - 1)}
-                                className="p-2.5 text-right font-black uppercase tracking-wider text-xs"
-                                style={{ color: aiConfig.theme.primaryColor }}
+                                className="p-2.5 text-center sm:text-right font-black uppercase tracking-wider text-xs"
+                                style={{ color: aiConfig.theme.primaryColor || '#0052cc' }}
                               >
-                                {aiConfig.summary.totalLabel || 'GRAND TOTAL'} (₦):
+                                {aiConfig.summary.totalLabel || 'TOTAL'} (₦):
                               </td>
                               <td
                                 className="p-2.5 text-right font-black text-sm font-mono border-l-2"
                                 style={{
-                                  borderColor: aiConfig.table.borderColor,
+                                  borderColor: aiConfig.table.borderColor || '#0052cc',
                                   backgroundColor: aiConfig.summary.highlightTotalBackground || '#ffffff',
-                                  color: aiConfig.summary.highlightTotalTextColor || aiConfig.theme.primaryColor,
+                                  color: aiConfig.summary.highlightTotalTextColor || aiConfig.theme.primaryColor || '#0052cc',
                                 }}
                               >
                                 2,156,000.00
@@ -873,8 +1150,8 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                   );
                 })()}
 
-                {/* Detached Totals Card if not table-integrated */}
-                {aiConfig.summary.layout !== 'table-integrated' && (
+                {/* Detached Totals Card if not table-integrated and not trade voucher */}
+                {aiConfig.summary.layout !== 'table-integrated' && !isTradeVoucher && (
                   <div className="flex justify-end mb-4">
                     <div className="w-72 space-y-2 text-xs font-mono">
                       <div className="flex justify-between text-slate-600">
@@ -895,84 +1172,151 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                   </div>
                 )}
 
-                {/* Amount in words */}
-                {aiConfig.summary.showAmountInWords && (
-                  <div className="pb-2 mb-3 border-b text-xs" style={{ borderColor: aiConfig.table.borderColor }}>
-                    <span className="font-bold text-[10px] text-slate-500 uppercase mr-2">Amount in Words:</span>
-                    <span className="italic font-serif" style={{ color: aiConfig.theme.primaryColor }}>
-                      Two Million, One Hundred and Fifty-Six Thousand Naira Only.
-                    </span>
-                  </div>
-                )}
-
-                {/* Footer Section */}
-                <div className="mt-3 pt-2">
-                  {/* Guarantee Disclaimer */}
-                  {aiConfig.footer.guaranteeText && (
-                    <p className="text-[11px] font-black uppercase text-red-600 mb-3 leading-tight tracking-wide">
-                      {aiConfig.footer.guaranteeText}
-                    </p>
-                  )}
-
-                  {/* Courtesy & Handshake Graphic & Signatures */}
-                  <div className="flex flex-col sm:flex-row items-center justify-between my-3 gap-4">
-                    {/* Customer Signature Line */}
-                    <div className="w-56 text-left">
-                      <div className="border-b-2 border-dotted pb-0.5" style={{ borderColor: aiConfig.table.borderColor }}>
-                        &nbsp;
+                {/* Authentic Trade Voucher Footer or Standard Footer */}
+                {isTradeVoucher ? (
+                  <div className="mt-3 space-y-3">
+                    {/* Amount in words + Office Signature Stamp Box */}
+                    <div className="flex flex-col sm:flex-row items-end justify-between gap-4">
+                      <div className="flex-1 w-full sm:w-auto flex items-baseline gap-2">
+                        <span
+                          className="font-bold text-xs shrink-0"
+                          style={{ color: aiConfig.theme.primaryColor || '#0052cc' }}
+                        >
+                          Amount in words:
+                        </span>
+                        <span
+                          className="flex-1 border-b-2 pb-0.5 italic font-serif text-xs text-slate-800"
+                          style={{ borderColor: aiConfig.table.borderColor || '#0052cc' }}
+                        >
+                          Two Million, One Hundred and Fifty-Six Thousand Naira Only.
+                        </span>
                       </div>
-                      <span className="text-[10px] text-slate-700 font-bold block mt-1">
-                        {aiConfig.footer.signatureLabels?.[0] || 'Customer Signature'}
-                      </span>
+
+                      <div
+                        className="border-2 w-48 h-16 p-2 flex flex-col justify-between shrink-0 bg-white shadow-sm"
+                        style={{ borderColor: aiConfig.table.borderColor || '#0052cc' }}
+                      >
+                        <span
+                          className="text-[10px] font-bold uppercase tracking-tight block"
+                          style={{ color: aiConfig.theme.primaryColor || '#0052cc' }}
+                        >
+                          {aiConfig.footer.signatureLabels?.[0] || 'Office Signature'}
+                        </span>
+                        <div className="flex-1" />
+                      </div>
                     </div>
 
-                    {/* Center Handshake Graphic */}
-                    {aiConfig.footer.centerGraphic === 'handshake' && (
-                      <div className="flex flex-col items-center justify-center text-center">
-                        <svg
-                          className="w-11 h-11"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke={aiConfig.theme.primaryColor}
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="m11 17 2 2a1 1 0 0 0 1.4 0l4.3-4.3a1 1 0 0 0 0-1.4l-2-2" />
-                          <path d="m13 15 2-2" />
-                          <path d="m15 13 2-2" />
-                          <path d="M7 21h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z" opacity="0.12" fill={aiConfig.theme.primaryColor} />
-                          <path d="m3 14 3-3a1 1 0 0 1 1.4 0l3 3" />
-                          <path d="M14 6l3.5 3.5a1 1 0 0 1 0 1.4L13 15.4" />
-                        </svg>
-                        {aiConfig.footer.courtesyGreeting && (
-                          <span className="text-[10px] font-black uppercase tracking-wider mt-1" style={{ color: aiConfig.theme.primaryColor }}>
-                            {aiConfig.footer.courtesyGreeting}
-                          </span>
-                        )}
-                      </div>
+                    {/* Guarantee Disclaimer */}
+                    {aiConfig.footer.guaranteeText && (
+                      <p className="text-[11px] font-black uppercase text-red-600 tracking-wide mt-2">
+                        {aiConfig.footer.guaranteeText}
+                      </p>
                     )}
 
-                    {/* Authorized Signatory Line if 2 signatures */}
-                    {aiConfig.footer.signatureCount === 2 && (
-                      <div className="w-56 text-right">
-                        <div className="border-b-2 border-dotted pb-0.5" style={{ borderColor: aiConfig.table.borderColor }}>
-                          &nbsp;
-                        </div>
-                        <span className="text-[10px] text-slate-700 font-bold block mt-1">
-                          {aiConfig.footer.signatureLabels?.[1] || `For: ${bizName}`}
+                    {aiConfig.footer.termsAndConditions && (
+                      <p className="text-[9px] text-slate-400 mt-1 leading-relaxed">
+                        {aiConfig.footer.termsAndConditions}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    {/* Amount in words */}
+                    {aiConfig.summary.showAmountInWords && (
+                      <div className="pb-2 mb-3 border-b text-xs" style={{ borderColor: aiConfig.table.borderColor }}>
+                        <span className="font-bold text-[10px] text-slate-500 uppercase mr-2">Amount in Words:</span>
+                        <span className="italic font-serif" style={{ color: aiConfig.theme.primaryColor }}>
+                          Two Million, One Hundred and Fifty-Six Thousand Naira Only.
                         </span>
                       </div>
                     )}
-                  </div>
 
-                  {aiConfig.footer.termsAndConditions && (
-                    <p className="text-[9px] text-slate-400 mt-2 leading-relaxed text-center">
-                      {aiConfig.footer.termsAndConditions}
-                    </p>
-                  )}
+                    {/* Standard Footer Section */}
+                    <div className="mt-3 pt-2">
+                      {/* Guarantee Disclaimer */}
+                      {aiConfig.footer.guaranteeText && (
+                        <p className="text-[11px] font-black uppercase text-red-600 mb-3 leading-tight tracking-wide">
+                          {aiConfig.footer.guaranteeText}
+                        </p>
+                      )}
+
+                      {/* Courtesy & Handshake Graphic & Signatures */}
+                      <div className="flex flex-col sm:flex-row items-center justify-between my-3 gap-4">
+                        {/* Customer Signature Line or Stamp Box */}
+                        {aiConfig.footer.signatureBoxStyle === 'stamp-box' ? (
+                          <div
+                            className="border-2 w-48 h-16 p-2 flex flex-col justify-between shrink-0 bg-white shadow-sm"
+                            style={{ borderColor: aiConfig.table.borderColor }}
+                          >
+                            <span
+                              className="text-[10px] font-bold uppercase tracking-tight block"
+                              style={{ color: aiConfig.theme.primaryColor }}
+                            >
+                              {aiConfig.footer.signatureLabels?.[0] || 'Office Signature'}
+                            </span>
+                            <div className="flex-1" />
+                          </div>
+                        ) : (
+                          <div className="w-56 text-left">
+                            <div className="border-b-2 border-dotted pb-0.5" style={{ borderColor: aiConfig.table.borderColor }}>
+                              &nbsp;
+                            </div>
+                            <span className="text-[10px] text-slate-700 font-bold block mt-1">
+                              {aiConfig.footer.signatureLabels?.[0] || 'Customer Signature'}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Center Handshake Graphic */}
+                        {aiConfig.footer.centerGraphic === 'handshake' && (
+                          <div className="flex flex-col items-center justify-center text-center">
+                            <svg
+                              className="w-11 h-11"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke={aiConfig.theme.primaryColor}
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="m11 17 2 2a1 1 0 0 0 1.4 0l4.3-4.3a1 1 0 0 0 0-1.4l-2-2" />
+                              <path d="m13 15 2-2" />
+                              <path d="m15 13 2-2" />
+                              <path d="M7 21h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z" opacity="0.12" fill={aiConfig.theme.primaryColor} />
+                              <path d="m3 14 3-3a1 1 0 0 1 1.4 0l3 3" />
+                              <path d="M14 6l3.5 3.5a1 1 0 0 1 0 1.4L13 15.4" />
+                            </svg>
+                            {aiConfig.footer.courtesyGreeting && (
+                              <span className="text-[10px] font-black uppercase tracking-wider mt-1" style={{ color: aiConfig.theme.primaryColor }}>
+                                {aiConfig.footer.courtesyGreeting}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Authorized Signatory Line if 2 signatures */}
+                        {aiConfig.footer.signatureCount === 2 && (
+                          <div className="w-56 text-right">
+                            <div className="border-b-2 border-dotted pb-0.5" style={{ borderColor: aiConfig.table.borderColor }}>
+                              &nbsp;
+                            </div>
+                            <span className="text-[10px] text-slate-700 font-bold block mt-1">
+                              {aiConfig.footer.signatureLabels?.[1] || `For: ${bizName}`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {aiConfig.footer.termsAndConditions && (
+                        <p className="text-[9px] text-slate-400 mt-2 leading-relaxed text-center">
+                          {aiConfig.footer.termsAndConditions}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
                 </div>
-              </div>
+              )
             )}
 
             {/* Reference Image View Mode */}
@@ -1006,6 +1350,28 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                     <div className="p-8 text-slate-500 text-xs">No reference image on file.</div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* HTML Code View Mode */}
+            {viewMode === 'code' && (
+              <div className="w-full max-w-[800px] h-[780px] bg-slate-900 rounded-xl p-4 font-mono text-xs text-emerald-400 overflow-auto border border-slate-800">
+                <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-800">
+                  <span className="text-slate-300 font-bold">Unconstrained HTML &amp; CSS Code</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (aiConfig.htmlTemplate) {
+                        navigator.clipboard.writeText(aiConfig.htmlTemplate);
+                      }
+                    }}
+                    className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs flex items-center space-x-1 cursor-pointer"
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    <span>Copy Code</span>
+                  </button>
+                </div>
+                <pre className="whitespace-pre-wrap">{aiConfig.htmlTemplate}</pre>
               </div>
             )}
           </div>

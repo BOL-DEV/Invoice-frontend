@@ -164,6 +164,13 @@ export default function SettingsPage() {
     ? (rawLogo as string)
     : (settings?.slug === 'lao-steel' ? '/laosteel-logo.svg' : '/platform-logo.svg');
 
+  const businessInitials = (settings?.businessName || 'Business')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w: string) => w[0].toUpperCase())
+    .join('') || 'B';
+
   const {
     register: registerBusiness,
     handleSubmit: handleBusinessSubmit,
@@ -617,7 +624,13 @@ export default function SettingsPage() {
               <CardHeader className="p-4 sm:p-6 border-b border-border/80 bg-slate-50/50 dark:bg-slate-900/30">
                 <div className="flex items-center space-x-3">
                   <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
-                    <Image src={logoPreview || logoSrc} alt={settings.businessName || 'Company Logo'} width={32} height={32} className="w-8 h-8 object-contain" />
+                    {(logoPreview || hasCustomLogo) ? (
+                      <Image src={logoPreview || (rawLogo as string)} alt={settings.businessName || 'Company Logo'} width={32} height={32} className="w-8 h-8 object-contain" />
+                    ) : (
+                      <div className="h-full w-full rounded-lg bg-emerald-600 dark:bg-emerald-500 text-white font-bold font-heading text-xs flex items-center justify-center">
+                        {businessInitials}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <CardTitle className="text-sm sm:text-base font-bold text-foreground">
@@ -635,13 +648,19 @@ export default function SettingsPage() {
                 <div className="p-4 rounded-2xl bg-secondary/30 border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center space-x-4">
                     <div className="relative h-16 w-16 rounded-2xl bg-white dark:bg-slate-900 border border-border p-2 flex items-center justify-center shrink-0 shadow-sm overflow-hidden group">
-                      <Image
-                        src={logoPreview || logoSrc}
-                        alt={settings.businessName || 'Company Logo'}
-                        width={56}
-                        height={56}
-                        className="w-full h-full object-contain"
-                      />
+                      {(logoPreview || hasCustomLogo) ? (
+                        <Image
+                          src={logoPreview || (rawLogo as string)}
+                          alt={settings.businessName || 'Company Logo'}
+                          width={56}
+                          height={56}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <div className="h-full w-full rounded-xl bg-emerald-600 dark:bg-emerald-500 text-white font-bold font-heading text-lg flex items-center justify-center">
+                          {businessInitials}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-foreground">Brand Logo</h4>

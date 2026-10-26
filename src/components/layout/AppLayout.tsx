@@ -185,6 +185,35 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     ? 'Super Admin Empire'
     : (businessSettings?.tagline || 'Workspace');
 
+  const businessInitials = (displayBusinessName || 'B')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w: string) => w[0].toUpperCase())
+    .join('') || 'B';
+
+  const renderBrandLogo = (size: number = 36) => {
+    if (isSuperAdmin) {
+      return (
+        <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shadow-sm shrink-0">
+          <Image src="/platform-logo.svg" alt="BOLXolve Platform" width={size} height={size} className="w-8 h-8 object-contain" priority />
+        </div>
+      );
+    }
+    if (hasCustomLogo) {
+      return (
+        <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
+          <Image src={rawLogo as string} alt={displayBusinessName} width={size} height={size} className="w-8 h-8 object-contain" priority />
+        </div>
+      );
+    }
+    return (
+      <div className="h-10 w-10 rounded-xl bg-emerald-600 dark:bg-emerald-500 text-white font-bold font-heading text-sm flex items-center justify-center shadow-sm shrink-0">
+        {businessInitials}
+      </div>
+    );
+  };
+
   const { data: subDetails } = useSubscription();
   const isStarterPlan = !isSuperAdmin && (
     subDetails?.subscription?.plan === 'STARTER' ||
@@ -335,9 +364,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           } border-b border-border h-16 shrink-0`}
         >
           <div className="flex items-center space-x-3 overflow-hidden">
-            <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shadow-sm shrink-0">
-              <Image src={logoSrc} alt={displayBusinessName} width={36} height={36} className="w-8 h-8 object-contain" priority />
-            </div>
+            {renderBrandLogo(36)}
             {!isCollapsed && (
               <div className="min-w-0">
                 <h1 className="font-bold text-sm tracking-wide uppercase leading-tight text-foreground font-heading truncate">
@@ -422,9 +449,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             >
               <div className="flex items-center justify-between pb-6 border-b border-border">
                 <div className="flex items-center space-x-3">
-                  <div className="h-10 w-10 rounded-xl bg-white dark:bg-slate-900 border border-border p-1 flex items-center justify-center shadow-sm shrink-0">
-                    <Image src={logoSrc} alt={displayBusinessName} width={36} height={36} className="w-8 h-8 object-contain" />
-                  </div>
+                  {renderBrandLogo(36)}
                   <div>
                     <h1 className="font-bold text-sm tracking-wide uppercase leading-tight text-foreground">
                       {displayBusinessName}

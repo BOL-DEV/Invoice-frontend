@@ -17,7 +17,7 @@ export interface CustomTemplateSignature {
 export interface CustomTemplateConfig {
   templateName: string;
   description?: string;
-  archetype?: 'commercial-docket' | 'modern-split' | 'banner' | 'formal-ledger' | 'lao-steel' | 'standard-trade';
+  archetype?: 'commercial-docket' | 'modern-split' | 'banner' | 'formal-ledger' | 'lao-steel' | 'standard-trade' | 'trade-voucher';
   theme: {
     primaryColor: string;
     secondaryColor: string;
@@ -28,8 +28,8 @@ export interface CustomTemplateConfig {
     fontFamily: 'sans' | 'serif' | 'mono';
   };
   header: {
-    layout: 'classic-centered' | 'modern-split' | 'banner' | 'two-column' | 'split';
-    style?: 'centered-commercial' | 'split-modern' | 'banner' | 'compact-docket' | 'lao-steel' | 'split';
+    layout: 'classic-centered' | 'modern-split' | 'banner' | 'two-column' | 'split' | 'trade-header';
+    style?: 'centered-commercial' | 'split-modern' | 'banner' | 'compact-docket' | 'lao-steel' | 'split' | 'trade-strip';
     bannerBackground?: string;
     bannerTextColor?: string;
     showLogo: boolean;
@@ -48,10 +48,11 @@ export interface CustomTemplateConfig {
     };
   };
   customer?: {
-    style: 'dotted-ledger' | 'card-bordered' | 'minimal-plain' | 'split-columns' | 'classic-trade' | 'card';
+    style: 'dotted-ledger' | 'card-bordered' | 'minimal-plain' | 'split-columns' | 'classic-trade' | 'card' | 'underlined-grid';
     showBilledToPill?: boolean;
     nameLabel?: string;
     addressLabel?: string;
+    fields?: string[];
   };
   table: {
     headerBackground: string;
@@ -80,11 +81,14 @@ export interface CustomTemplateConfig {
     showSignatures: boolean;
     signatureCount: 1 | 2;
     signatureLabels: string[];
+    signatureBoxStyle?: 'box' | 'line' | 'stamp-box';
     signatureBlocks?: CustomTemplateSignature[];
     watermarkText?: string;
     termsAndConditions?: string;
   };
   rawImagePreviewUrl?: string;
+  htmlTemplate?: string;
+  layoutDescription?: string;
 }
 
 
