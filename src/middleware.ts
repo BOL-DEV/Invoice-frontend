@@ -9,6 +9,7 @@ export function middleware(request: NextRequest) {
   
   // Protected routes matcher
   const isProtectedRoute = 
+    pathname.startsWith('/admin') ||
     pathname.startsWith('/activity') ||
     pathname.startsWith('/approvals') ||
     pathname.startsWith('/business') ||
