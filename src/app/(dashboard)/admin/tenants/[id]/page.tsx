@@ -29,7 +29,6 @@ import { useModal } from '../../../../../components/ui/modal-provider';
 import { PlanType, BillingMode, ApiResponse } from '../../../../../types/api';
 import { apiClient } from '../../../../../services/api/axios';
 import { API_ENDPOINTS } from '../../../../../services/api/endpoints';
-import { InvoiceTemplatePreviewModal } from '../../../../../components/templates/InvoiceTemplatePreviewModal';
 import {
   ArrowLeft,
   Building2,
@@ -73,6 +72,8 @@ import {
   Copy,
   Loader2,
   PenTool,
+  Download,
+  Code2,
 } from 'lucide-react';
 
 export default function TenantDetailPage() {
@@ -160,119 +161,154 @@ export default function TenantDetailPage() {
   const [invoiceSearch, setInvoiceSearch] = useState('');
 
   // Invoice Template Management State
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('classic');
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('modern');
   const [customTemplateUrl, setCustomTemplateUrl] = useState<string>('');
   const [customFileName, setCustomFileName] = useState<string>('');
-  const [isTemplatePreviewOpen, setIsTemplatePreviewOpen] = useState(false);
-  const [previewingTemplate, setPreviewingTemplate] = useState<string>('classic');
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
-  const [isCraftingTemplate, setIsCraftingTemplate] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (tenantData?.business) {
-      setSelectedTemplateId(tenantData.business.receiptTemplateId || 'classic');
+      const rawTpl = tenantData.business.receiptTemplateId;
+      const isLao = Boolean(
+        tenantData.business.slug?.toLowerCase().includes('lao-steel') ||
+        tenantData.business.receiptPrefix === 'LSV' ||
+        tenantData.business.businessName?.toLowerCase().includes('lao steel')
+      );
+      if (rawTpl === 'custom') {
+        setSelectedTemplateId('custom');
+      } else if (isLao) {
+        setSelectedTemplateId('classic');
+      } else {
+        setSelectedTemplateId('modern');
+      }
       setCustomTemplateUrl((tenantData.business as any).customTemplateUrl || '');
     }
   }, [tenantData?.business]);
 
-  const [isDescribeModalOpen, setIsDescribeModalOpen] = useState(false);
-  const [layoutDescriptionInput, setLayoutDescriptionInput] = useState('');
+  const [isDownloadingTestPdf, setIsDownloadingTestPdf] = useState(false);
+  const [testPdfError, setTestPdfError] = useState<string | null>(null);
 
-  const handleCraftFromDescription = async () => {
-    if (!layoutDescriptionInput.trim()) {
-      modal.alert('Description Required', 'Please enter a description of the invoice graphics and layout before crafting.', 'warning');
-      return;
-    }
+  const MASTER_AI_PROMPT = `You are an expert PDFKit invoice design engineer.
+Analyze the attached paper invoice or receipt image and write the function \`async function renderInvoicePDF(doc, invoice, business, helpers)\` in pure, error-free JavaScript.
 
-    setIsCraftingTemplate(true);
-    try {
-      const formData = new FormData();
-      formData.append('description', layoutDescriptionInput.trim());
+RUNTIME ENVIRONMENT & CONTEXT:
+- Document: A4 portrait (margin: 35, size: 'A4', usable width: 525.28 pt from x=35 to x=560)
+- Fonts Available: Standard PDFKit built-in fonts: 'Helvetica', 'Helvetica-Bold', 'Helvetica-Oblique'
+- Parameters:
+  * doc: PDFDocument instance
+  * invoice: { customerName, customerPhone, customerAddress, invoiceNumber, createdAt, items: [{ position, quantity, description, unitPrice, totalPrice }], subtotal, total, charges: [{ name, amount }], notes }
+  * business: { businessName, receiptPrefix, address, phone, email, tagline, tin, cacOrRegNumber }
+  * helpers:
+    - helpers.formatInvoiceNumber(invNum, prefix)
+    - helpers.numberToNairaWords(amount)
+    - helpers.formatCurrency(num)  // e.g. "2,156,000.00"
 
-      const res = await apiClient.post<ApiResponse<{ customTemplateUrl: string; width: number; height: number }>>(
-        API_ENDPOINTS.BUSINESS.CRAFT_TEMPLATE(tenantId),
-        formData,
-        {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        }
-      );
+STRICT SYNTAX & STABILITY RULES (CRITICAL):
+1. Write 100% pure vanilla JavaScript only. Do NOT use TypeScript types, interfaces, 'import', 'export', or 'require'.
+2. NEVER use raw unicode Naira symbol '₦' directly inside Helvetica (it corrupts encoding and throws errors). Use "N " or helpers.formatCurrency(amount).
+3. Do NOT use multi-line dot chaining. Keep method calls simple and explicit on \`doc\`, e.g.:
+   doc.font('Helvetica-Bold');
+   doc.fontSize(10);
+   doc.fillColor('#111827');
+   doc.text('...', x, y, { width: 100, align: 'right' });
+4. ALWAYS ensure every opening parenthesis '(' has a matching closing parenthesis ')'. Ensure all option objects { ... } are properly closed inside text() calls.
+5. Accurately replicate the layout from the image: business title, address sub-strip, customer line grid, table headers, item rows, totals breakdown, amount in words, and signature stamp box.
+6. DYNAMIC CHARGES & SUBTOTAL PLACEMENT (CRITICAL):
+   - The item table grid is STRICTLY for invoice.items (goods/services). NEVER place Subtotal, charges, or discounts inside the item table rows!
+   - Invoices frequently contain extra charges, taxes, discounts, or logistics fees stored in \`invoice.charges = [{ name, amount }]\` alongside \`invoice.subtotal\`.
+   - If \`invoice.charges && invoice.charges.length > 0\`:
+     * Render the breakdown BENEATH the item table (in the totals area on the right, directly above the final TOTAL):
+       1. Subtotal: helpers.formatCurrency(invoice.subtotal)
+       2. Each dynamic charge: loop through \`invoice.charges.forEach(charge => ...)\` showing charge.name and formatted amount (e.g. "Installation:", "Transportation:", "WHT:", prefixing with '-' if negative).
+       3. Final TOTAL with helpers.formatCurrency(invoice.total)
+   - When there are NO charges (!invoice.charges || invoice.charges.length === 0):
+     * Keep it clean! Do NOT render subtotal or extra charge lines; render ONLY the standard TOTAL box beneath the table.
+7. SMART ADAPTIVE LOGO RULE (CRITICAL):
+   - When a logo or emblem appears on the paper receipt, ALWAYS structure the logo code with an if/else check:
+     var logoBoxX = startX;
+     var logoBoxY = 32;
+     var logoBoxSize = 50;
+     if (business && business.logoBuffer) {
+       // 1. If client uploaded an official logo, use the real image instead of drawing shapes:
+       try {
+         doc.image(business.logoBuffer, logoBoxX, logoBoxY, { fit: [logoBoxSize, logoBoxSize] });
+       } catch (e) {}
+     } else {
+       // 2. Fallback: If no logo is uploaded, draw the vector logo shapes described from the paper image:
+       doc.save();
+       // ... your vector logo code here ...
+       doc.restore();
+     }
+8. Return ONLY the code for \`async function renderInvoicePDF(doc, invoice, business, helpers) { ... }\` without wrapping in markdown or explanations.`;
 
-      const craftedUrl = res.data?.data?.customTemplateUrl;
-      if (craftedUrl) {
-        setCustomTemplateUrl(craftedUrl);
-        setSelectedTemplateId('custom');
-        setPreviewingTemplate('custom');
-        setIsDescribeModalOpen(false);
-        setIsTemplatePreviewOpen(true);
-        modal.alert(
-          'Bespoke Layout Crafted',
-          'AI engineered an unconstrained HTML/CSS template based on your graphic specifications. Inspect the preview in the Template Studio.',
-          'success'
-        );
-      }
-    } catch (err: any) {
-      console.error('Failed to craft template from description:', err);
-      modal.alert(
-        'Crafting Failed',
-        err?.response?.data?.message || err?.message || 'Could not craft layout from description. Please try again.',
-        'error'
-      );
-    } finally {
-      setIsCraftingTemplate(false);
-    }
+  const handleCopyPrompt = () => {
+    navigator.clipboard.writeText(MASTER_AI_PROMPT);
+    modal.alert(
+      'AI Prompt Copied to Clipboard',
+      'Attach your client invoice image and paste this prompt into Claude or ChatGPT. Once the AI writes the PDFKit code, paste it into the Engine Script box below and click "Download Test PDF" to inspect it!',
+      'success'
+    );
   };
 
-  const handleCustomTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 15 * 1024 * 1024) {
-      modal.alert('File Too Large', 'Please upload a template file smaller than 15MB.', 'warning');
-      return;
-    }
-
-    setIsCraftingTemplate(true);
-    setCustomFileName(file.name);
-
+  const handleDownloadTestPdf = async () => {
+    setIsDownloadingTestPdf(true);
+    setTestPdfError(null);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const res = await apiClient.post<ApiResponse<{ customTemplateUrl: string; width: number; height: number }>>(
-        API_ENDPOINTS.BUSINESS.CRAFT_TEMPLATE(tenantId),
-        formData,
+      const response = await apiClient.post(
+        API_ENDPOINTS.PRINTING.TEST_PDF,
         {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        }
+          code: selectedTemplateId === 'custom' ? customTemplateUrl : undefined,
+          templateId: selectedTemplateId,
+          businessId: tenantId,
+        },
+        { responseType: 'blob' }
       );
 
-      const craftedUrl = res.data?.data?.customTemplateUrl;
-      if (craftedUrl) {
-        setCustomTemplateUrl(craftedUrl);
-        setSelectedTemplateId('custom');
-        setPreviewingTemplate('custom');
-        setIsTemplatePreviewOpen(true);
-        modal.alert(
-          'Template Crafted Successfully',
-          'Your custom invoice layout has been processed and optimized. Please inspect the preview before saving.',
-          'success'
-        );
-      }
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.download = `${business.slug || 'test'}-invoice-preview.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (err: any) {
-      console.warn('Backend template crafting failed, falling back to local preview:', err);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target?.result as string;
-        setCustomTemplateUrl(base64);
-        setSelectedTemplateId('custom');
-        setPreviewingTemplate('custom');
-        setIsTemplatePreviewOpen(true);
-      };
-      reader.readAsDataURL(file);
+      let errorMessage = 'Failed to generate test PDF preview.';
+      try {
+        if (err.response?.data) {
+          let raw = '';
+          if (typeof err.response.data.text === 'function') {
+            raw = await err.response.data.text();
+          } else if (err.response.data instanceof ArrayBuffer) {
+            raw = new TextDecoder().decode(err.response.data);
+          } else if (typeof err.response.data === 'string') {
+            raw = err.response.data;
+          } else if (typeof err.response.data === 'object' && !(err.response.data instanceof Blob)) {
+            raw = JSON.stringify(err.response.data);
+          }
+
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw);
+              errorMessage = parsed.message || parsed.error?.message || parsed.error || raw;
+            } catch {
+              errorMessage = raw.length < 500 ? raw : raw.slice(0, 300) + '...';
+            }
+          }
+        } else if (err.response?.data?.message) {
+          errorMessage = err.response.data.message;
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+      } catch (parseErr: any) {
+        errorMessage = parseErr.message || errorMessage;
+      }
+      setTestPdfError(errorMessage);
+      modal.alert('PDF Engine Execution Error', errorMessage, 'error');
     } finally {
-      setIsCraftingTemplate(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setIsDownloadingTestPdf(false);
     }
   };
 
@@ -289,10 +325,9 @@ export default function TenantDetailPage() {
       refetch();
       await modal.alert(
         'Invoice Template Updated',
-        `Assigned template has been updated to "${
-          selectedTemplateId === 'classic'
-            ? 'Classic Industrial / Thermal'
-            : selectedTemplateId === 'modern'
+        `Assigned template has been updated to "${selectedTemplateId === 'classic'
+          ? 'Lao Steel Bespoke Ledger'
+          : selectedTemplateId === 'modern'
             ? 'Modern Corporate Executive'
             : 'Custom Bespoke Template'
         }". Invoices generated by this business will now use this layout.`,
@@ -750,11 +785,10 @@ export default function TenantDetailPage() {
           <Button
             onClick={handleToggleStatus}
             size="sm"
-            className={`h-9 rounded-xl text-xs font-semibold flex items-center space-x-1.5 ${
-              isSuspended
+            className={`h-9 rounded-xl text-xs font-semibold flex items-center space-x-1.5 ${isSuspended
                 ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
                 : 'bg-rose-600 hover:bg-rose-500 text-white'
-            }`}
+              }`}
           >
             {isSuspended ? (
               <>
@@ -787,7 +821,7 @@ export default function TenantDetailPage() {
                   if (parsed.logoUrl && typeof parsed.logoUrl === 'string') {
                     displayLogo = parsed.logoUrl;
                   }
-                } catch {}
+                } catch { }
               } else if (
                 rawLogo !== '/platform-logo.svg' &&
                 (rawLogo.startsWith('/') || rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('data:image/'))
@@ -845,8 +879,8 @@ export default function TenantDetailPage() {
                   plan === 'ENTERPRISE'
                     ? 'border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-500/10 text-xs font-semibold'
                     : plan === 'BUSINESS'
-                    ? 'border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/10 text-xs font-semibold'
-                    : 'border-border text-foreground text-xs font-semibold'
+                      ? 'border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/10 text-xs font-semibold'
+                      : 'border-border text-foreground text-xs font-semibold'
                 }
               >
                 {plan} Tier
@@ -943,13 +977,12 @@ export default function TenantDetailPage() {
           </div>
           <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden mt-2">
             <div
-              className={`h-full rounded-full transition-all ${
-                staffUsagePercent >= 100
+              className={`h-full rounded-full transition-all ${staffUsagePercent >= 100
                   ? 'bg-rose-500'
                   : staffUsagePercent >= 75
-                  ? 'bg-amber-500'
-                  : 'bg-emerald-500'
-              }`}
+                    ? 'bg-amber-500'
+                    : 'bg-emerald-500'
+                }`}
               style={{ width: `${staffUsagePercent}%` }}
             />
           </div>
@@ -981,13 +1014,12 @@ export default function TenantDetailPage() {
                 </div>
                 <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden mt-2">
                   <div
-                    className={`h-full rounded-full transition-all ${
-                      ratio >= 1
+                    className={`h-full rounded-full transition-all ${ratio >= 1
                         ? 'bg-rose-500'
                         : ratio >= 0.75
-                        ? 'bg-amber-500'
-                        : 'bg-emerald-500'
-                    }`}
+                          ? 'bg-amber-500'
+                          : 'bg-emerald-500'
+                      }`}
                     style={{
                       width: `${Math.min(100, Math.round(ratio * 100))}%`,
                     }}
@@ -1019,11 +1051,10 @@ export default function TenantDetailPage() {
         <div className="flex items-center space-x-2 border-b border-border pb-3 overflow-x-auto text-xs">
           <button
             onClick={() => setActiveTab('users')}
-            className={`px-4 py-2 rounded-xl font-semibold flex items-center space-x-2 transition-all ${
-              activeTab === 'users'
+            className={`px-4 py-2 rounded-xl font-semibold flex items-center space-x-2 transition-all ${activeTab === 'users'
                 ? 'bg-emerald-600 text-white shadow-sm'
                 : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
-            }`}
+              }`}
           >
             <Users className="h-4 w-4" />
             <span>Staff & Cashiers ({tenantStaffUsers.length})</span>
@@ -1031,11 +1062,10 @@ export default function TenantDetailPage() {
 
           <button
             onClick={() => setActiveTab('invoices')}
-            className={`px-4 py-2 rounded-xl font-semibold flex items-center space-x-2 transition-all ${
-              activeTab === 'invoices'
+            className={`px-4 py-2 rounded-xl font-semibold flex items-center space-x-2 transition-all ${activeTab === 'invoices'
                 ? 'bg-emerald-600 text-white shadow-sm'
                 : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
-            }`}
+              }`}
           >
             <FileText className="h-4 w-4" />
             <span>Recent Invoices ({recentInvoices.length})</span>
@@ -1043,11 +1073,10 @@ export default function TenantDetailPage() {
 
           <button
             onClick={() => setActiveTab('settings')}
-            className={`px-4 py-2 rounded-xl font-semibold flex items-center space-x-2 transition-all ${
-              activeTab === 'settings'
+            className={`px-4 py-2 rounded-xl font-semibold flex items-center space-x-2 transition-all ${activeTab === 'settings'
                 ? 'bg-emerald-600 text-white shadow-sm'
                 : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
-            }`}
+              }`}
           >
             <Building2 className="h-4 w-4" />
             <span>Workspace Profile & Settings</span>
@@ -1055,11 +1084,10 @@ export default function TenantDetailPage() {
 
           <button
             onClick={() => setActiveTab('template')}
-            className={`px-4 py-2 rounded-xl font-semibold flex items-center space-x-2 transition-all ${
-              activeTab === 'template'
+            className={`px-4 py-2 rounded-xl font-semibold flex items-center space-x-2 transition-all ${activeTab === 'template'
                 ? 'bg-emerald-600 text-white shadow-sm'
                 : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
-            }`}
+              }`}
           >
             <Printer className="h-4 w-4" />
             <span>Invoice Template</span>
@@ -1067,11 +1095,10 @@ export default function TenantDetailPage() {
 
           <button
             onClick={() => setActiveTab('logs')}
-            className={`px-4 py-2 rounded-xl font-semibold flex items-center space-x-2 transition-all ${
-              activeTab === 'logs'
+            className={`px-4 py-2 rounded-xl font-semibold flex items-center space-x-2 transition-all ${activeTab === 'logs'
                 ? 'bg-emerald-600 text-white shadow-sm'
                 : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
-            }`}
+              }`}
           >
             <Activity className="h-4 w-4" />
             <span>Tenant Audit Trail ({recentLogs.length})</span>
@@ -1130,9 +1157,8 @@ export default function TenantDetailPage() {
                           <tr key={u.id} className="hover:bg-secondary/20 transition-colors">
                             <td className="py-3 px-6">
                               <div className="flex items-center space-x-3">
-                                <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold shrink-0 ${
-                                  isAdminUser ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-secondary text-foreground'
-                                }`}>
+                                <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold shrink-0 ${isAdminUser ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-secondary text-foreground'
+                                  }`}>
                                   {isAdminUser ? <Crown className="h-4 w-4" /> : u.firstName.charAt(0)}
                                 </div>
                                 <div>
@@ -1202,11 +1228,10 @@ export default function TenantDetailPage() {
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => handleToggleUserSuspend(u)}
-                                  className={`h-7 px-2 text-[11px] rounded-lg ${
-                                    u.isSuspended
+                                  className={`h-7 px-2 text-[11px] rounded-lg ${u.isSuspended
                                       ? 'text-emerald-500 hover:bg-emerald-500/10'
                                       : 'text-rose-500 hover:bg-rose-500/10'
-                                  }`}
+                                    }`}
                                   title={u.isSuspended ? 'Reactivate user account' : 'Suspend user account'}
                                 >
                                   {u.isSuspended ? (
@@ -1435,120 +1460,122 @@ export default function TenantDetailPage() {
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-border space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-xs font-bold text-foreground block">Configured Domains</span>
-                        <p className="text-[11px] text-muted-foreground">Live custom domains & local development endpoints</p>
+                  {Boolean(subscription?.hasCustomDomain) && (
+                    <div className="pt-4 border-t border-border space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-bold text-foreground block">Configured Domains</span>
+                          <p className="text-[11px] text-muted-foreground">Live custom domains & local development endpoints</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setDomainModalError(null);
+                            setNewDomainInput('');
+                            setIsNewDomainPrimary(false);
+                            setIsAddDomainOpen(true);
+                          }}
+                          className="rounded-xl text-xs font-semibold border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10 h-8 px-3"
+                        >
+                          <Plus className="h-3.5 w-3.5 mr-1" />
+                          Add Domain
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setDomainModalError(null);
-                          setNewDomainInput('');
-                          setIsNewDomainPrimary(false);
-                          setIsAddDomainOpen(true);
-                        }}
-                        className="rounded-xl text-xs font-semibold border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10 h-8 px-3"
-                      >
-                        <Plus className="h-3.5 w-3.5 mr-1" />
-                        Add Domain
-                      </Button>
-                    </div>
 
-                    {domains.length === 0 ? (
-                      <div className="p-3.5 rounded-2xl bg-secondary/30 border border-dashed border-border text-center">
-                        <p className="text-xs text-muted-foreground">Default subdomain only: <span className="font-mono font-bold text-foreground">{business.slug}.bolxolve.com</span></p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {domains.map((d) => {
-                          const isLocalDev = d.domain.endsWith('.localhost') || d.domain.endsWith('.local') || d.domain.includes('127.0.0.1');
-                          return (
-                            <div
-                              key={d.id}
-                              className="p-3 rounded-2xl bg-secondary/30 border border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs"
-                            >
-                              <div className="flex items-center space-x-2.5 min-w-0">
-                                <Globe className="h-4 w-4 text-emerald-500 shrink-0" />
-                                <span className="font-mono font-bold text-foreground truncate">{d.domain}</span>
-                                <div className="flex items-center space-x-1 shrink-0">
-                                  {d.isPrimary && (
-                                    <Badge className="text-[9px] bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 font-bold">
-                                      Primary
-                                    </Badge>
+                      {domains.length === 0 ? (
+                        <div className="p-3.5 rounded-2xl bg-secondary/30 border border-dashed border-border text-center">
+                          <p className="text-xs text-muted-foreground">Default subdomain only: <span className="font-mono font-bold text-foreground">{business.slug}.bolxolve.com</span></p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {domains.map((d) => {
+                            const isLocalDev = d.domain.endsWith('.localhost') || d.domain.endsWith('.local') || d.domain.includes('127.0.0.1');
+                            return (
+                              <div
+                                key={d.id}
+                                className="p-3 rounded-2xl bg-secondary/30 border border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs"
+                              >
+                                <div className="flex items-center space-x-2.5 min-w-0">
+                                  <Globe className="h-4 w-4 text-emerald-500 shrink-0" />
+                                  <span className="font-mono font-bold text-foreground truncate">{d.domain}</span>
+                                  <div className="flex items-center space-x-1 shrink-0">
+                                    {d.isPrimary && (
+                                      <Badge className="text-[9px] bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 font-bold">
+                                        Primary
+                                      </Badge>
+                                    )}
+                                    {isLocalDev ? (
+                                      <Badge className="text-[9px] bg-sky-500/15 text-sky-500 border border-sky-500/30 font-semibold">
+                                        Development
+                                      </Badge>
+                                    ) : (
+                                      <Badge className="text-[9px] bg-purple-500/15 text-purple-400 border border-purple-500/30 font-semibold">
+                                        Custom Domain
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center space-x-1.5 self-end sm:self-center shrink-0">
+                                  {!isLocalDev && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        const parts = d.domain.split('.');
+                                        const isApex = parts.length === 2;
+                                        const host = isApex ? '@' : parts.slice(0, -2).join('.');
+                                        const type = isApex ? 'A' : 'CNAME';
+                                        const target = isApex ? '76.76.21.21' : (d.dnsInfo?.value || 'cname.vercel-dns.com');
+                                        navigator.clipboard.writeText(`Type: ${type} | Name: ${host} | Value: ${target}`);
+                                        modal.alert(
+                                          'Client DNS Record Copied',
+                                          `Instruct the client to create 1 DNS record in their registrar:\n\n• Type: ${type}\n• Name / Host: ${host}\n• Target / Value: ${target}\n\nThe platform has auto-registered this domain; SSL certificate will issue once this DNS record propagates.`,
+                                          'success'
+                                        );
+                                      }}
+                                      className="h-7 px-2 text-[11px] rounded-lg text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                                      title="View & copy client DNS instructions"
+                                    >
+                                      <Copy className="h-3 w-3 mr-1" />
+                                      DNS Setup
+                                    </Button>
                                   )}
-                                  {isLocalDev ? (
-                                    <Badge className="text-[9px] bg-sky-500/15 text-sky-500 border border-sky-500/30 font-semibold">
-                                      Development
-                                    </Badge>
-                                  ) : (
-                                    <Badge className="text-[9px] bg-purple-500/15 text-purple-400 border border-purple-500/30 font-semibold">
-                                      Custom Domain
-                                    </Badge>
+                                  {!d.isPrimary && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleSetPrimaryDomain(d.id, d.domain)}
+                                      className="h-7 px-2 text-[11px] rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary"
+                                      title="Designate as primary domain"
+                                    >
+                                      <Star className="h-3 w-3 mr-1 text-amber-500" />
+                                      Set Primary
+                                    </Button>
                                   )}
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteDomain(d.id, d.domain)}
+                                    className="h-7 px-2 text-[11px] rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                                    title="Remove domain"
+                                  >
+                                    <Trash2 className="h-3 w-3 mr-1" />
+                                    Delete
+                                  </Button>
                                 </div>
                               </div>
-
-                              <div className="flex items-center space-x-1.5 self-end sm:self-center shrink-0">
-                                {!isLocalDev && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      const parts = d.domain.split('.');
-                                      const isApex = parts.length === 2;
-                                      const host = isApex ? '@' : parts.slice(0, -2).join('.');
-                                      const type = isApex ? 'A' : 'CNAME';
-                                      const target = isApex ? '76.76.21.21' : (d.dnsInfo?.value || 'cname.vercel-dns.com');
-                                      navigator.clipboard.writeText(`Type: ${type} | Name: ${host} | Value: ${target}`);
-                                      modal.alert(
-                                        'Client DNS Record Copied',
-                                        `Instruct the client to create 1 DNS record in their registrar:\n\n• Type: ${type}\n• Name / Host: ${host}\n• Target / Value: ${target}\n\nThe platform has auto-registered this domain; SSL certificate will issue once this DNS record propagates.`,
-                                        'success'
-                                      );
-                                    }}
-                                    className="h-7 px-2 text-[11px] rounded-lg text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
-                                    title="View & copy client DNS instructions"
-                                  >
-                                    <Copy className="h-3 w-3 mr-1" />
-                                    DNS Setup
-                                  </Button>
-                                )}
-                                {!d.isPrimary && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleSetPrimaryDomain(d.id, d.domain)}
-                                    className="h-7 px-2 text-[11px] rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary"
-                                    title="Designate as primary domain"
-                                  >
-                                    <Star className="h-3 w-3 mr-1 text-amber-500" />
-                                    Set Primary
-                                  </Button>
-                                )}
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDeleteDomain(d.id, d.domain)}
-                                  className="h-7 px-2 text-[11px] rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
-                                  title="Remove domain"
-                                >
-                                  <Trash2 className="h-3 w-3 mr-1" />
-                                  Delete
-                                </Button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -1567,10 +1594,10 @@ export default function TenantDetailPage() {
                     </div>
                     <div>
                       <CardTitle className="text-lg sm:text-xl font-bold font-heading text-foreground">
-                        Invoice &amp; Receipt Template Management
+                        Invoice &amp; Receipt Template Studio
                       </CardTitle>
                       <CardDescription className="text-xs text-muted-foreground">
-                        Manage the dedicated invoice layout for {business.businessName}. Super Admins can customize with AI Copilot or upload a custom mockup.
+                        Configure the PDF engine layout for {business.businessName}. Select a standard template or paste custom PDFKit code generated externally.
                       </CardDescription>
                     </div>
                   </div>
@@ -1578,158 +1605,162 @@ export default function TenantDetailPage() {
               </CardHeader>
 
               <CardContent className="p-6 sm:p-8 space-y-6">
-                {/* Single Dedicated Template Card */}
+                {/* Template Mode Selection */}
                 {(() => {
                   const isLaoSteel = Boolean(
-                    business.slug === 'lao-steel' ||
+                    business.slug?.toLowerCase().includes('lao-steel') ||
                     business.receiptPrefix === 'LSV' ||
                     business.businessName?.toLowerCase().includes('lao steel')
                   );
-                  const hasCustomCrafted = Boolean(customTemplateUrl && customTemplateUrl.trim().length > 0);
+                  const templateOptions = isLaoSteel
+                    ? [
+                      {
+                        id: 'classic',
+                        name: 'Lao Steel Bespoke Ledger',
+                        badge: 'Dedicated Bespoke',
+                        desc: 'Dual green company borders, circular globe emblem, LSV watermark, and trade guarantee terms.',
+                      },
+                      {
+                        id: 'custom',
+                        name: 'Custom PDFKit Code',
+                        badge: 'External AI Engine',
+                        desc: 'Full programmatic PDFKit code generated from client invoice image using AI.',
+                      },
+                    ]
+                    : [
+                      {
+                        id: 'modern',
+                        name: 'Modern Corporate',
+                        badge: 'Universal Default',
+                        desc: 'Clean corporate layout with modern typography, pill badges, and structured tables.',
+                      },
+                      {
+                        id: 'custom',
+                        name: 'Custom PDFKit Code',
+                        badge: 'External AI Engine',
+                        desc: 'Full programmatic PDFKit code generated from client invoice image using AI.',
+                      },
+                    ];
 
                   return (
-                    <div className="p-6 rounded-2xl border border-emerald-500/30 bg-card shadow-sm space-y-5">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center space-x-2.5">
-                            <h4 className="text-base font-bold text-foreground font-heading">
-                              {hasCustomCrafted
-                                ? 'Custom Uploaded Mockup Layout'
-                                : isLaoSteel
-                                ? 'Lao Steel Bespoke Trade Layout'
-                                : 'Standard Trade & Depot Layout'}
-                            </h4>
-                            <Badge
-                              className={
-                                hasCustomCrafted
-                                  ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 text-xs font-semibold'
-                                  : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-semibold'
-                              }
-                            >
-                              {hasCustomCrafted
-                                ? 'Custom Active'
-                                : isLaoSteel
-                                ? 'Lao Steel Bespoke'
-                                : 'Standard Active'}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">
-                            {hasCustomCrafted
-                              ? `This tenant is using an authentic layout crafted from their uploaded invoice mockup. Open the Template Studio to inspect, refine headers, borders, columns, or adjust styling with AI Copilot.`
-                              : isLaoSteel
-                              ? `Authentic Lao Steel industrial styling featuring the circular green globe emblem, dual company ledger borders, LSV watermark, itemized rebar specifications, and guarantee disclaimer.`
-                              : `Clean, professional commercial invoice layout tailored for trade, wholesale, and retail distribution with structured itemization.`}
-                          </p>
-                        </div>
-
-                        {/* Hidden file input */}
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          accept="image/*,.pdf"
-                          onChange={handleCustomTemplateUpload}
-                          className="hidden"
-                        />
-
-                        <div className="flex items-center flex-wrap gap-2.5 shrink-0">
-                          <Button
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      {templateOptions.map((tpl) => {
+                        const isSelected = selectedTemplateId === tpl.id;
+                        return (
+                          <button
+                            key={tpl.id}
                             type="button"
-                            size="sm"
-                            disabled={isCraftingTemplate}
-                            onClick={() => setIsDescribeModalOpen(true)}
-                            className="h-9 px-3.5 text-xs font-semibold rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-sm flex items-center space-x-1.5 cursor-pointer"
+                            onClick={() => setSelectedTemplateId(tpl.id)}
+                            className={`p-4 rounded-2xl border text-left transition-all relative ${isSelected
+                                ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
+                                : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                              }`}
                           >
-                            <PenTool className="h-3.5 w-3.5" />
-                            <span>Describe Layout</span>
-                          </Button>
-
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={isCraftingTemplate}
-                            onClick={() => fileInputRef.current?.click()}
-                            className="h-9 px-3.5 text-xs font-semibold rounded-xl border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 flex items-center space-x-1.5 cursor-pointer"
-                          >
-                            {isCraftingTemplate ? (
-                              <>
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                <span>AI Crafting...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="h-3.5 w-3.5" />
-                                <span>{hasCustomCrafted ? 'Replace Image' : 'Upload Image'}</span>
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => {
-                              setIsTemplatePreviewOpen(true);
-                            }}
-                            className="h-9 px-4 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-500/20 flex items-center space-x-1.5 cursor-pointer"
-                          >
-                            <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-                            <span>Open Template Studio</span>
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Custom Template on file details or reset option */}
-                      {hasCustomCrafted && (
-                        <div className="pt-4 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                          <div className="flex items-center space-x-2 text-muted-foreground">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                            <span>Bespoke custom template is currently saved and active for this tenant.</span>
-                          </div>
-
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={async () => {
-                              const confirmed = await modal.confirm(
-                                'Reset Template',
-                                isLaoSteel
-                                  ? 'Are you sure you want to revert to the authentic Lao Steel bespoke trade layout?'
-                                  : 'Are you sure you want to reset to the standard layout?'
-                              );
-                              if (confirmed) {
-                                setCustomTemplateUrl('');
-                                setSelectedTemplateId('classic');
-                                try {
-                                  await updateSettingsMutation.mutateAsync({
-                                    id: tenantId,
-                                    data: {
-                                      receiptTemplateId: 'classic',
-                                      customTemplateUrl: null,
-                                    },
-                                  });
-                                  modal.alert('Template Reset', 'Reverted to authentic layout.', 'success');
-                                } catch (err: any) {
-                                  modal.alert('Error', err?.message || 'Could not reset template', 'error');
-                                }
-                              }
-                            }}
-                            className="h-8 px-3 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-xl cursor-pointer font-medium"
-                          >
-                            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                            <span>{isLaoSteel ? 'Restore Lao Steel Layout' : 'Reset to Standard Layout'}</span>
-                          </Button>
-                        </div>
-                      )}
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className={`text-sm font-bold ${isSelected ? 'text-emerald-500 font-heading' : 'text-foreground font-heading'}`}>
+                                {tpl.name}
+                              </span>
+                              <Badge className="text-[9px] bg-secondary border-border font-semibold">
+                                {tpl.badge}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground leading-relaxed">{tpl.desc}</p>
+                          </button>
+                        );
+                      })}
                     </div>
                   );
                 })()}
 
-                <div className="p-4 rounded-xl bg-secondary/30 border border-border text-xs text-muted-foreground flex items-center space-x-2.5">
-                  <Sparkles className="h-4 w-4 text-amber-500 shrink-0" />
-                  <p>
-                    Each business operates with a single dedicated template. Uploading an invoice mockup will automatically extract layout geometry and styling, which you can further refine using the interactive AI Studio.
-                  </p>
+                {/* If Custom Script Mode is Selected */}
+                {selectedTemplateId === 'custom' && (
+                  <div className="space-y-4 pt-2">
+                    <div className="p-4 rounded-2xl bg-secondary/30 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center space-x-2">
+                          <Code2 className="h-4 w-4 text-emerald-500" />
+                          <span className="text-xs font-bold text-foreground font-heading">
+                            External AI PDFKit Engine Code
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          Feed the client invoice scan along with our master prompt to Claude or ChatGPT, then paste the generated code below.
+                        </p>
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopyPrompt}
+                        className="h-8 px-3 text-xs font-semibold rounded-xl border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10 shrink-0"
+                      >
+                        <Copy className="h-3.5 w-3.5 mr-1" />
+                        Copy Master AI Prompt
+                      </Button>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <Label className="text-xs font-bold text-foreground">
+                          PDFKit Rendering Script (JavaScript)
+                        </Label>
+                        <span className="text-[11px] text-muted-foreground font-mono">
+                          Parameters: (doc, invoice, business, helpers)
+                        </span>
+                      </div>
+                      <textarea
+                        value={customTemplateUrl || ''}
+                        onChange={(e) => setCustomTemplateUrl(e.target.value)}
+                        placeholder={`// Paste the generated PDFKit code from Claude / ChatGPT here\nasync function renderInvoicePDF(doc, invoice, business, helpers) {\n  doc.rect(30, 30, 535, 780).strokeColor('#0d47a1').lineWidth(1.5).stroke();\n  // ...\n}`}
+                        rows={14}
+                        className="w-full rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs p-4 border border-border focus:border-emerald-500 focus:outline-none leading-relaxed resize-y"
+                        spellCheck={false}
+                      />
+                    </div>
+
+                    {testPdfError && (
+                      <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs font-mono space-y-1">
+                        <p className="font-bold flex items-center gap-1.5">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          Script Execution Error:
+                        </p>
+                        <p className="whitespace-pre-wrap">{testPdfError}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Bottom Actions Toolbar */}
+                <div className="pt-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="flex items-center space-x-2">
+                    {selectedTemplateId === 'custom' && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDownloadTestPdf}
+                        disabled={isDownloadingTestPdf}
+                        className="h-10 px-4 text-xs font-semibold rounded-xl border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center space-x-1.5 cursor-pointer shadow-sm"
+                      >
+                        {isDownloadingTestPdf ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-500" />
+                        ) : (
+                          <Download className="h-3.5 w-3.5 text-emerald-500" />
+                        )}
+                        <span>Download Test PDF</span>
+                      </Button>
+                    )}
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={handleSaveTemplate}
+                    disabled={isSavingTemplate}
+                    className="h-10 px-6 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
+                  >
+                    {isSavingTemplate ? 'Saving...' : 'Save Template Configuration'}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -2195,11 +2226,10 @@ export default function TenantDetailPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div
                   onClick={() => setUserRole('ADMIN')}
-                  className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                    userRole === 'ADMIN'
+                  className={`p-4 rounded-2xl border cursor-pointer transition-all ${userRole === 'ADMIN'
                       ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
                       : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center space-x-2">
                     <Crown className="h-5 w-5 text-emerald-500" />
@@ -2210,11 +2240,10 @@ export default function TenantDetailPage() {
 
                 <div
                   onClick={() => setUserRole('APPRENTICE')}
-                  className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                    userRole === 'APPRENTICE'
+                  className={`p-4 rounded-2xl border cursor-pointer transition-all ${userRole === 'APPRENTICE'
                       ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
                       : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center space-x-2">
                     <Users className="h-5 w-5 text-emerald-500" />
@@ -2366,11 +2395,10 @@ export default function TenantDetailPage() {
                       key={tier.id}
                       type="button"
                       onClick={() => handlePlanSelect(tier.id)}
-                      className={`p-4 rounded-2xl border text-left transition-all relative ${
-                        isSelected
+                      className={`p-4 rounded-2xl border text-left transition-all relative ${isSelected
                           ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
                           : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span className={`text-sm font-bold tracking-wide ${isSelected ? 'text-emerald-500 font-heading' : 'text-foreground font-heading'}`}>
@@ -2395,11 +2423,10 @@ export default function TenantDetailPage() {
                 <button
                   type="button"
                   onClick={() => setEditBillingMode('SUBSCRIPTION')}
-                  className={`p-4 rounded-2xl border text-left transition-all ${
-                    editBillingMode === 'SUBSCRIPTION'
+                  className={`p-4 rounded-2xl border text-left transition-all ${editBillingMode === 'SUBSCRIPTION'
                       ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
                       : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60'
-                  }`}
+                    }`}
                 >
                   <p className={`text-sm font-bold ${editBillingMode === 'SUBSCRIPTION' ? 'text-emerald-500' : 'text-foreground'}`}>
                     Paid SaaS Subscription
@@ -2409,11 +2436,10 @@ export default function TenantDetailPage() {
                 <button
                   type="button"
                   onClick={() => setEditBillingMode('COMPLIMENTARY')}
-                  className={`p-4 rounded-2xl border text-left transition-all ${
-                    editBillingMode === 'COMPLIMENTARY'
+                  className={`p-4 rounded-2xl border text-left transition-all ${editBillingMode === 'COMPLIMENTARY'
                       ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
                       : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60'
-                  }`}
+                    }`}
                 >
                   <p className={`text-sm font-bold ${editBillingMode === 'COMPLIMENTARY' ? 'text-emerald-500' : 'text-foreground'}`}>
                     Complimentary Partner
@@ -2452,9 +2478,8 @@ export default function TenantDetailPage() {
                   max={500}
                   value={editStaffQuota}
                   onChange={(e) => setEditStaffQuota(Math.max(1, parseInt(e.target.value) || 1))}
-                  className={`h-11 rounded-xl text-sm font-mono px-4 bg-background border-border ${
-                    tenantStaffUsers.length > editStaffQuota ? 'border-amber-500/50 focus-visible:ring-amber-500' : ''
-                  }`}
+                  className={`h-11 rounded-xl text-sm font-mono px-4 bg-background border-border ${tenantStaffUsers.length > editStaffQuota ? 'border-amber-500/50 focus-visible:ring-amber-500' : ''
+                    }`}
                 />
                 <Button
                   type="button"
@@ -2702,148 +2727,7 @@ export default function TenantDetailPage() {
 
       {/* ========================================================= */}
       {/* DESCRIBE CUSTOM INVOICE LAYOUT DIALOG                     */}
-      {/* ========================================================= */}
-      <Dialog open={isDescribeModalOpen} onOpenChange={(open) => !open && setIsDescribeModalOpen(false)}>
-        <DialogContent className="max-w-2xl bg-card border border-border rounded-2xl shadow-2xl p-6">
-          <DialogHeader>
-            <div className="flex items-center space-x-3 mb-1">
-              <div className="h-10 w-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center shrink-0">
-                <PenTool className="h-5 w-5" />
-              </div>
-              <div>
-                <DialogTitle className="text-base font-bold font-heading text-foreground">
-                  Describe Custom Invoice Layout
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
-                  Describe the visual layout, color palette, headers, columns, and disclaimers. AI will engineer a bespoke HTML &amp; CSS template.
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            <div>
-              <Label className="text-xs font-semibold text-foreground mb-1.5 block">
-                Quick Template Style Presets
-              </Label>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  {
-                    name: 'Global Refit Trade Voucher',
-                    desc: 'Two-tone header with GLOBAL in deep blue and REFIT in bright red. 3-column sub-strip with Office Address in red, RC number, and Phone. Underlined customer fields, 5-column table (S/N, QTY, DESCRIPTION, RATE, AMOUNT) with faint red watermark, and office signature stamp box with return terms.',
-                  },
-                  {
-                    name: '3-Column Sub-strip Layout',
-                    desc: 'Header with bold business title and 3-column sub-strip containing Office Address, bold red INVOICE label, and Contact Details. Underlined customer details grid and structured borders.',
-                  },
-                  {
-                    name: 'Lao Steel Industrial Green Ledger',
-                    desc: 'Dual company ledger dark-green border (#0f522b), centered header with circular green emblem, LSV watermark across itemized rebar specifications table, and guarantee disclaimer.',
-                  },
-                  {
-                    name: 'Executive Minimalist Corporate',
-                    desc: 'Dark slate executive header table with clean white background, itemized charge breakdown with right-aligned numeric totals, and digital verification seal box.',
-                  },
-                ].map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setLayoutDescriptionInput(preset.desc)}
-                    className="text-[11px] px-2.5 py-1 rounded-lg border border-border bg-secondary/40 hover:bg-purple-500/10 hover:border-purple-500/30 text-foreground transition-all cursor-pointer font-medium"
-                  >
-                    + {preset.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold text-foreground mb-1.5 block">
-                Layout &amp; Graphic Description
-              </Label>
-              <textarea
-                value={layoutDescriptionInput}
-                onChange={(e) => setLayoutDescriptionInput(e.target.value)}
-                rows={6}
-                placeholder="e.g. Header has two-tone title 'GLOBAL REFIT' with GLOBAL in deep navy blue and REFIT in bright red. Below header is a 3-column sub-strip with Office Address in red, then Reg No RC-83491 and Phone 08028386659. Customer section has underlined rows for Name, Address, and Date. Table has 5 columns: S/N, QTY, DESCRIPTION, RATE, AMOUNT, with a centered faint red watermark 'ORIGINAL'. Footer includes an office signature stamp box and red bold disclaimer 'GOODS SOLD OUT ARE NOT RETURNABLE'."
-                className="w-full text-xs font-mono p-3 rounded-xl border border-border bg-secondary/20 text-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 placeholder:text-muted-foreground/60 resize-none leading-relaxed"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="flex items-center justify-between gap-3 pt-3 border-t border-border">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsDescribeModalOpen(false)}
-              className="text-xs rounded-xl"
-            >
-              Cancel
-            </Button>
-
-            <Button
-              type="button"
-              size="sm"
-              disabled={isCraftingTemplate || !layoutDescriptionInput.trim()}
-              onClick={handleCraftFromDescription}
-              className="bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold h-9 px-5 shadow-sm flex items-center space-x-1.5 cursor-pointer"
-            >
-              {isCraftingTemplate ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                  <span>AI Engineering Layout...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-3.5 w-3.5 mr-1.5 text-amber-300" />
-                  <span>Craft Bespoke Layout</span>
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ========================================================= */}
-      {/* INVOICE TEMPLATE PREVIEW MODAL                            */}
-      {/* ========================================================= */}
-      <InvoiceTemplatePreviewModal
-        isOpen={isTemplatePreviewOpen}
-        onClose={() => setIsTemplatePreviewOpen(false)}
-        templateId={previewingTemplate}
-        customTemplateUrl={customTemplateUrl}
-        logoUrl={business.logoUrl}
-        tenantId={tenantId}
-        businessName={business.businessName}
-        tagline={business.tagline || 'Authorized Merchant & Distributor'}
-        address={business.address || ''}
-        phone={business.phone || ''}
-        email={business.email || ''}
-        receiptPrefix={business.receiptPrefix || 'INV'}
-        tin={business.tin || ''}
-        cacOrRegNumber={business.cacOrRegNumber || ''}
-        isSuperAdmin={true}
-        onSelectTemplate={async (tpl, configJson) => {
-          setSelectedTemplateId(tpl);
-          if (configJson) {
-            setCustomTemplateUrl(configJson);
-          }
-          setIsTemplatePreviewOpen(false);
-          try {
-            await updateSettingsMutation.mutateAsync({
-              id: tenantId,
-              data: {
-                receiptTemplateId: tpl,
-                customTemplateUrl: configJson || customTemplateUrl || null,
-              },
-            });
-            modal.alert('Template Saved', 'Invoice template configuration has been updated.', 'success');
-          } catch (err: any) {
-            modal.alert('Error', err?.message || 'Could not save template', 'error');
-          }
-        }}
-      />
     </div>
   );
 }

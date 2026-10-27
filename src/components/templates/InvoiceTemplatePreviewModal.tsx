@@ -15,19 +15,89 @@ import {
   FileText,
   Sparkles,
   Printer,
-  ExternalLink,
-  Image as ImageIcon,
 } from 'lucide-react';
 import { CustomTemplateConfig, CustomTemplateColumn } from '../../types/api';
 
-const DEFAULT_CONFIG: CustomTemplateConfig = {
-  templateName: 'AI Custom Crafted Template',
-  description: 'Bespoke custom invoice layout extracted and crafted from uploaded sample design.',
+const LAO_STEEL_CONFIG: CustomTemplateConfig = {
+  templateName: 'Lao Steel Bespoke Ledger',
+  description: 'Authentic Lao Steel industrial styling with green globe emblem, dual company ledger borders, LSV watermark, and guarantee terms.',
+  archetype: 'lao-steel',
+  theme: {
+    primaryColor: '#0f522b',
+    secondaryColor: '#0d47a1',
+    accentColor: '#0f522b',
+    backgroundColor: '#ffffff',
+    textColor: '#172b4d',
+    mutedTextColor: '#5e6c84',
+    fontFamily: 'sans',
+  },
+  header: {
+    layout: 'classic-centered',
+    style: 'lao-steel',
+    showLogo: true,
+    logoPosition: 'center',
+    titleText: 'INVOICE',
+    titleBadge: {
+      style: 'box',
+      text: 'INVOICE',
+      alignment: 'right',
+      badgeColor: '#e8f5e9',
+      badgeTextColor: '#0f522b',
+    },
+    metaBox: {
+      style: 'clean-meta',
+      fields: ['invoice_number', 'date'],
+    },
+  },
+  customer: {
+    style: 'classic-trade',
+    nameLabel: 'CUSTOMER NAME:',
+    addressLabel: 'PHONE:',
+  },
+  table: {
+    headerBackground: '#0d47a1',
+    headerTextColor: '#ffffff',
+    alternateRowStriping: false,
+    borderStyle: 'double-ledger',
+    gridStyle: 'full-grid',
+    borderColor: '#0d47a1',
+    columns: [
+      { id: 'pos', label: 'ITEMS', field: 'index', widthPercent: 8, align: 'center' },
+      { id: 'qty', label: 'QTY.', field: 'qty', widthPercent: 12, align: 'center' },
+      { id: 'desc', label: 'DESCRIPTION OF GOODS', field: 'description', widthPercent: 44, align: 'left' },
+      { id: 'price', label: 'RATE (₦)', field: 'unit_price', widthPercent: 16, align: 'right' },
+      { id: 'amt', label: 'AMOUNT (₦)', field: 'amount', widthPercent: 20, align: 'right' },
+    ],
+    fillBlankRows: true,
+    minRows: 8,
+  },
+  summary: {
+    position: 'right',
+    layout: 'table-integrated',
+    totalLabel: 'TOTAL',
+    highlightTotalBackground: '#e8f0fe',
+    highlightTotalTextColor: '#0d47a1',
+    showAmountInWords: false,
+  },
+  footer: {
+    guaranteeText: 'GUARANTEED GOODS ARE NOT RETURNABLE AFTER PURCHASE. NO REFUND OF MONEY AFTER PAYMENT.',
+    courtesyGreeting: '',
+    showSignatures: true,
+    signatureCount: 2,
+    signatureLabels: ["Customer's Signature", 'For: LAO STEEL VENTURES'],
+    watermarkText: 'LSV',
+    termsAndConditions: 'Guaranteed goods are not returnable after purchase. No refund of money after payment.',
+  },
+};
+
+const MODERN_CONFIG: CustomTemplateConfig = {
+  templateName: 'Modern Corporate Invoice',
+  description: 'Clean corporate layout with modern typography and structured itemized ledger.',
   archetype: 'standard-trade',
   theme: {
-    primaryColor: '#0f2942',
-    secondaryColor: '#2563eb',
-    accentColor: '#10b981',
+    primaryColor: '#2563eb',
+    secondaryColor: '#1d4ed8',
+    accentColor: '#3b82f6',
     backgroundColor: '#ffffff',
     textColor: '#0f172a',
     mutedTextColor: '#64748b',
@@ -43,7 +113,7 @@ const DEFAULT_CONFIG: CustomTemplateConfig = {
       style: 'pill',
       text: 'INVOICE',
       alignment: 'right',
-      badgeColor: '#0f2942',
+      badgeColor: '#2563eb',
       badgeTextColor: '#ffffff',
     },
     metaBox: {
@@ -58,40 +128,37 @@ const DEFAULT_CONFIG: CustomTemplateConfig = {
     addressLabel: 'Address:',
   },
   table: {
-    headerBackground: '#0052cc',
+    headerBackground: '#2563eb',
     headerTextColor: '#ffffff',
-    alternateRowStriping: false,
+    alternateRowStriping: true,
     borderStyle: 'grid',
     gridStyle: 'full-grid',
-    borderColor: '#0052cc',
+    borderColor: '#e2e8f0',
     columns: [
-      { id: 'qty', label: 'QTY.', field: 'qty', widthPercent: 15, align: 'center' },
-      { id: 'desc', label: 'DESCRIPTION', field: 'description', widthPercent: 45, align: 'left' },
-      { id: 'price', label: 'UNIT PRICE', field: 'unit_price', widthPercent: 20, align: 'right' },
-      { id: 'amt', label: 'AMOUNT', field: 'amount', widthPercent: 20, align: 'right' },
+      { id: 'pos', label: '#', field: 'index', widthPercent: 8, align: 'center' },
+      { id: 'desc', label: 'Item & Description', field: 'description', widthPercent: 52, align: 'left' },
+      { id: 'qty', label: 'Qty', field: 'qty', widthPercent: 12, align: 'center' },
+      { id: 'price', label: 'Rate (₦)', field: 'unit_price', widthPercent: 14, align: 'right' },
+      { id: 'amt', label: 'Amount (₦)', field: 'amount', widthPercent: 14, align: 'right' },
     ],
-    fillBlankRows: true,
-    minRows: 8,
+    fillBlankRows: false,
+    minRows: 4,
   },
   summary: {
     position: 'right',
     layout: 'table-integrated',
-    totalLabel: 'GRAND TOTAL',
-    highlightTotalBackground: '#ffffff',
-    highlightTotalTextColor: '#0052cc',
+    totalLabel: 'Total Due',
+    highlightTotalBackground: '#eff6ff',
+    highlightTotalTextColor: '#1e40af',
     showAmountInWords: false,
   },
   footer: {
-    guaranteeText: 'GOODS SOLD OUT ARE NOT RETURNABLE',
-    courtesyGreeting: 'THANKS FOR DOING BUSINESS WITH US',
-    centerGraphic: 'handshake',
+    guaranteeText: 'Thank you for your business.',
+    courtesyGreeting: 'Payments are due within 14 days.',
     showSignatures: true,
     signatureCount: 1,
-    signatureLabels: ['Customer Signature'],
-    signatureBlocks: [
-      { label: 'Customer Signature', style: 'dotted', position: 'left' },
-    ],
-    termsAndConditions: 'Goods sold out are not returnable.',
+    signatureLabels: ['Authorized Signatory'],
+    termsAndConditions: 'Terms & conditions apply.',
   },
 };
 
@@ -139,104 +206,37 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
 
   const isLaoSteel = Boolean(
     businessName?.toLowerCase().includes('lao steel') ||
-    receiptPrefix?.toUpperCase() === 'LSV'
+    receiptPrefix?.toUpperCase() === 'LSV' ||
+    templateId === 'lao-steel'
   );
 
-  // Parse initial AI template configuration with Lao Steel bespoke fallback
+  // Parse template configuration (defaults to Lao Steel Bespoke for Lao Steel, or Modern for general businesses)
   const parseConfig = (val?: string | null): CustomTemplateConfig => {
+    if (!isLaoSteel && (templateId === 'modern' || !templateId || templateId === 'classic')) {
+      return MODERN_CONFIG;
+    }
+
+    if (templateId === 'modern') {
+      return MODERN_CONFIG;
+    }
+
     if (val && val.trim().startsWith('{')) {
       try {
         const parsed = JSON.parse(val);
-        return { ...DEFAULT_CONFIG, ...parsed, theme: { ...DEFAULT_CONFIG.theme, ...parsed.theme } };
+        return { ...LAO_STEEL_CONFIG, ...parsed, theme: { ...LAO_STEEL_CONFIG.theme, ...parsed.theme } };
       } catch {
         // fallback
       }
-    } else if (val && (val.startsWith('data:') || val.startsWith('http'))) {
-      return { ...DEFAULT_CONFIG, rawImagePreviewUrl: val };
     }
 
-    if (isLaoSteel) {
-      return {
-        ...DEFAULT_CONFIG,
-        templateName: 'Lao Steel Bespoke Ledger',
-        description: 'Authentic Lao Steel industrial styling with green globe emblem, dual company ledger borders, LSV watermark, and guarantee terms.',
-        archetype: 'lao-steel',
-        theme: {
-          primaryColor: '#0f522b',
-          secondaryColor: '#0d47a1',
-          accentColor: '#0f522b',
-          backgroundColor: '#ffffff',
-          textColor: '#172b4d',
-          mutedTextColor: '#5e6c84',
-          fontFamily: 'sans',
-        },
-        header: {
-          layout: 'classic-centered',
-          style: 'lao-steel',
-          showLogo: true,
-          logoPosition: 'center',
-          titleText: 'INVOICE',
-          titleBadge: {
-            style: 'box',
-            text: 'INVOICE',
-            alignment: 'right',
-            badgeColor: '#e8f5e9',
-            badgeTextColor: '#0f522b',
-          },
-        },
-        customer: {
-          style: 'classic-trade',
-          nameLabel: 'CUSTOMER NAME:',
-          addressLabel: 'PHONE:',
-        },
-        table: {
-          headerBackground: '#0d47a1',
-          headerTextColor: '#ffffff',
-          alternateRowStriping: false,
-          borderStyle: 'double-ledger',
-          gridStyle: 'full-grid',
-          borderColor: '#0d47a1',
-          columns: [
-            { id: 'pos', label: 'ITEMS', field: 'index', widthPercent: 8, align: 'center' },
-            { id: 'qty', label: 'QTY.', field: 'qty', widthPercent: 14, align: 'center' },
-            { id: 'desc', label: 'DESCRIPTION OF GOODS', field: 'description', widthPercent: 44, align: 'left' },
-            { id: 'price', label: 'RATE (₦)', field: 'unit_price', widthPercent: 16, align: 'right' },
-            { id: 'amt', label: 'AMOUNT (₦)', field: 'amount', widthPercent: 18, align: 'right' },
-          ],
-          fillBlankRows: true,
-          minRows: 8,
-        },
-        summary: {
-          position: 'right',
-          layout: 'table-integrated',
-          totalLabel: 'TOTAL',
-          highlightTotalBackground: '#e8f0fe',
-          highlightTotalTextColor: '#0d47a1',
-          showAmountInWords: false,
-        },
-        footer: {
-          guaranteeText: 'GUARANTEED GOODS ARE NOT RETURNABLE AFTER PURCHASE. NO REFUND OF MONEY AFTER PAYMENT.',
-          courtesyGreeting: '',
-          showSignatures: true,
-          signatureCount: 2,
-          signatureLabels: ["Customer's Signature", 'For: LAO STEEL VENTURES'],
-          watermarkText: 'LSV',
-          termsAndConditions: 'Guaranteed goods are not returnable after purchase. No refund of money after payment.',
-        },
-      };
-    }
-
-    return DEFAULT_CONFIG;
+    return isLaoSteel ? LAO_STEEL_CONFIG : MODERN_CONFIG;
   };
 
   const [aiConfig, setAiConfig] = useState<CustomTemplateConfig>(parseConfig(customTemplateUrl));
-  const [viewMode, setViewMode] = useState<'template' | 'reference' | 'blueprint'>('template');
 
   useEffect(() => {
-    if (customTemplateUrl !== undefined) {
-      setAiConfig(parseConfig(customTemplateUrl));
-    }
-  }, [customTemplateUrl, businessName, receiptPrefix]);
+    setAiConfig(parseConfig(customTemplateUrl));
+  }, [customTemplateUrl, businessName, receiptPrefix, templateId]);
 
   const prefix = (receiptPrefix || 'INV').toUpperCase();
   const bizName = (businessName || 'BUSINESS ENTERPRISE').toUpperCase();
@@ -267,9 +267,9 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[98vw] max-w-4xl h-[94vh] max-h-[94vh] flex flex-col p-0 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden focus:outline-none">
+      <DialogContent className="w-[96vw] sm:max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl h-[88vh] sm:h-[90vh] max-h-[92vh] flex flex-col p-0 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden focus:outline-none">
         {/* Modal Top Header */}
-        <div className="shrink-0 p-3 sm:p-4 border-b border-slate-800 bg-slate-950/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 z-10 pr-10 sm:pr-4">
+        <div className="shrink-0 px-4 sm:px-6 py-3.5 border-b border-slate-800 bg-slate-950/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 z-10 pr-12 sm:pr-14">
           <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
             <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
               <Printer className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -280,7 +280,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
               </DialogTitle>
               <DialogDescription className="text-[11px] sm:text-xs text-slate-400 mt-0.5 line-clamp-1">
                 {isSuperAdmin
-                  ? 'Official A4 printable invoice design layout extracted and rendered with your business records.'
+                  ? 'Official A4 printable invoice design layout rendered with your business records.'
                   : 'Official visual layout used for your printable PDF receipts and customer invoices.'}
               </DialogDescription>
             </div>
@@ -297,71 +297,30 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
 
         {/* Modal Main Workspace */}
         <div className="flex-1 flex flex-col overflow-hidden bg-slate-950/70">
-          {/* LEFT: Preview Viewport Canvas */}
-          <div className="flex-1 overflow-y-auto overflow-x-auto p-2.5 sm:p-4 md:p-6 flex flex-col items-center justify-start relative">
-            {/* View Mode Toolbar */}
-            <div className="w-full max-w-[760px] flex flex-wrap items-center justify-between gap-2 pb-3 text-xs mb-2">
-              <div className="flex items-center gap-1.5">
-                <Badge className="bg-slate-800 text-slate-300 border border-slate-700 text-[10px] py-0.5 px-2 font-mono shrink-0">
-                  A4 Printable Layout
+          {/* Preview Viewport Canvas */}
+          <div className="flex-1 overflow-y-auto overflow-x-auto p-3 sm:p-5 md:p-6 lg:p-8 flex flex-col items-center justify-start relative">
+            {/* View Header Info */}
+            <div className="w-full max-w-[840px] flex items-center justify-between pb-2.5 text-xs mb-2">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-slate-800 text-slate-300 border border-slate-700 text-[10px] py-0.5 px-2 font-mono">
+                  A4 Printable Layout (210 × 297 mm)
                 </Badge>
-              </div>
-
-              <div className="flex items-center space-x-1 bg-slate-900 border border-slate-800 p-1 rounded-xl shrink-0 overflow-x-auto max-w-full">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('template')}
-                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 shrink-0 ${
-                    viewMode === 'template'
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <FileText className="h-3.5 w-3.5 shrink-0" />
-                  <span>Preview</span>
-                </button>
-                {aiConfig.rawImagePreviewUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('reference')}
-                    className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 shrink-0 ${
-                      viewMode === 'reference'
-                        ? 'bg-purple-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <ImageIcon className="h-3.5 w-3.5 shrink-0" />
-                    <span>Original Upload</span>
-                  </button>
-                )}
-                {isSuperAdmin && aiConfig.layoutDescription && (
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('blueprint')}
-                    className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center space-x-1.5 shrink-0 ${
-                      viewMode === 'blueprint'
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                    <span>AI Spatial Blueprint</span>
-                  </button>
-                )}
+                <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] py-0.5 px-2 font-semibold">
+                  {isLaoSteel ? 'Lao Steel Bespoke Ledger' : 'Modern Corporate'}
+                </Badge>
               </div>
             </div>
 
             {/* A4 Document Preview */}
-            {viewMode === 'template' && (
-              <div
-                  className="w-full max-w-[760px] rounded-lg shadow-2xl p-3 sm:p-6 md:p-8 relative select-none transition-all duration-300 border"
-                  style={{
-                    backgroundColor: aiConfig.theme.backgroundColor || '#ffffff',
-                    color: aiConfig.theme.textColor || '#0f172a',
-                    borderColor: aiConfig.theme.primaryColor || '#0f2942',
-                    fontFamily: aiConfig.theme.fontFamily === 'mono' ? 'monospace' : aiConfig.theme.fontFamily === 'serif' ? 'serif' : 'sans-serif',
-                  }}
-                >
+            <div
+              className="w-full max-w-[840px] rounded-lg shadow-2xl p-4 sm:p-7 md:p-9 relative select-none transition-all duration-300 border bg-white"
+              style={{
+                backgroundColor: aiConfig.theme.backgroundColor || '#ffffff',
+                color: aiConfig.theme.textColor || '#0f172a',
+                borderColor: aiConfig.theme.primaryColor || '#0f2942',
+                fontFamily: aiConfig.theme.fontFamily === 'mono' ? 'monospace' : aiConfig.theme.fontFamily === 'serif' ? 'serif' : 'sans-serif',
+              }}
+            >
                 {/* Optional Watermark */}
                 {aiConfig.footer.watermarkText && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
@@ -926,7 +885,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                         </div>
                       )}
 
-                      <table className="w-full text-xs border-collapse relative z-10">
+                      <table className="w-full min-w-[560px] sm:min-w-full text-xs border-collapse relative z-10">
                         <thead>
                           <tr
                             style={{
@@ -963,7 +922,9 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                                   className={`p-1.5 sm:p-2.5 text-[11px] sm:text-xs ${
                                     col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
                                   } ${col.field === 'description' ? 'font-sans font-semibold' : ''} ${
-                                    col.field === 'amount' ? 'font-bold' : ''
+                                    col.field === 'amount' || col.id === 'amt' ? 'font-bold whitespace-nowrap' : ''
+                                  } ${col.field === 'unit_price' || col.id === 'price' ? 'whitespace-nowrap' : ''} ${
+                                    col.field === 'qty' ? 'whitespace-nowrap' : ''
                                   } ${cIdx < activeColumns.length - 1 ? 'border-r' : ''}`}
                                   style={{
                                     borderColor: aiConfig.table.borderColor || '#0052cc',
@@ -1009,7 +970,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                                 {aiConfig.summary.totalLabel || 'TOTAL'} (₦):
                               </td>
                               <td
-                                className="p-2 sm:p-2.5 text-right font-black text-xs sm:text-sm font-mono border-l-2"
+                                className="p-2 sm:p-2.5 text-right font-black text-xs sm:text-sm font-mono border-l-2 whitespace-nowrap"
                                 style={{
                                   borderColor: aiConfig.table.borderColor || '#0052cc',
                                   backgroundColor: aiConfig.summary.highlightTotalBackground || '#ffffff',
@@ -1192,70 +1153,11 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                   </div>
                 )}
                 </div>
-            )}
-
-            {/* Reference Image View Mode */}
-            {viewMode === 'reference' && (
-              <div className="w-full max-w-[760px] bg-slate-900 rounded-2xl border border-slate-800 p-4 text-center space-y-3">
-                <div className="flex items-center justify-between text-xs text-slate-400 pb-2 border-b border-slate-800">
-                  <span className="flex items-center space-x-1.5 text-purple-400 font-semibold">
-                    <ImageIcon className="h-4 w-4" />
-                    <span>Uploaded Reference Sample Document</span>
-                  </span>
-                  {aiConfig.rawImagePreviewUrl && (
-                    <a
-                      href={aiConfig.rawImagePreviewUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-purple-400 hover:text-purple-300 flex items-center space-x-1 text-xs"
-                    >
-                      <span>Fullscreen</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
-                </div>
-                <div className="max-h-[62vh] overflow-auto rounded-xl bg-black/50 p-2 border border-slate-800 flex items-center justify-center">
-                  {aiConfig.rawImagePreviewUrl ? (
-                    <img
-                      src={aiConfig.rawImagePreviewUrl}
-                      alt="Reference Upload"
-                      className="max-h-[58vh] max-w-full h-auto rounded shadow-lg object-contain"
-                    />
-                  ) : (
-                    <div className="p-8 text-slate-500 text-xs">No reference image on file.</div>
-                  )}
-                </div>
               </div>
-            )}
-
-            {/* AI Spatial Blueprint View Mode (Super Admin Only) */}
-            {viewMode === 'blueprint' && (
-              <div className="w-full max-w-[760px] bg-slate-900 rounded-2xl border border-slate-800 p-5 space-y-4">
-                <div className="flex items-center justify-between text-xs text-slate-400 pb-3 border-b border-slate-800">
-                  <span className="flex items-center space-x-2 text-blue-400 font-bold">
-                    <Sparkles className="h-4 w-4" />
-                    <span>AI Spatial Decomposition &amp; Design Blueprint</span>
-                  </span>
-                  <Badge className="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px]">
-                    Super Admin View
-                  </Badge>
-                </div>
-                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs leading-relaxed space-y-3 font-sans">
-                  <p className="text-slate-400 text-[11px] uppercase tracking-wider font-semibold">
-                    Visual Layout Breakdown extracted from uploaded reference:
-                  </p>
-                  <p className="whitespace-pre-wrap leading-relaxed">
-                    {aiConfig.layoutDescription || 'No spatial layout description recorded.'}
-                  </p>
-                </div>
-              </div>
-            )}
-
-          </div>
-        </div>
+            </div>
 
         {/* Modal Action Footer */}
-        <div className="shrink-0 p-3 sm:p-4 border-t border-slate-800 bg-slate-950/95 flex flex-col sm:flex-row items-center justify-between gap-2.5 z-10">
+        <div className="shrink-0 px-4 sm:px-6 py-3.5 border-t border-slate-800 bg-slate-950/95 flex flex-col sm:flex-row items-center justify-between gap-2.5 z-10">
           <div className="text-xs text-slate-400 text-center sm:text-left min-w-0">
             <span className="text-white font-semibold truncate inline-block max-w-[220px] sm:max-w-none align-bottom">
               {aiConfig.templateName || 'Bespoke Custom Template'}
@@ -1281,7 +1183,7 @@ export const InvoiceTemplatePreviewModal: React.FC<InvoiceTemplatePreviewModalPr
                 type="button"
                 size="sm"
                 onClick={() => {
-                  onSelectTemplate('custom', JSON.stringify(aiConfig));
+                  onSelectTemplate(templateId || (isLaoSteel ? 'classic' : 'modern'));
                   onClose();
                 }}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold h-9 px-4 sm:px-5 shadow-md shadow-emerald-500/20 cursor-pointer flex-1 sm:flex-none"

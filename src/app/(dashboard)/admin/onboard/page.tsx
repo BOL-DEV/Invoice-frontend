@@ -42,7 +42,6 @@ import { useModal } from '../../../../components/ui/modal-provider';
 import { PlanType, BillingMode, ApiResponse } from '../../../../types/api';
 import { apiClient } from '../../../../services/api/axios';
 import { API_ENDPOINTS } from '../../../../services/api/endpoints';
-import { InvoiceTemplatePreviewModal } from '../../../../components/templates/InvoiceTemplatePreviewModal';
 
 export const RESERVED_SLUGS = [
   'zentra', 'invoice', 'bolxolve', 'admin', 'superadmin', 'api', 'app',
@@ -77,62 +76,8 @@ export default function OnboardBusinessPage() {
   const [receiptPrefix, setReceiptPrefix] = useState('INV');
   const [tagline, setTagline] = useState('');
 
-  // Invoice Template State (Classic, Modern, or Custom Upload - Optional)
-  const [receiptTemplateId, setReceiptTemplateId] = useState<'classic' | 'modern' | 'custom'>('classic');
-  const [customTemplateUrl, setCustomTemplateUrl] = useState<string>('');
-  const [customFileName, setCustomFileName] = useState<string>('');
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [previewingTemplate, setPreviewingTemplate] = useState<'classic' | 'modern' | 'custom'>('classic');
-  const [isCraftingTemplate, setIsCraftingTemplate] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
-
-  const handleCustomTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 15 * 1024 * 1024) {
-      modal.alert('File Too Large', 'Please upload a template image smaller than 15MB.', 'warning');
-      return;
-    }
-
-    setIsCraftingTemplate(true);
-    setCustomFileName(file.name);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const res = await apiClient.post<ApiResponse<{ customTemplateUrl: string; width: number; height: number }>>(
-        API_ENDPOINTS.BUSINESS.CRAFT_TEMPLATE(),
-        formData,
-        {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        }
-      );
-
-      const craftedUrl = res.data?.data?.customTemplateUrl;
-      if (craftedUrl) {
-        setCustomTemplateUrl(craftedUrl);
-        setReceiptTemplateId('custom');
-        setPreviewingTemplate('custom');
-        setIsPreviewOpen(true);
-      }
-    } catch (err: any) {
-      console.warn('Backend template crafting failed during onboard, falling back to local preview:', err);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target?.result as string;
-        setCustomTemplateUrl(base64);
-        setReceiptTemplateId('custom');
-        setPreviewingTemplate('custom');
-        setIsPreviewOpen(true);
-      };
-      reader.readAsDataURL(file);
-    } finally {
-      setIsCraftingTemplate(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
+  // Invoice Template State (Modern Corporate Universal Default)
+  const [receiptTemplateId, setReceiptTemplateId] = useState<'classic' | 'modern'>('modern');
 
   // Domains State (Live custom domain / Bolxolve subdomain, Dev domain businessname.localhost)
   const [customDomain, setCustomDomain] = useState('');
@@ -270,7 +215,7 @@ export default function OnboardBusinessPage() {
         email: email.trim(),
         receiptPrefix: receiptPrefix.trim().toUpperCase(),
         receiptTemplateId,
-        customTemplateUrl: customTemplateUrl || null,
+        customTemplateUrl: null,
         tagline: tagline.trim() || null,
         plan,
         billingMode,
@@ -846,161 +791,73 @@ export default function OnboardBusinessPage() {
           </CardHeader>
 
           <CardContent className="p-6 sm:p-8 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Option 1: Classic Industrial */}
-              <div
-                onClick={() => setReceiptTemplateId('classic')}
-                className={`p-5 rounded-2xl border text-left transition-all relative cursor-pointer flex flex-col justify-between ${
-                  receiptTemplateId === 'classic'
-                    ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
-                    : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold font-heading text-foreground">
-                      Classic Industrial / Thermal
-                    </span>
-                    <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px]">
-                      Built-in Default
-                    </Badge>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Heavy-duty ledger styling with navy outer borders, circular logo emblem, customer guarantee box, and dual signature lines.
-                  </p>
-                </div>
+            {(() => {
+              const isLaoSteel = Boolean(
+                businessName?.toLowerCase().includes('lao steel') ||
+                slug?.toLowerCase().includes('lao-steel') ||
+                receiptPrefix?.toUpperCase() === 'LSV'
+              );
 
-                <div className="pt-4 flex items-center justify-between border-t border-border/60 mt-4">
-                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                    {receiptTemplateId === 'classic' ? '✓ Selected' : 'Click to select'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Option 2: Modern Corporate */}
-              <div
-                onClick={() => setReceiptTemplateId('modern')}
-                className={`p-5 rounded-2xl border text-left transition-all relative cursor-pointer flex flex-col justify-between ${
-                  receiptTemplateId === 'modern'
-                    ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
-                    : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold font-heading text-foreground">
-                      Modern Corporate Executive
-                    </span>
-                    <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px]">
-                      Built-in Corporate
-                    </Badge>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Sleek minimalist executive SaaS design with dark slate header table, itemized charge breakdown, and digital verification seal.
-                  </p>
-                </div>
-
-                <div className="pt-4 flex items-center justify-between border-t border-border/60 mt-4">
-                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                    {receiptTemplateId === 'modern' ? '✓ Selected' : 'Click to select'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Option 3: Custom Upload Template */}
-              <div
-                onClick={() => {
-                  if (customTemplateUrl) setReceiptTemplateId('custom');
-                  else fileInputRef.current?.click();
-                }}
-                className={`p-5 rounded-2xl border text-left transition-all relative cursor-pointer flex flex-col justify-between ${
-                  receiptTemplateId === 'custom'
-                    ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
-                    : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold font-heading text-foreground">
-                      Custom Bespoke Template
-                    </span>
-                    <Badge className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-[10px]">
-                      Optional Upload
-                    </Badge>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Upload a custom client invoice template file or mock layout (PNG, JPG, PDF up to 5MB).
-                  </p>
-                  
-                  {isCraftingTemplate ? (
-                    <div className="mt-2 p-2 rounded-xl bg-purple-500/10 border border-purple-500/30 text-[11px] text-purple-600 dark:text-purple-400 flex items-center space-x-2">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0 text-purple-500" />
-                      <span>Crafting template...</span>
-                    </div>
-                  ) : customFileName ? (
-                    <div className="mt-2 p-2 rounded-xl bg-background border border-border text-[10px] font-mono text-foreground flex items-center space-x-1.5 truncate">
-                      <ImageIcon className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                      <span className="truncate">{customFileName}</span>
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="pt-4 flex items-center justify-between border-t border-border/60 mt-4 gap-2">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*,.pdf"
-                    onChange={handleCustomTemplateUpload}
-                    className="hidden"
-                  />
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={isCraftingTemplate}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      fileInputRef.current?.click();
-                    }}
-                    className="h-8 rounded-xl text-[11px] px-2.5 border-border hover:bg-secondary flex items-center space-x-1 cursor-pointer"
-                  >
-                    {isCraftingTemplate ? (
-                      <>
-                        <Loader2 className="h-3 w-3 animate-spin mr-1 text-purple-500" />
-                        <span>Crafting...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-3 w-3 mr-1 text-purple-500" />
-                        <span>{customTemplateUrl ? 'Change File' : 'Upload File'}</span>
-                      </>
-                    )}
-                  </Button>
-
-                  {customTemplateUrl && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPreviewingTemplate('custom');
-                        setIsPreviewOpen(true);
-                      }}
-                      className="h-8 rounded-xl text-[11px] px-2.5 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 flex items-center space-x-1 cursor-pointer"
+              if (isLaoSteel) {
+                return (
+                  <div className="grid grid-cols-1 gap-4">
+                    <div
+                      onClick={() => setReceiptTemplateId('classic')}
+                      className="p-5 rounded-2xl border text-left transition-all relative cursor-pointer border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10"
                     >
-                      <Eye className="h-3 w-3 mr-1 text-purple-500" />
-                      <span>Preview</span>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold font-heading text-foreground">
+                            Lao Steel Bespoke Ledger
+                          </span>
+                          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px]">
+                            Dedicated Bespoke
+                          </Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Dual company ledger dark-green border, centered header with circular green emblem, LSV watermark across itemized rebar specifications table, and guarantee disclaimer.
+                        </p>
+                      </div>
 
-            <p className="text-[11px] text-muted-foreground italic">
-              * Note: Custom template upload is completely optional. If not uploaded now, you or the business can still customize and upload later anytime from the business details page.
-            </p>
+                      <div className="pt-4 border-t border-border/60 mt-4">
+                        <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                          ✓ Dedicated Bespoke Layout
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid grid-cols-1 gap-4">
+                  <div
+                    onClick={() => setReceiptTemplateId('modern')}
+                    className="p-5 rounded-2xl border text-left transition-all relative cursor-pointer border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold font-heading text-foreground">
+                          Modern Corporate Executive
+                        </span>
+                        <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px]">
+                          Universal Default
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Sleek minimalist executive design with modern typography, itemized charge breakdown, and structured digital verification.
+                      </p>
+                    </div>
+
+                    <div className="pt-4 border-t border-border/60 mt-4">
+                      <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                        ✓ Selected Default Layout
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -1117,26 +974,6 @@ export default function OnboardBusinessPage() {
           </Button>
         </div>
       </form>
-
-      <InvoiceTemplatePreviewModal
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        templateId={previewingTemplate}
-        customTemplateUrl={customTemplateUrl}
-        businessName={businessName || 'DEMO BUSINESS ENTERPRISE'}
-        tagline={tagline}
-        address={address}
-        phone={phone}
-        email={email}
-        receiptPrefix={receiptPrefix}
-        onSelectTemplate={(tid, configJson) => {
-          setReceiptTemplateId(tid as any);
-          if (configJson) {
-            setCustomTemplateUrl(configJson);
-          }
-          setIsPreviewOpen(false);
-        }}
-      />
     </div>
   );
 }

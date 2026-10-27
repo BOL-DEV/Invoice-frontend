@@ -46,6 +46,7 @@ import {
   Activity,
   Store,
   Upload,
+  Download,
 } from 'lucide-react';
 import { useModal } from '../../../components/ui/modal-provider';
 import { BusinessSettings } from '../../../types/api';
@@ -63,6 +64,36 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'business' | 'subscription'>('profile');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewTemplateId, setPreviewTemplateId] = useState<string>('classic');
+  const [isDownloadingSamplePdf, setIsDownloadingSamplePdf] = useState(false);
+
+  const handleDownloadSamplePdf = async () => {
+    setIsDownloadingSamplePdf(true);
+    try {
+      const response = await apiClient.post(
+        API_ENDPOINTS.PRINTING.TEST_PDF,
+        {
+          templateId: settings?.receiptTemplateId || 'classic',
+          businessId: settings?.id,
+        },
+        { responseType: 'blob' }
+      );
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.download = `${settings?.slug || 'sample'}-invoice.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      modal.alert('Download Error', 'Could not generate sample invoice PDF at this time.', 'error');
+    } finally {
+      setIsDownloadingSamplePdf(false);
+    }
+  };
 
   // Subscription data
   const { data: subDetails, isLoading: isSubLoading, refetch: refetchSub } = useSubscription();
@@ -247,60 +278,12 @@ export default function SettingsPage() {
   // Lao Steel's "Classic Industrial" layout is its dedicated bespoke template
   const isLaoSteelBespoke = Boolean(
     settings?.businessName?.toLowerCase().includes('lao steel') ||
-    settings?.slug?.toLowerCase().includes('lao') ||
-    settings?.slug?.toLowerCase().includes('steel')
+    settings?.slug?.toLowerCase().includes('lao-steel') ||
+    settings?.receiptPrefix === 'LSV'
   );
 
   const customUrl = watchBusiness('customTemplateUrl') || settings?.customTemplateUrl;
-  const currentReceiptTemplateId = watchBusiness('receiptTemplateId') || settings?.receiptTemplateId || 'classic';
-  const hasCustomCraftedTemplate = Boolean(customUrl && customUrl.trim().length > 0);
-
-  const templateFileInputRef = useRef<HTMLInputElement>(null);
-  const [isCraftingTemplate, setIsCraftingTemplate] = useState(false);
-
-  const handleTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-    if (!validTypes.includes(file.type)) {
-      modal.alert('Invalid File Format', 'Please upload a PNG, JPG, WEBP image or PDF of your invoice.', 'error');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      modal.alert('File Too Large', 'Please upload an image smaller than 5MB.', 'error');
-      return;
-    }
-
-    setIsCraftingTemplate(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const endpoint = API_ENDPOINTS.BUSINESS.CRAFT_TEMPLATE(settings?.id);
-      const res = await apiClient.post(endpoint, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-
-      const craftedUrl = res.data?.data?.customTemplateUrl;
-      if (craftedUrl) {
-        setValueBusiness('customTemplateUrl', craftedUrl, { shouldDirty: true });
-        setValueBusiness('receiptTemplateId', 'custom', { shouldDirty: true });
-        await updateBusinessMutation.mutateAsync({
-          receiptTemplateId: 'custom',
-          customTemplateUrl: craftedUrl,
-        });
-        modal.alert('Template Crafted Successfully', 'Your bespoke layout has been crafted from your uploaded invoice and applied.', 'success');
-        setIsPreviewOpen(true);
-      }
-    } catch (err: any) {
-      modal.alert('Crafting Failed', err?.response?.data?.message || err.message || 'Could not craft template from image.', 'error');
-    } finally {
-      setIsCraftingTemplate(false);
-      if (templateFileInputRef.current) templateFileInputRef.current.value = '';
-    }
-  };
+  const currentReceiptTemplateId = watchBusiness('receiptTemplateId') || settings?.receiptTemplateId || (isLaoSteelBespoke ? 'classic' : 'modern');
 
   const onBusinessSubmit = async (data: Partial<BusinessSettings>) => {
     if (data.phone && !isValidPhoneNumber(data.phone)) {
@@ -319,8 +302,8 @@ export default function SettingsPage() {
         ...(logoPreview !== null && { logo: logoPreview || '' }),
         defaultVatPercentage: Number(data.defaultVatPercentage) || 0,
         defaultWhtPercentage: Number(data.defaultWhtPercentage) || 0,
-        receiptTemplateId: hasCustomCraftedTemplate ? 'custom' : (isLaoSteelBespoke ? 'classic' : 'custom'),
-        customTemplateUrl: customUrl || '',
+        receiptTemplateId: isLaoSteelBespoke ? 'classic' : (currentReceiptTemplateId === 'classic' ? 'modern' : currentReceiptTemplateId || 'modern'),
+        customTemplateUrl: null,
       };
 
       await updateBusinessMutation.mutateAsync(payload);
@@ -870,32 +853,18 @@ export default function SettingsPage() {
                       <div className="space-y-1">
                         <div className="flex items-center space-x-2">
                           <h4 className="text-sm font-bold text-foreground">
-                            {hasCustomCraftedTemplate
-                              ? 'Custom Uploaded Mockup Layout'
-                              : isLaoSteelBespoke
+                            {isLaoSteelBespoke
                               ? 'Lao Steel Bespoke Trade Layout'
-                              : 'Standard Trade & Depot Layout'}
+                              : 'Modern Corporate Executive Layout'}
                           </h4>
-                          <Badge
-                            className={
-                              hasCustomCraftedTemplate
-                                ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 text-[10px] font-semibold'
-                                : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold'
-                            }
-                          >
-                            {hasCustomCraftedTemplate
-                              ? 'Custom Active'
-                              : isLaoSteelBespoke
-                              ? 'Lao Steel Bespoke'
-                              : 'Standard Active'}
+                          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold">
+                            {isLaoSteelBespoke ? 'Lao Steel Bespoke' : 'Standard Active'}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
-                          {hasCustomCraftedTemplate
-                            ? 'Your business is using an authentic layout crafted from your uploaded invoice mockup. Open the studio to refine headers, borders, columns, and colors with AI Copilot.'
-                            : isLaoSteelBespoke
+                          {isLaoSteelBespoke
                             ? 'Your authentic Lao Steel industrial styling with green globe emblem, dual company ledger borders, LSV watermark, and guarantee terms is active.'
-                            : 'Standard commercial invoice layout with dual borders, clean itemization, and structured terms.'}
+                            : 'Modern corporate executive layout with clean typography, itemized charges, and structured terms.'}
                         </p>
                       </div>
 
@@ -904,79 +873,19 @@ export default function SettingsPage() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => {
-                            setPreviewTemplateId('custom');
-                            setIsPreviewOpen(true);
-                          }}
+                          onClick={handleDownloadSamplePdf}
+                          disabled={isDownloadingSamplePdf}
                           className="h-8 px-3 text-xs font-semibold rounded-xl border-border/80 hover:bg-secondary/50 flex items-center space-x-1.5 cursor-pointer"
                         >
-                          <Eye className="h-3.5 w-3.5 text-emerald-500" />
-                          <span>{isSuperAdmin ? 'Open Template Studio' : 'Preview Invoice Template'}</span>
+                          {isDownloadingSamplePdf ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-500" />
+                          ) : (
+                            <Download className="h-3.5 w-3.5 text-emerald-500" />
+                          )}
+                          <span>Download Sample PDF</span>
                         </Button>
-
-                        {isSuperAdmin && (
-                          <Button
-                            type="button"
-                            size="sm"
-                            disabled={isCraftingTemplate}
-                            onClick={() => templateFileInputRef.current?.click()}
-                            className="h-8 px-3 text-xs font-semibold rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-sm flex items-center space-x-1.5 cursor-pointer"
-                          >
-                            {isCraftingTemplate ? (
-                              <>
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                <span>AI Crafting Layout...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="h-3.5 w-3.5" />
-                                <span>{hasCustomCraftedTemplate ? 'Replace Mockup' : 'Upload Mockup Image'}</span>
-                              </>
-                            )}
-                          </Button>
-                        )}
                       </div>
                     </div>
-
-                    {/* Reset / Restore Option (Super Admin Only) */}
-                    {isSuperAdmin && hasCustomCraftedTemplate && (
-                      <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs">
-                        <span className="text-[11px] text-muted-foreground">
-                          {isLaoSteelBespoke
-                            ? 'Want to return to the original Lao Steel corporate template?'
-                            : 'Want to reset back to the default trade layout?'}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={async () => {
-                            const confirmed = await modal.confirm(
-                              'Reset Template',
-                              isLaoSteelBespoke
-                                ? 'Are you sure you want to revert to the authentic Lao Steel bespoke layout?'
-                                : 'Are you sure you want to reset to the standard template?'
-                            );
-                            if (confirmed) {
-                              setValueBusiness('receiptTemplateId', 'classic', { shouldDirty: true });
-                              setValueBusiness('customTemplateUrl', '', { shouldDirty: true });
-                              try {
-                                await updateBusinessMutation.mutateAsync({
-                                  receiptTemplateId: 'classic',
-                                  customTemplateUrl: '',
-                                });
-                                modal.alert('Template Reset', 'Reverted to default layout.', 'success');
-                              } catch (err: any) {
-                                modal.alert('Error', err?.message || 'Could not reset template', 'error');
-                              }
-                            }
-                          }}
-                          className="h-7 px-2 text-[11px] text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-lg cursor-pointer font-medium"
-                        >
-                          {isLaoSteelBespoke ? 'Restore Lao Steel Layout' : 'Reset to Default Layout'}
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 </div>
               </CardContent>
