@@ -29,7 +29,7 @@ export const API_ENDPOINTS = {
   PRINTING: {
     PDF: (invoiceId: string) => `/api/printing/${invoiceId}/pdf`,
     EXCEL: (invoiceId: string) => `/api/printing/${invoiceId}/excel`,
-    IMAGE: (invoiceId: string) => `/api/printing/${invoiceId}/image`,
+    TEST_PDF: '/api/printing/test-pdf',
   },
   BUSINESS: {
     BASE: '/api/business',
@@ -40,8 +40,6 @@ export const API_ENDPOINTS = {
     ADMIN_DETAILS: (id: string) => `/api/business/admin/${id}/details`,
     ADMIN_ONBOARD: '/api/business/admin/onboard',
     ADMIN_STATUS: (id: string) => `/api/business/admin/${id}/status`,
-    CRAFT_TEMPLATE: (id?: string) => id ? `/api/business/${id}/template/craft` : '/api/business/template/craft',
-    REFINE_TEMPLATE: (id?: string) => id ? `/api/business/${id}/template/refine` : '/api/business/template/refine',
   },
   SUBSCRIPTIONS: {
     ME: '/api/subscriptions/me',
