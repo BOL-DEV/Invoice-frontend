@@ -29,7 +29,6 @@ export const API_ENDPOINTS = {
   PRINTING: {
     PDF: (invoiceId: string) => `/api/printing/${invoiceId}/pdf`,
     EXCEL: (invoiceId: string) => `/api/printing/${invoiceId}/excel`,
-    IMAGE: (invoiceId: string) => `/api/printing/${invoiceId}/image`,
     TEST_PDF: '/api/printing/test-pdf',
   },
   BUSINESS: {
