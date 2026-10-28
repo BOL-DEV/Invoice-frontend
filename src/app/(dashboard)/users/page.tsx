@@ -95,10 +95,10 @@ export default function UsersPage() {
     false
   );
 
-  // Unified Staff Quota:
-  // Apart from the main business admin (ADMIN without branchId), all other users (branch head managers & cashiers)
-  // are staff members counting against the tenant's maxStaffCount quota.
-  const maxStaffQuota = subscription?.maxStaffCount ?? subDetails?.usage?.maxStaffCount ?? (isEnterprise ? 10 : 2);
+  // Unified Account Quota:
+  // All active tenant accounts (admin, sub-admins / branch managers, and cashiers) count against maxStaffCount
+  const isBusiness = subscription?.plan === 'BUSINESS';
+  const maxStaffQuota = subscription?.maxStaffCount ?? subDetails?.usage?.maxStaffCount ?? (isEnterprise ? 11 : isBusiness ? 5 : 3);
 
   const subAdmins = useMemo(
     () => users.filter((u) => u.role === 'ADMIN' && Boolean(u.branchId) && !u.isDeleted),
@@ -111,7 +111,11 @@ export default function UsersPage() {
 
   const activeSubAdminCount = subAdmins.length;
   const activeCashierCount = cashiers.length;
-  const totalStaffCount = activeSubAdminCount + activeCashierCount;
+  const activeTenantUsers = useMemo(
+    () => users.filter((u) => u.role !== 'SUPER_ADMIN' && !u.isDeleted),
+    [users]
+  );
+  const totalStaffCount = activeTenantUsers.length;
   const isStaffQuotaReached = totalStaffCount >= maxStaffQuota;
 
 

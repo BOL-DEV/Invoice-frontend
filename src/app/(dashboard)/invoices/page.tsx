@@ -15,6 +15,7 @@ import { useCreateApproval } from '../../../features/approvals/hooks/useApproval
 import { useAuth } from '../../../features/auth/context/AuthContext';
 import { useUsersList } from '../../../features/users/hooks/useUsers';
 import { usePermission } from '../../../features/auth/hooks/usePermission';
+import { useSubscription } from '../../../features/subscriptions/hooks/useSubscription';
 import { Invoice, InvoiceStatus } from '../../../types/api';
 import { getErrorDialog } from '../../../lib/api-error';
 import { Button } from '../../../components/ui/button';
@@ -56,6 +57,7 @@ export default function InvoicesPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { isAdmin } = usePermission();
+  const { data: subDetails } = useSubscription();
   const modal = useModal();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -211,6 +213,16 @@ export default function InvoicesPage() {
   };
 
   const handleExport = async (invoiceId: string, format: 'pdf' | 'excel', invoiceNumber: string) => {
+    // Gate Excel export for Starter tier
+    if (format === 'excel' && subDetails?.capabilities?.excelExport === false) {
+      modal.alert(
+        'Feature Locked on Starter Plan',
+        'Excel spreadsheet export is an exclusive feature for Business and Enterprise tiers. Starter tier includes unlimited PDF printing.',
+        'warning'
+      );
+      return;
+    }
+
     // If apprentice trying to print a PRINTED invoice, check if they need approval
     if (!isAdmin && format === 'pdf' && invoiceDetails?.status === 'PRINTED') {
       const shouldRequest = await modal.confirm(
@@ -282,6 +294,13 @@ export default function InvoicesPage() {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (error) {
       console.error(`Export to ${format} failed:`, error);
+      if (error && (error as any).response?.data instanceof Blob) {
+        try {
+          const text = await (error as any).response.data.text();
+          const parsed = JSON.parse(text);
+          if (parsed) (error as any).response.data = parsed;
+        } catch {}
+      }
       const { title, message, variant } = getErrorDialog(error, 'Export Failed', `Failed to export invoice to ${format}`);
       const errMsg = message;
       
@@ -1065,6 +1084,9 @@ export default function InvoicesPage() {
                       <FileSpreadsheet className="h-3.5 w-3.5 text-purple-500" />
                     )}
                     <span>Excel</span>
+                    {subDetails?.capabilities?.excelExport === false && (
+                      <Lock className="h-3 w-3 text-amber-500 ml-1" />
+                    )}
                   </Button>
 
                   {/* Admin Delete */}

@@ -43,6 +43,7 @@ import {
   Sparkles,
   Layers,
   FileText,
+  FileSpreadsheet,
   Activity,
   Store,
   Upload,
@@ -981,9 +982,9 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-muted-foreground mt-1 gap-1">
                       <p>
-                        {subDetails.subscription.plan === 'STARTER' && 'Starter plan includes 2 staff seats (branch managers & cashiers) plus 1 business administrator.'}
-                        {subDetails.subscription.plan === 'BUSINESS' && 'Business plan includes 4 staff seats (branch managers & cashiers) plus 1 business administrator.'}
-                        {subDetails.subscription.plan === 'ENTERPRISE' && 'Enterprise custom staff quota (branch managers & cashiers) plus 1 business administrator managed by Super Administrator.'}
+                        {subDetails.subscription.plan === 'STARTER' && 'Starter plan includes 3 total user accounts (1 business administrator + 2 cashiers). Extra seats: ₦2,000/seat/month.'}
+                        {subDetails.subscription.plan === 'BUSINESS' && 'Business plan includes 5 total user accounts (1 business administrator + 4 cashiers). Extra seats: ₦2,000/seat/month.'}
+                        {subDetails.subscription.plan === 'ENTERPRISE' && 'Enterprise plan includes 11 total user accounts (1 business admin + 2 branch managers + 8 cashiers) across 2 branches.'}
                       </p>
                       {(subDetails.usage.cashierCount !== undefined || subDetails.usage.managerCount !== undefined) && (
                         <span className="font-medium text-slate-500 dark:text-slate-400 shrink-0">
@@ -1002,7 +1003,9 @@ export default function SettingsPage() {
                       <div>
                         <p className="font-semibold text-foreground">AI Document Scanner</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {subDetails.capabilities.aiExtraction ? 'Active (Business & Enterprise)' : 'Locked on Starter Plan'}
+                          {subDetails.subscription.plan === 'STARTER' && '15 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
+                          {subDetails.subscription.plan === 'BUSINESS' && '150 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
+                          {subDetails.subscription.plan === 'ENTERPRISE' && '300 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
                         </p>
                       </div>
                     </div>
@@ -1016,9 +1019,7 @@ export default function SettingsPage() {
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {subDetails.capabilities.customDomain
                             ? 'Active (Branded Domain Configured)'
-                            : subDetails.subscription.plan === 'ENTERPRISE'
-                            ? 'Feature Available on Enterprise (Disabled)'
-                            : 'Locked on Starter & Business'}
+                            : 'Available on all tiers as a ₦10,000 add-on'}
                         </p>
                       </div>
                     </div>
@@ -1030,7 +1031,19 @@ export default function SettingsPage() {
                       <div>
                         <p className="font-semibold text-foreground">Multiple Branches</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {subDetails.capabilities.multipleBranches ? 'Active (Modular Enterprise)' : 'Standard Single Branch'}
+                          {subDetails.capabilities.multipleBranches ? 'Active (2 Branches on Enterprise)' : 'Standard Single Branch (Add-on: ₦5,000/mo)'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl border border-border/80 flex items-start space-x-3">
+                      <div className={`p-2 rounded-lg shrink-0 ${subDetails.capabilities.excelExport ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                        <FileSpreadsheet className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground">Excel Spreadsheet Export</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {subDetails.capabilities.excelExport ? 'Active (Business & Enterprise)' : 'Locked on Starter Plan (PDF Only)'}
                         </p>
                       </div>
                     </div>

@@ -87,8 +87,8 @@ export default function OnboardBusinessPage() {
   // Subscription Plan & Features
   const [plan, setPlan] = useState<PlanType>('BUSINESS');
   const [billingMode, setBillingMode] = useState<BillingMode>('SUBSCRIPTION');
-  const [maxStaffCount, setMaxStaffCount] = useState<number>(4);
-  const [aiScansLimit, setAiScansLimit] = useState<number>(300);
+  const [maxStaffCount, setMaxStaffCount] = useState<number>(5);
+  const [aiScansLimit, setAiScansLimit] = useState<number>(150);
   const [hasCustomDomain, setHasCustomDomain] = useState<boolean>(false);
   const [hasMultipleBranches, setHasMultipleBranches] = useState<boolean>(false);
   const [hasAdvancedReports, setHasAdvancedReports] = useState<boolean>(true);
@@ -135,22 +135,18 @@ export default function OnboardBusinessPage() {
   const handlePlanChange = (selectedPlan: PlanType) => {
     setPlan(selectedPlan);
     if (selectedPlan === 'STARTER') {
-      setMaxStaffCount(2);
-      setAiScansLimit(10);
-      setHasCustomDomain(false);
+      setMaxStaffCount(3);
+      setAiScansLimit(15);
       setHasMultipleBranches(false);
       setHasAdvancedReports(false);
-      setCustomDomain('');
     } else if (selectedPlan === 'BUSINESS') {
-      setMaxStaffCount(4);
-      setAiScansLimit(300);
-      setHasCustomDomain(false);
+      setMaxStaffCount(5);
+      setAiScansLimit(150);
       setHasMultipleBranches(false);
       setHasAdvancedReports(true);
-      setCustomDomain('');
     } else if (selectedPlan === 'ENTERPRISE') {
-      setMaxStaffCount(10);
-      setAiScansLimit(700);
+      setMaxStaffCount(11);
+      setAiScansLimit(300);
       setHasCustomDomain(true);
       setHasMultipleBranches(true);
       setHasAdvancedReports(true);
@@ -172,12 +168,12 @@ export default function OnboardBusinessPage() {
       return;
     }
 
-    const isEnterpriseCustomDomain = plan === 'ENTERPRISE' && hasCustomDomain;
-    let cleanLiveDomain = isEnterpriseCustomDomain
+    const isCustomDomainActive = hasCustomDomain;
+    let cleanLiveDomain = isCustomDomainActive
       ? customDomain.trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0]
       : '';
 
-    if (isEnterpriseCustomDomain && !cleanLiveDomain) {
+    if (isCustomDomainActive && !cleanLiveDomain) {
       cleanLiveDomain = enterpriseDomainChoice === 'subdomain' ? `${cleanSlug}.bolxolve.com` : '';
     }
 
@@ -191,8 +187,8 @@ export default function OnboardBusinessPage() {
 
     const cleanDevDomain = devDomain.trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0] || `${cleanSlug}.localhost`;
 
-    if (isEnterpriseCustomDomain && (!cleanLiveDomain || cleanLiveDomain.length < 3)) {
-      setErrorMessage('Please provide a live domain (e.g. yourname.bolxolve.com or invoice.company.com) for Enterprise tier.');
+    if (isCustomDomainActive && (!cleanLiveDomain || cleanLiveDomain.length < 3)) {
+      setErrorMessage('Please provide a live domain (e.g. yourname.bolxolve.com or invoice.company.com) for custom domain routing.');
       return;
     }
 
@@ -221,10 +217,10 @@ export default function OnboardBusinessPage() {
         billingMode,
         maxStaffCount,
         aiScansLimit: Number(aiScansLimit),
-        hasCustomDomain: isEnterpriseCustomDomain,
-        hasMultipleBranches: plan === 'ENTERPRISE' && hasMultipleBranches,
+        hasCustomDomain: isCustomDomainActive,
+        hasMultipleBranches: hasMultipleBranches,
         hasAdvancedReports,
-        customDomain: isEnterpriseCustomDomain ? cleanLiveDomain : '',
+        customDomain: isCustomDomainActive ? cleanLiveDomain : '',
         devDomain: cleanDevDomain,
         adminFirstName: adminFirstName.trim(),
         adminLastName: adminLastName.trim(),
@@ -234,7 +230,7 @@ export default function OnboardBusinessPage() {
 
       await modal.alert(
         'Business Workspace Onboarded',
-        isEnterpriseCustomDomain && cleanLiveDomain
+        isCustomDomainActive && cleanLiveDomain
           ? `Successfully provisioned ${businessName}! Dedicated domain registered at ${cleanLiveDomain} and local endpoint at ${cleanDevDomain}.`
           : `Successfully provisioned ${businessName}! Assigned to central portal invoice.bolxolve.com (Development endpoint: ${cleanDevDomain}).`
       );
@@ -308,9 +304,9 @@ export default function OnboardBusinessPage() {
               <Label className="text-xs font-bold text-foreground">Subscription Tier Package</Label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 {[
-                  { id: 'STARTER' as PlanType, name: 'STARTER', staff: '2 Staff Desks', desc: '10 AI scans/mo trial included' },
-                  { id: 'BUSINESS' as PlanType, name: 'BUSINESS', staff: '4 Staff Desks', desc: '300 AI scans/mo included & Analytics' },
-                  { id: 'ENTERPRISE' as PlanType, name: 'ENTERPRISE', staff: 'Custom Quota', desc: '700 AI scans/mo default, full modular suite' },
+                  { id: 'STARTER' as PlanType, name: 'STARTER', staff: '3 Users (1 Admin + 2 Cashiers)', desc: '₦6,000/mo (₦60,000/yr) • 15 AI scans/mo • PDF only' },
+                  { id: 'BUSINESS' as PlanType, name: 'BUSINESS', staff: '5 Users (1 Admin + 4 Cashiers)', desc: '₦20,000/mo (₦200,000/yr) • 150 AI scans/mo • Excel & Activity Logs' },
+                  { id: 'ENTERPRISE' as PlanType, name: 'ENTERPRISE', staff: '11 Users (1 Admin + 2 Sub-admins + 8 Cashiers)', desc: '₦40,000/mo (₦400,000/yr) • 2 Branches • 300 AI scans/mo • Excel & Logs' },
                 ].map((tier) => {
                   const isSelected = plan === tier.id;
                   return (
@@ -389,9 +385,9 @@ export default function OnboardBusinessPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (plan === 'STARTER') setAiScansLimit(10);
-                      else if (plan === 'BUSINESS') setAiScansLimit(300);
-                      else if (plan === 'ENTERPRISE') setAiScansLimit(700);
+                      if (plan === 'STARTER') setAiScansLimit(15);
+                      else if (plan === 'BUSINESS') setAiScansLimit(150);
+                      else if (plan === 'ENTERPRISE') setAiScansLimit(300);
                     }}
                     className="text-[10px] text-muted-foreground hover:text-foreground underline cursor-pointer"
                   >
@@ -409,76 +405,78 @@ export default function OnboardBusinessPage() {
               </div>
             </div>
 
-            {/* Modular Features */}
-            {plan !== 'STARTER' && (
-              <div className="space-y-3 pt-4 border-t border-border/70">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-foreground">Modular Feature Toggles</Label>
-                  <span className="text-[11px] text-muted-foreground font-medium">
-                    {plan === 'BUSINESS' ? 'Business Tier Modular Add-ons' : 'Enterprise Modular Suite'}
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {/* Custom Domains - Enterprise Only */}
-                  {plan === 'ENTERPRISE' && (
-                    <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
-                      <div className="pr-2">
-                        <span className="text-xs font-semibold text-foreground block">Custom Domains</span>
-                        <span className="text-[10px] text-muted-foreground">Dedicated or client DNS</span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={hasCustomDomain}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          setHasCustomDomain(checked);
-                          if (checked) {
-                            if (enterpriseDomainChoice === 'subdomain') {
-                              setCustomDomain(slug ? `${slug}.bolxolve.com` : '');
-                            } else {
-                              setCustomDomain(slug ? `invoice.${slug}.com` : '');
-                            }
-                          } else {
-                            setCustomDomain('');
-                          }
-                        }}
-                        className="h-4 w-4 rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
-                      />
-                    </label>
-                  )}
-
-                  {/* Multi-Branches - Enterprise Only */}
-                  {plan === 'ENTERPRISE' && (
-                    <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
-                      <div className="pr-2">
-                        <span className="text-xs font-semibold text-foreground block">Multi-Branches</span>
-                        <span className="text-[10px] text-muted-foreground">Multiple store depots</span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={hasMultipleBranches}
-                        onChange={(e) => setHasMultipleBranches(e.target.checked)}
-                        className="h-4 w-4 rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
-                      />
-                    </label>
-                  )}
-
-                  {/* AI Reports & Scanner - Business & Enterprise (Default ON) */}
-                  <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
-                    <div className="pr-2">
-                      <span className="text-xs font-semibold text-foreground block">AI Reports & Scanner</span>
-                      <span className="text-[10px] text-muted-foreground">Default from Business</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={hasAdvancedReports}
-                      onChange={(e) => setHasAdvancedReports(e.target.checked)}
-                      className="h-4 w-4 rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
-                    />
-                  </label>
-                </div>
+            {/* Modular Features & Add-ons */}
+            <div className="space-y-3 pt-4 border-t border-border/70">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-foreground">Modular Feature Toggles & Add-ons</Label>
+                <span className="text-[11px] text-muted-foreground font-medium">
+                  Custom domain available on all tiers
+                </span>
               </div>
-            )}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Custom Domains - Available on any tier with +₦10,000 add-on */}
+                <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
+                  <div className="pr-2">
+                    <span className="text-xs font-semibold text-foreground block">Custom Domain</span>
+                    <span className="text-[10px] text-muted-foreground">+₦10,000 Add-on (Any tier)</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={hasCustomDomain}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setHasCustomDomain(checked);
+                      if (checked) {
+                        if (enterpriseDomainChoice === 'subdomain') {
+                          setCustomDomain(slug ? `${slug}.bolxolve.com` : '');
+                        } else {
+                          setCustomDomain(slug ? `invoice.${slug}.com` : '');
+                        }
+                      } else {
+                        setCustomDomain('');
+                      }
+                    }}
+                    className="h-4 w-4 rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
+                  />
+                </label>
+
+                {/* Multi-Branches */}
+                <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
+                  <div className="pr-2">
+                    <span className="text-xs font-semibold text-foreground block">Multi-Branches</span>
+                    <span className="text-[10px] text-muted-foreground">{plan === 'ENTERPRISE' ? 'Included (2 Branches)' : '+₦5,000/mo Add-on'}</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={hasMultipleBranches}
+                    onChange={(e) => setHasMultipleBranches(e.target.checked)}
+                    className="h-4 w-4 rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
+                  />
+                </label>
+
+                {/* AI Reports & Scanner */}
+                <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
+                  <div className="pr-2">
+                    <span className="text-xs font-semibold text-foreground block">AI Reports & Scanner</span>
+                    <span className="text-[10px] text-muted-foreground">Default from Business</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={hasAdvancedReports}
+                    onChange={(e) => setHasAdvancedReports(e.target.checked)}
+                    className="h-4 w-4 rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
+                  />
+                </label>
+              </div>
+
+              {/* Add-ons Pricing Quick Reference */}
+              <div className="p-3.5 rounded-2xl bg-secondary/20 border border-border text-xs space-y-1">
+                <span className="font-bold text-foreground block text-[11px]">Add-on Pricing Reference:</span>
+                <p className="text-[11px] text-muted-foreground">
+                  Custom Domain: <strong>₦10,000</strong> (setup fee) • Extra Cashier: <strong>₦2,000/mo</strong> • Extra Branch: <strong>₦5,000/mo</strong> (Bundle: ₦10,000/mo for 1 branch + 4 cashiers) • Extra AI Vision: <strong>₦5,000</strong> for 100 scans.
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -608,9 +606,9 @@ export default function OnboardBusinessPage() {
         </Card>
 
         {/* ========================================================= */}
-        {/* SECTION 3: DUAL DOMAIN ARCHITECTURE (ENTERPRISE ONLY)     */}
+        {/* SECTION 3: DUAL DOMAIN ARCHITECTURE (CUSTOM DOMAIN ADD-ON)      */}
         {/* ========================================================= */}
-        {plan === 'ENTERPRISE' && hasCustomDomain && (
+        {hasCustomDomain && (
           <Card className="rounded-3xl border-border bg-card shadow-sm overflow-hidden animate-in fade-in duration-200">
             <CardHeader className="bg-secondary/20 border-b border-border/80 p-6 sm:p-8">
               <div className="flex items-center space-x-3">

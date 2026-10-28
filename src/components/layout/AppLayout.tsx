@@ -233,7 +233,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const navItems = user
     ? isSuperAdmin
       ? [
-          { href: '/', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' },
+          { href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' },
           { href: '/admin/tenants', icon: <Building2 className="h-5 w-5" />, label: 'Tenants' },
           { href: '/admin/onboard', icon: <UserPlus className="h-5 w-5" />, label: 'Onboard Business' },
           { href: '/reports', icon: <BarChart3 className="h-5 w-5" />, label: 'Reports' },
@@ -241,7 +241,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           { href: '/settings', icon: <SettingsIcon className="h-5 w-5" />, label: 'Settings' },
         ]
       : [
-          { href: '/', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' },
+          { href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' },
           { href: '/invoices', icon: <FileText className="h-5 w-5" />, label: 'Invoices' },
           { href: '/reports', icon: <BarChart3 className="h-5 w-5" />, label: 'Reports' },
           { href: '/approvals', icon: <CheckSquare className="h-5 w-5" />, label: 'Approvals' },
@@ -525,7 +525,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             </Button>
 
             <span className="font-heading font-bold text-base sm:text-lg md:text-xl tracking-tight capitalize select-none text-foreground truncate">
-              {pathname === '/'
+              {pathname === '/dashboard' || pathname === '/'
                 ? 'Analytics Dashboard'
                 : pathname.split('/')[1] || 'Dashboard'}
             </span>
