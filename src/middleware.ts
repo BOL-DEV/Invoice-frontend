@@ -13,10 +13,10 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/activity') ||
     pathname.startsWith('/approvals') ||
     pathname.startsWith('/business') ||
+    pathname.startsWith('/dashboard') ||
     pathname.startsWith('/invoices') ||
     pathname.startsWith('/settings') ||
-    pathname.startsWith('/users') ||
-    pathname === '/'; // root index redirector
+    pathname.startsWith('/users');
 
   if (isProtectedRoute && !sessionActive) {
     const loginUrl = new URL('/login', request.url);
@@ -24,8 +24,8 @@ export function middleware(request: NextRequest) {
   }
 
   if (isAuthRoute && sessionActive) {
-    const invoicesUrl = new URL('/invoices', request.url);
-    return NextResponse.redirect(invoicesUrl);
+    const dashboardUrl = new URL('/dashboard', request.url);
+    return NextResponse.redirect(dashboardUrl);
   }
 
   return NextResponse.next();
