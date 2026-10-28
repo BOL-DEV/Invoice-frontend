@@ -265,6 +265,7 @@ export interface SubscriptionDetails {
   capabilities: {
     aiExtraction: boolean;
     activityLogs: boolean;
+    excelExport?: boolean;
     customDomain: boolean;
     multipleBranches: boolean;
     advancedReports: boolean;

@@ -565,13 +565,13 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
     if (!tenantData?.subscription) return;
     setEditPlan(tenantData.subscription.plan || 'STARTER');
     setEditBillingMode(tenantData.subscription.billingMode || 'SUBSCRIPTION');
-    setEditStaffQuota(tenantData.subscription.maxStaffCount || 2);
+    setEditStaffQuota(tenantData.subscription.maxStaffCount || 3);
     const subPlan = tenantData.subscription.plan || 'STARTER';
     const subLimit = tenantData.subscription.aiScansLimit;
     setEditAiScansLimit(
       subLimit && !(subLimit === 10 && (subPlan === 'BUSINESS' || subPlan === 'ENTERPRISE'))
         ? subLimit
-        : (subPlan === 'ENTERPRISE' ? 700 : subPlan === 'BUSINESS' ? 300 : 10)
+        : (subPlan === 'ENTERPRISE' ? 300 : subPlan === 'BUSINESS' ? 150 : 15)
     );
     setEditCustomDomain(tenantData.subscription.hasCustomDomain || false);
     setEditMultipleBranches(tenantData.subscription.hasMultipleBranches || false);
@@ -583,21 +583,18 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
   const handlePlanSelect = (plan: PlanType) => {
     setEditPlan(plan);
     if (plan === 'STARTER') {
-      setEditStaffQuota(2);
-      setEditAiScansLimit(10);
-      setEditCustomDomain(false);
+      setEditStaffQuota(3);
+      setEditAiScansLimit(15);
       setEditMultipleBranches(false);
       setEditAdvancedReports(false);
     } else if (plan === 'BUSINESS') {
-      setEditStaffQuota(4);
-      setEditAiScansLimit(300);
-      setEditCustomDomain(false);
+      setEditStaffQuota(5);
+      setEditAiScansLimit(150);
       setEditMultipleBranches(false);
       setEditAdvancedReports(true);
     } else if (plan === 'ENTERPRISE') {
-      if (editStaffQuota < 5) setEditStaffQuota(10);
-      setEditAiScansLimit(700);
-      setEditCustomDomain(true);
+      if (editStaffQuota < 11) setEditStaffQuota(11);
+      setEditAiScansLimit(300);
       setEditMultipleBranches(true);
       setEditAdvancedReports(true);
     }
@@ -707,7 +704,7 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
   const isSuspended = business.onboardingStatus === 'SUSPENDED';
   const plan = subscription?.plan || 'STARTER';
   const billingMode = subscription?.billingMode || 'SUBSCRIPTION';
-  const maxStaff = subscription?.maxStaffCount || 2;
+  const maxStaff = subscription?.maxStaffCount || 3;
   const tenantStaffUsers = (users || []).filter((u) => u.role !== 'SUPER_ADMIN');
   const staffUsagePercent = Math.min(100, Math.round((tenantStaffUsers.length / maxStaff) * 100));
 
@@ -999,7 +996,7 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
           {(() => {
             const effectiveAiLimit = (subscription?.aiScansLimit && !(subscription.aiScansLimit === 10 && (plan === 'BUSINESS' || plan === 'ENTERPRISE')))
               ? subscription.aiScansLimit
-              : (plan === 'ENTERPRISE' ? 700 : plan === 'BUSINESS' ? 300 : 10);
+              : (plan === 'ENTERPRISE' ? 300 : plan === 'BUSINESS' ? 150 : 15);
             const scansUsed = subscription?.aiScansUsed ?? 0;
             const ratio = scansUsed / effectiveAiLimit;
             return (
@@ -2385,9 +2382,9 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
-                  { id: 'STARTER' as PlanType, name: 'STARTER', desc: 'Up to 2 Staff', features: '10 AI scans/mo trial' },
-                  { id: 'BUSINESS' as PlanType, name: 'BUSINESS', desc: 'Up to 4 Staff', features: '300 AI scans/mo included' },
-                  { id: 'ENTERPRISE' as PlanType, name: 'ENTERPRISE', desc: 'Custom Staff', features: '700 AI scans/mo default' },
+                  { id: 'STARTER' as PlanType, name: 'STARTER', desc: '₦6,000/mo (₦60,000/yr)', features: '3 Users (1 Admin + 2 Cashiers) • 15 AI scans/mo • PDF only' },
+                  { id: 'BUSINESS' as PlanType, name: 'BUSINESS', desc: '₦20,000/mo (₦200,000/yr)', features: '5 Users (1 Admin + 4 Cashiers) • 150 AI scans/mo • Excel & Activity Logs' },
+                  { id: 'ENTERPRISE' as PlanType, name: 'ENTERPRISE', desc: '₦40,000/mo (₦400,000/yr)', features: '11 Users (1 Admin + 2 Sub-admins + 8 Cashiers) • 2 Branches • 300 AI scans/mo • Excel & Logs' },
                 ].map((tier) => {
                   const isSelected = editPlan === tier.id;
                   return (
@@ -2486,9 +2483,9 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    if (editPlan === 'STARTER') setEditStaffQuota(2);
-                    else if (editPlan === 'BUSINESS') setEditStaffQuota(4);
-                    else if (editPlan === 'ENTERPRISE') setEditStaffQuota(10);
+                    if (editPlan === 'STARTER') setEditStaffQuota(3);
+                    else if (editPlan === 'BUSINESS') setEditStaffQuota(5);
+                    else if (editPlan === 'ENTERPRISE') setEditStaffQuota(11);
                   }}
                   className="h-11 rounded-xl text-xs px-3.5 border-border hover:bg-secondary shrink-0 cursor-pointer"
                 >
@@ -2506,7 +2503,7 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
                 </div>
               ) : (
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Super Admins can freely customize this limit for any business. Defaults: Starter (2), Business (4), Enterprise (10). Custom allowances entered here apply directly to this business.
+                  Super Admins can freely customize this limit for any business. Defaults: Starter (3), Business (5), Enterprise (11). Extra cashier seats are billed at ₦2,000/seat/month.
                 </p>
               )}
             </div>
@@ -2536,9 +2533,9 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    if (editPlan === 'STARTER') setEditAiScansLimit(10);
-                    else if (editPlan === 'BUSINESS') setEditAiScansLimit(300);
-                    else if (editPlan === 'ENTERPRISE') setEditAiScansLimit(700);
+                    if (editPlan === 'STARTER') setEditAiScansLimit(15);
+                    else if (editPlan === 'BUSINESS') setEditAiScansLimit(150);
+                    else if (editPlan === 'ENTERPRISE') setEditAiScansLimit(300);
                   }}
                   className="h-11 rounded-xl text-xs px-3.5 border-border hover:bg-secondary shrink-0 cursor-pointer"
                 >
@@ -2546,69 +2543,83 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
                 </Button>
               </div>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Super Admins can freely customize this limit for any business on Starter, Business, or Enterprise. Defaults: Starter (10), Business (300), Enterprise (700). Custom allowances entered here apply directly to this business.
+                Super Admins can freely customize this limit for any business on Starter, Business, or Enterprise. Defaults: Starter (15), Business (150), Enterprise (300). Extra AI Vision scans pack: ₦5,000 for 100 scans.
               </p>
             </div>
 
-            {/* Feature Toggles */}
-            {editPlan !== 'STARTER' ? (
-              <div className="space-y-3 pt-3 border-t border-border">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-bold text-foreground">Modular Capabilities</Label>
-                  <span className="text-[11px] text-muted-foreground font-medium">
-                    {editPlan === 'BUSINESS' ? 'Business Tier Modular Add-ons' : 'Enterprise Modular Suite'}
-                  </span>
-                </div>
-                <div className="space-y-2.5">
-                  {editPlan === 'ENTERPRISE' && (
-                    <>
-                      <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
-                        <div className="pr-4">
-                          <span className="text-sm font-semibold text-foreground block">Custom Enterprise Domain Routing</span>
-                          <span className="text-xs text-muted-foreground">Allow company to map and route their own custom subdomain / apex domain.</span>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={editCustomDomain}
-                          onChange={(e) => setEditCustomDomain(e.target.checked)}
-                          className="h-5 w-5 rounded-md border-border text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
-                        />
-                      </label>
-                      <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
-                        <div className="pr-4">
-                          <span className="text-sm font-semibold text-foreground block">Multiple Depot Branches</span>
-                          <span className="text-xs text-muted-foreground">Enable multi-location depot operations and decentralized stock management.</span>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={editMultipleBranches}
-                          onChange={(e) => setEditMultipleBranches(e.target.checked)}
-                          className="h-5 w-5 rounded-md border-border text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
-                        />
-                      </label>
-                    </>
-                  )}
-
-                  {/* AI Reports & Scanner (Business & Enterprise default) */}
-                  <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
-                    <div className="pr-4">
-                      <span className="text-sm font-semibold text-foreground block">AI Reports & Scanner</span>
-                      <span className="text-xs text-muted-foreground">Default from Business tier up to Enterprise. Unlock financial analytics & receipt scanner.</span>
+            {/* Feature Toggles & Add-ons */}
+            <div className="space-y-3 pt-3 border-t border-border">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-bold text-foreground">Modular Capabilities & Add-ons</Label>
+                <span className="text-[11px] text-muted-foreground font-medium">
+                  Add-on charges & tier features
+                </span>
+              </div>
+              <div className="space-y-2.5">
+                {/* Custom Domain Routing (Add-on: ₦10,000 for ANY tier) */}
+                <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
+                  <div className="pr-4">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-semibold text-foreground block">Custom Domain Routing</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                        +₦10,000 Add-on (Any Tier)
+                      </span>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={editAdvancedReports}
-                      onChange={(e) => setEditAdvancedReports(e.target.checked)}
-                      className="h-5 w-5 rounded-md border-border text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
-                    />
-                  </label>
-                </div>
+                    <span className="text-xs text-muted-foreground">Allow company to map and route their own custom subdomain / apex domain (e.g. invoice.companyname.com).</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={editCustomDomain}
+                    onChange={(e) => setEditCustomDomain(e.target.checked)}
+                    className="h-5 w-5 rounded-md border-border text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
+                  />
+                </label>
+
+                {/* Multiple Depot Branches */}
+                <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
+                  <div className="pr-4">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-semibold text-foreground block">Multiple Depot Branches</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        {editPlan === 'ENTERPRISE' ? 'Included (2 Branches)' : '+₦5,000/mo Add-on'}
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">Enable multi-location depot operations and decentralized stock management. Bundle offer: ₦10,000/mo for 1 branch + 4 cashiers.</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={editMultipleBranches}
+                    onChange={(e) => setEditMultipleBranches(e.target.checked)}
+                    className="h-5 w-5 rounded-md border-border text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
+                  />
+                </label>
+
+                {/* AI Reports & Scanner */}
+                <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
+                  <div className="pr-4">
+                    <span className="text-sm font-semibold text-foreground block">AI Reports & Scanner</span>
+                    <span className="text-xs text-muted-foreground">Default from Business tier up to Enterprise. Unlock financial analytics & receipt scanner.</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={editAdvancedReports}
+                    onChange={(e) => setEditAdvancedReports(e.target.checked)}
+                    className="h-5 w-5 rounded-md border-border text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
+                  />
+                </label>
               </div>
-            ) : (
-              <div className="p-3.5 rounded-2xl bg-secondary/20 border border-border text-xs text-muted-foreground italic">
-                Modular toggles (Custom Domains, Multi-Branches, and AI Reports) are not available on the Starter tier.
+
+              {/* Add-ons Pricing Quick Reference */}
+              <div className="p-3.5 rounded-2xl bg-secondary/20 border border-border text-xs space-y-1.5">
+                <span className="font-bold text-foreground block">Platform Add-on Pricing Reference:</span>
+                <ul className="text-muted-foreground space-y-1 list-disc list-inside text-[11px]">
+                  <li><strong className="text-foreground">Custom Domain Routing:</strong> ₦10,000 one-off / setup fee (+ domain purchase fee if purchased on behalf).</li>
+                  <li><strong className="text-foreground">Extra Cashier:</strong> ₦2,000 / month per user seat.</li>
+                  <li><strong className="text-foreground">Extra Branch:</strong> ₦5,000 / month per branch (Special bundle: ₦10,000 / month for 1 branch + 4 cashiers).</li>
+                  <li><strong className="text-foreground">Extra AI Vision Scans:</strong> ₦5,000 for 100 extra scans pack.</li>
+                </ul>
               </div>
-            )}
+            </div>
 
             <DialogFooter className="pt-4 flex flex-row items-center justify-end gap-3 border-t border-border/60">
               <Button

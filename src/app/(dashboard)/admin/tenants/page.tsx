@@ -123,7 +123,7 @@ export default function TenantsAdminPage() {
     setSelectedTenant(tenant);
     setEditPlan(tenant.subscription?.plan || 'STARTER');
     setEditBillingMode(tenant.subscription?.billingMode || 'SUBSCRIPTION');
-    setEditStaffQuota(tenant.subscription?.maxStaffCount || 2);
+    setEditStaffQuota(tenant.subscription?.maxStaffCount || 3);
     setEditCustomDomain(Boolean(tenant.subscription?.hasCustomDomain));
     setEditMultipleBranches(Boolean(tenant.subscription?.hasMultipleBranches));
     setEditAdvancedReports(Boolean(tenant.subscription?.hasAdvancedReports));
@@ -134,17 +134,17 @@ export default function TenantsAdminPage() {
   const handlePlanChangeInForm = (plan: PlanType) => {
     setNewBizPlan(plan);
     if (plan === 'STARTER') {
-      setNewBizStaffQuota(2);
+      setNewBizStaffQuota(3);
       setNewBizCustomDomain(false);
       setNewBizMultipleBranches(false);
       setNewBizAdvancedReports(false);
     } else if (plan === 'BUSINESS') {
-      setNewBizStaffQuota(4);
+      setNewBizStaffQuota(5);
       setNewBizCustomDomain(false);
       setNewBizMultipleBranches(false);
       setNewBizAdvancedReports(true);
     } else if (plan === 'ENTERPRISE') {
-      setNewBizStaffQuota(10);
+      setNewBizStaffQuota(11);
       setNewBizCustomDomain(true);
       setNewBizMultipleBranches(true);
       setNewBizAdvancedReports(true);
@@ -154,17 +154,15 @@ export default function TenantsAdminPage() {
   const handleEditPlanChange = (plan: PlanType) => {
     setEditPlan(plan);
     if (plan === 'STARTER') {
-      setEditStaffQuota(2);
-      setEditCustomDomain(false);
+      setEditStaffQuota(3);
       setEditMultipleBranches(false);
       setEditAdvancedReports(false);
     } else if (plan === 'BUSINESS') {
-      setEditStaffQuota(4);
-      setEditCustomDomain(false);
+      setEditStaffQuota(5);
       setEditMultipleBranches(false);
       setEditAdvancedReports(true);
     } else if (plan === 'ENTERPRISE') {
-      if (editStaffQuota < 5) setEditStaffQuota(10);
+      if (editStaffQuota < 11) setEditStaffQuota(11);
       setEditCustomDomain(true);
       setEditMultipleBranches(true);
       setEditAdvancedReports(true);
@@ -858,10 +856,10 @@ export default function TenantsAdminPage() {
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-1">
                       {plan === 'STARTER'
-                        ? 'Max 2 staff, standard analytics, manual entry'
+                        ? '3 Users (1 Admin + 2 Cashiers) • ₦6k/mo • 15 AI'
                         : plan === 'BUSINESS'
-                        ? 'Max 4 staff, AI vision included'
-                        : 'Custom quota (>4), modular toggles'}
+                        ? '5 Users (1 Admin + 4 Cashiers) • ₦20k/mo • 150 AI'
+                        : '11 Users (1 Admin + 2 Sub-admins + 8 Cashiers) • ₦40k/mo'}
                     </p>
                   </button>
                 ))}
@@ -892,7 +890,7 @@ export default function TenantsAdminPage() {
                     className="h-9 text-xs font-mono rounded-xl"
                   />
                   {(newBizPlan === 'STARTER' || newBizPlan === 'BUSINESS') && (
-                    <p className="text-[10px] text-muted-foreground">Fixed quota enforced by selected plan.</p>
+                    <p className="text-[10px] text-muted-foreground">Fixed base quota ({newBizPlan === 'STARTER' ? '3' : '5'} users). Extra cashiers: +₦2k/mo.</p>
                   )}
                 </div>
               </div>
@@ -1050,9 +1048,9 @@ export default function TenantsAdminPage() {
                 onChange={(e) => handleEditPlanChange(e.target.value as PlanType)}
                 className="w-full h-9 rounded-xl border border-border bg-background px-3 text-xs font-semibold"
               >
-                <option value="STARTER">STARTER (Max 2 Staff, No Custom Domain, No AI Scanner)</option>
-                <option value="BUSINESS">BUSINESS (Max 4 Staff, AI Scanner Included, No Custom Domain)</option>
-                <option value="ENTERPRISE">ENTERPRISE (Custom Quota, Modular Feature Toggles)</option>
+                <option value="STARTER">STARTER (3 Users, 15 AI Scans, PDF only)</option>
+                <option value="BUSINESS">BUSINESS (5 Users, 150 AI Scans, Excel & Logs)</option>
+                <option value="ENTERPRISE">ENTERPRISE (11 Users, 2 Branches, 300 AI Scans)</option>
               </select>
             </div>
 
@@ -1080,60 +1078,50 @@ export default function TenantsAdminPage() {
                 className="h-9 text-xs font-mono rounded-xl"
               />
               {(editPlan === 'STARTER' || editPlan === 'BUSINESS') && (
-                <p className="text-[10px] text-muted-foreground">Fixed by plan tier ({editPlan === 'STARTER' ? '2' : '4'} seats).</p>
+                <p className="text-[10px] text-muted-foreground">Fixed base quota ({editPlan === 'STARTER' ? '3' : '5'} users). Extra cashiers: +₦2,000/seat/mo.</p>
               )}
             </div>
 
             {/* Modular Feature Toggles */}
-            {editPlan !== 'STARTER' ? (
-              <div className="p-3.5 rounded-xl bg-secondary/50 border border-border space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-foreground">Modular Capabilities:</span>
-                  <span className="text-[10px] text-muted-foreground font-medium">
-                    {editPlan === 'BUSINESS' ? 'Business Tier Modular Add-ons' : 'Enterprise Modular Suite'}
-                  </span>
-                </div>
-                <div className="space-y-2 text-xs">
-                  {editPlan === 'ENTERPRISE' && (
-                    <>
-                      <label className="flex items-center space-x-2.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={editCustomDomain}
-                          onChange={(e) => setEditCustomDomain(e.target.checked)}
-                          className="rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
-                        />
-                        <span>Allow Custom Domain Portals</span>
-                      </label>
-
-                      <label className="flex items-center space-x-2.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={editMultipleBranches}
-                          onChange={(e) => setEditMultipleBranches(e.target.checked)}
-                          className="rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
-                        />
-                        <span>Enable Multiple Branches</span>
-                      </label>
-                    </>
-                  )}
-
-                  <label className="flex items-center space-x-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={editAdvancedReports}
-                      onChange={(e) => setEditAdvancedReports(e.target.checked)}
-                      className="rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
-                    />
-                    <span>AI Reports & Scanner (Default Business & Enterprise)</span>
-                  </label>
-                </div>
+            <div className="p-3.5 rounded-xl bg-secondary/50 border border-border space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-foreground">Modular Capabilities:</span>
+                <span className="text-[10px] text-muted-foreground font-medium">
+                  Add-on toggles & features
+                </span>
               </div>
-            ) : (
-              <div className="p-3 rounded-xl bg-secondary/20 border border-border text-[11px] text-muted-foreground italic">
-                Modular toggles are not available on the Starter plan.
+              <div className="space-y-2 text-xs">
+                <label className="flex items-center space-x-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editCustomDomain}
+                    onChange={(e) => setEditCustomDomain(e.target.checked)}
+                    className="rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
+                  />
+                  <span>Allow Custom Domain Routing (+₦10,000 add-on)</span>
+                </label>
+
+                <label className="flex items-center space-x-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editMultipleBranches}
+                    onChange={(e) => setEditMultipleBranches(e.target.checked)}
+                    className="rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
+                  />
+                  <span>Enable Multiple Branches {editPlan === 'ENTERPRISE' ? '(Included)' : '(+₦5,000/mo)'}</span>
+                </label>
+
+                <label className="flex items-center space-x-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editAdvancedReports}
+                    onChange={(e) => setEditAdvancedReports(e.target.checked)}
+                    className="rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
+                  />
+                  <span>AI Reports & Scanner (Default Business & Enterprise)</span>
+                </label>
               </div>
-            )}
+            </div>
 
             <DialogFooter className="pt-2">
               <Button

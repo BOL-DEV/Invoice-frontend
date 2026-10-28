@@ -486,6 +486,13 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (error) {
       console.error(`Export to ${format} failed:`, error);
+      if (error && (error as any).response?.data instanceof Blob) {
+        try {
+          const text = await (error as any).response.data.text();
+          const parsed = JSON.parse(text);
+          if (parsed) (error as any).response.data = parsed;
+        } catch {}
+      }
       const { title, message, variant } = getErrorDialog(error, 'Export Failed', `Failed to export invoice to ${format}`);
       modal.alert(title, message, variant);
     }
@@ -1186,13 +1193,26 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                 <span>PDF</span>
               </Button>
               <Button
-                onClick={() => handleExport(createdInvoiceId || '', 'excel', createdInvoiceNumber)}
+                onClick={() => {
+                  if (subDetails?.capabilities?.excelExport === false) {
+                    modal.alert(
+                      'Feature Locked on Starter Plan',
+                      'Excel spreadsheet export is an exclusive feature for Business and Enterprise tiers. Starter tier includes unlimited PDF printing.',
+                      'warning'
+                    );
+                    return;
+                  }
+                  handleExport(createdInvoiceId || '', 'excel', createdInvoiceNumber);
+                }}
                 variant="outline"
                 size="sm"
                 className="space-x-1.5 font-semibold text-xs rounded-xl shadow-sm"
               >
                 <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Excel</span>
+                {subDetails?.capabilities?.excelExport === false && (
+                  <Lock className="h-3 w-3 text-amber-500 ml-1" />
+                )}
               </Button>
               
             </div>
