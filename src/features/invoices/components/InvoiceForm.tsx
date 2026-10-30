@@ -192,20 +192,18 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   const { data: businessSettings } = useBusinessSettings();
   const { data: subDetails } = useSubscription();
 
-  // AI Document Scanning Quota Calculation
+  // AI Document Scanning Quota Calculation (dynamically derived from subscription API)
   const currentPlan = subDetails?.subscription?.plan ?? businessSettings?.subscription?.plan;
-  const rawLimit = subDetails?.aiScans?.limit ?? businessSettings?.subscription?.aiScansLimit;
-  // If rawLimit is 10 but plan is BUSINESS (default 300) or ENTERPRISE (default 700), it's the unmigrated database default
   const aiScansLimit =
-    rawLimit !== undefined && rawLimit !== null && !(rawLimit === 10 && (currentPlan === 'BUSINESS' || currentPlan === 'ENTERPRISE'))
-      ? rawLimit
-      : (currentPlan === 'ENTERPRISE' ? 700 : currentPlan === 'BUSINESS' ? 300 : 10);
+    subDetails?.aiScans?.limit ??
+    businessSettings?.subscription?.aiScansLimit ??
+    (currentPlan === 'ENTERPRISE' ? 150 : currentPlan === 'BUSINESS' ? 60 : 10);
   const aiScansUsed =
     subDetails?.aiScans?.used ??
     businessSettings?.subscription?.aiScansUsed ??
     0;
   const aiScansRemaining =
-    subDetails?.aiScans?.remaining !== undefined && !(subDetails.aiScans.remaining <= 10 && (currentPlan === 'BUSINESS' || currentPlan === 'ENTERPRISE') && aiScansLimit >= 300)
+    subDetails?.aiScans?.remaining !== undefined
       ? subDetails.aiScans.remaining
       : Math.max(0, aiScansLimit - aiScansUsed);
   const isAiQuotaExhausted = aiScansRemaining <= 0;

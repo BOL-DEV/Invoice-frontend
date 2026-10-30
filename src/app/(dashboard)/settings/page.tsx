@@ -1058,6 +1058,39 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
+                  {/* AI Document Scanning Quota Usage Bar */}
+                  {subDetails?.aiScans && (
+                    <div className="p-4 rounded-xl border border-border/80 bg-slate-50/60 dark:bg-slate-900/50 space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-semibold text-foreground flex items-center space-x-1.5">
+                          <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+                          <span>AI Document Scanning Quota</span>
+                        </span>
+                        <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                          {subDetails.aiScans.used} of {subDetails.aiScans.limit} scans used ({subDetails.aiScans.remaining} remaining)
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                        <div
+                          className="bg-indigo-500 h-full rounded-full transition-all duration-300"
+                          style={{
+                            width: `${Math.min(100, (subDetails.aiScans.used / Math.max(1, subDetails.aiScans.limit)) * 100)}%`,
+                          }}
+                        />
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-muted-foreground mt-1 gap-1">
+                        <p>
+                          Monthly cycle quota. Resets every 30 days. Extra AI Vision scans pack: ₦5,000 for 100 scans.
+                        </p>
+                        {subDetails.aiScans.resetAt && (
+                          <span className="font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                            Cycle resets: {new Date(subDetails.aiScans.resetAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Feature Capabilities Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div className="p-3.5 rounded-xl border border-border/80 flex items-start space-x-3">
@@ -1067,9 +1100,7 @@ export default function SettingsPage() {
                       <div>
                         <p className="font-semibold text-foreground">AI Document Scanner</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {subPlan === 'STARTER' && '10 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
-                          {subPlan === 'BUSINESS' && '60 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
-                          {subPlan === 'ENTERPRISE' && '150 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
+                          {subDetails?.aiScans?.limit ?? (subPlan === 'STARTER' ? 10 : subPlan === 'BUSINESS' ? 60 : 150)} scans/month included (Extra pack: ₦5,000 for 100 scans)
                         </p>
                       </div>
                     </div>
