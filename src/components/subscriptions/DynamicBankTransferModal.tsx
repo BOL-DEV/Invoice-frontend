@@ -127,7 +127,7 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
             <div className="space-y-1">
               <h3 className="text-xl font-bold text-white">Payment Received!</h3>
               <p className="text-xs text-slate-300">
-                Your subscription to the <strong className="text-emerald-400 font-semibold">{paymentData.plan}</strong> plan has been activated.
+                Your subscription to the <strong className="text-emerald-400 font-semibold">{paymentData.plan}</strong> plan ({paymentData.months || (paymentData.billingCycle === 'ANNUAL' ? 12 : 1)} { (paymentData.months || (paymentData.billingCycle === 'ANNUAL' ? 12 : 1)) === 1 ? 'month' : 'months'}) has been activated.
               </p>
             </div>
             <div className="pt-4">
@@ -154,7 +154,7 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
                 <span>Lenco Virtual Account Payment</span>
               </div>
               <h3 className="text-lg font-bold text-white">
-                Bank Transfer for {paymentData.plan} Plan
+                Bank Transfer for {paymentData.plan} Plan ({paymentData.months || (paymentData.billingCycle === 'ANNUAL' ? 12 : 1)} {(paymentData.months || (paymentData.billingCycle === 'ANNUAL' ? 12 : 1)) === 1 ? 'Month' : 'Months'})
               </h3>
               <p className="text-xs text-slate-400">
                 Transfer the exact amount below using your mobile bank app or internet banking.

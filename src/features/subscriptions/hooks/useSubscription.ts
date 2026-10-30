@@ -10,6 +10,7 @@ export interface PaymentInitiationResult {
   currency: string;
   plan: 'STARTER' | 'BUSINESS' | 'ENTERPRISE';
   billingCycle: 'MONTHLY' | 'ANNUAL';
+  months?: number;
   bankName: string;
   accountNumber: string;
   accountName: string;
@@ -28,7 +29,11 @@ export const useSubscription = () => {
 
 export const useInitiateSubscriptionPayment = () => {
   return useMutation({
-    mutationFn: async (params: { plan: 'STARTER' | 'BUSINESS' | 'ENTERPRISE'; billingCycle: 'MONTHLY' | 'ANNUAL' }) => {
+    mutationFn: async (params: {
+      plan: 'STARTER' | 'BUSINESS' | 'ENTERPRISE';
+      billingCycle?: 'MONTHLY' | 'ANNUAL';
+      months?: number;
+    }) => {
       const response = await apiClient.post<ApiResponse<PaymentInitiationResult>>(
         API_ENDPOINTS.SUBSCRIPTIONS.INITIATE_PAYMENT,
         params
