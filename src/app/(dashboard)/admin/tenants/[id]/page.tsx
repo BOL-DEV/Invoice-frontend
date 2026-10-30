@@ -584,17 +584,17 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
     setEditPlan(plan);
     if (plan === 'STARTER') {
       setEditStaffQuota(3);
-      setEditAiScansLimit(15);
+      setEditAiScansLimit(10);
       setEditMultipleBranches(false);
       setEditAdvancedReports(false);
     } else if (plan === 'BUSINESS') {
       setEditStaffQuota(5);
-      setEditAiScansLimit(150);
+      setEditAiScansLimit(60);
       setEditMultipleBranches(false);
       setEditAdvancedReports(true);
     } else if (plan === 'ENTERPRISE') {
       if (editStaffQuota < 11) setEditStaffQuota(11);
-      setEditAiScansLimit(300);
+      setEditAiScansLimit(150);
       setEditMultipleBranches(true);
       setEditAdvancedReports(true);
     }
@@ -612,7 +612,7 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
           maxStaffCount: Number(editStaffQuota),
           aiScansLimit: Number(editAiScansLimit),
           hasCustomDomain: editCustomDomain,
-          hasMultipleBranches: editMultipleBranches,
+          hasMultipleBranches: editPlan === 'ENTERPRISE' ? editMultipleBranches : false,
           hasAdvancedReports: editAdvancedReports,
         },
       });
@@ -2382,9 +2382,9 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
-                  { id: 'STARTER' as PlanType, name: 'STARTER', desc: '₦6,000/mo (₦60,000/yr)', features: '3 Users (1 Admin + 2 Cashiers) • 15 AI scans/mo • PDF only' },
-                  { id: 'BUSINESS' as PlanType, name: 'BUSINESS', desc: '₦20,000/mo (₦200,000/yr)', features: '5 Users (1 Admin + 4 Cashiers) • 150 AI scans/mo • Excel & Activity Logs' },
-                  { id: 'ENTERPRISE' as PlanType, name: 'ENTERPRISE', desc: '₦40,000/mo (₦400,000/yr)', features: '11 Users (1 Admin + 2 Sub-admins + 8 Cashiers) • 2 Branches • 300 AI scans/mo • Excel & Logs' },
+                  { id: 'STARTER' as PlanType, name: 'STARTER', desc: '₦6,500/mo (₦65,000/yr)', features: '3 Users (1 Admin + 2 Cashiers) • 10 AI scans/mo • PDF only' },
+                  { id: 'BUSINESS' as PlanType, name: 'BUSINESS', desc: '₦10,500/mo (₦105,000/yr)', features: '5 Users (1 Admin + 4 Cashiers) • 60 AI scans/mo • Excel & Activity Logs' },
+                  { id: 'ENTERPRISE' as PlanType, name: 'ENTERPRISE', desc: '₦20,000/mo (₦200,000/yr)', features: '11 Users (1 Admin + 2 Sub-admins + 8 Cashiers) • 2 Branches • 150 AI scans/mo • Excel & Logs' },
                 ].map((tier) => {
                   const isSelected = editPlan === tier.id;
                   return (
@@ -2533,9 +2533,9 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    if (editPlan === 'STARTER') setEditAiScansLimit(15);
-                    else if (editPlan === 'BUSINESS') setEditAiScansLimit(150);
-                    else if (editPlan === 'ENTERPRISE') setEditAiScansLimit(300);
+                    if (editPlan === 'STARTER') setEditAiScansLimit(10);
+                    else if (editPlan === 'BUSINESS') setEditAiScansLimit(60);
+                    else if (editPlan === 'ENTERPRISE') setEditAiScansLimit(150);
                   }}
                   className="h-11 rounded-xl text-xs px-3.5 border-border hover:bg-secondary shrink-0 cursor-pointer"
                 >
@@ -2543,7 +2543,7 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
                 </Button>
               </div>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Super Admins can freely customize this limit for any business on Starter, Business, or Enterprise. Defaults: Starter (15), Business (150), Enterprise (300). Extra AI Vision scans pack: ₦5,000 for 100 scans.
+                Super Admins can freely customize this limit for any business on Starter, Business, or Enterprise. Defaults: Starter (10), Business (60), Enterprise (150). Extra AI Vision scans pack: ₦5,000 for 100 scans.
               </p>
             </div>
 
@@ -2575,24 +2575,26 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
                   />
                 </label>
 
-                {/* Multiple Depot Branches */}
-                <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
-                  <div className="pr-4">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-semibold text-foreground block">Multiple Depot Branches</span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        {editPlan === 'ENTERPRISE' ? 'Included (2 Branches)' : '+₦5,000/mo Add-on'}
-                      </span>
+                {/* Multiple Depot Branches - Only visible if ENTERPRISE tier */}
+                {editPlan === 'ENTERPRISE' && (
+                  <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors animate-in fade-in duration-200">
+                    <div className="pr-4">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-semibold text-foreground block">Multiple Depot Branches</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          Included (2 Branches)
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">Enable multi-location depot operations and decentralized stock management. Bundle offer: ₦10,000/mo for 1 branch + 4 cashiers.</span>
                     </div>
-                    <span className="text-xs text-muted-foreground">Enable multi-location depot operations and decentralized stock management. Bundle offer: ₦10,000/mo for 1 branch + 4 cashiers.</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={editMultipleBranches}
-                    onChange={(e) => setEditMultipleBranches(e.target.checked)}
-                    className="h-5 w-5 rounded-md border-border text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
-                  />
-                </label>
+                    <input
+                      type="checkbox"
+                      checked={editMultipleBranches}
+                      onChange={(e) => setEditMultipleBranches(e.target.checked)}
+                      className="h-5 w-5 rounded-md border-border text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
+                    />
+                  </label>
+                )}
 
                 {/* AI Reports & Scanner */}
                 <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">

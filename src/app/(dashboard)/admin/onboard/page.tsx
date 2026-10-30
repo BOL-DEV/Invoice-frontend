@@ -31,6 +31,8 @@ import {
   Image as ImageIcon,
   FileText,
   AlertTriangle,
+  Code2,
+  Copy,
 } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
@@ -49,6 +51,59 @@ export const RESERVED_SLUGS = [
   'docs', 'status', 'mail', 'email', 'root', 'security', 'payments',
   'portal', 'dashboard', 'cdn', 'assets', 'static'
 ];
+
+export const MASTER_AI_PROMPT = `You are an expert PDFKit invoice design engineer.
+Analyze the attached paper invoice or receipt image and write the function \`async function renderInvoicePDF(doc, invoice, business, helpers)\` in pure, error-free JavaScript.
+
+RUNTIME ENVIRONMENT & CONTEXT:
+- Document: A4 portrait (margin: 35, size: 'A4', usable width: 525.28 pt from x=35 to x=560)
+- Fonts Available: Standard PDFKit built-in fonts: 'Helvetica', 'Helvetica-Bold', 'Helvetica-Oblique'
+- Parameters:
+  * doc: PDFDocument instance
+  * invoice: { customerName, customerPhone, customerAddress, invoiceNumber, createdAt, items: [{ position, quantity, description, unitPrice, totalPrice }], subtotal, total, charges: [{ name, amount }], notes }
+  * business: { businessName, receiptPrefix, address, phone, email, tagline, tin, cacOrRegNumber }
+  * helpers:
+    - helpers.formatInvoiceNumber(invNum, prefix)
+    - helpers.numberToNairaWords(amount)
+    - helpers.formatCurrency(num)  // e.g. "2,156,000.00"
+
+STRICT SYNTAX & STABILITY RULES (CRITICAL):
+1. Write 100% pure vanilla JavaScript only. Do NOT use TypeScript types, interfaces, 'import', 'export', or 'require'.
+2. NEVER use raw unicode Naira symbol '₦' directly inside Helvetica (it corrupts encoding and throws errors). Use "N " or helpers.formatCurrency(amount).
+3. Do NOT use multi-line dot chaining. Keep method calls simple and explicit on \`doc\`, e.g.:
+   doc.font('Helvetica-Bold');
+   doc.fontSize(10);
+   doc.fillColor('#111827');
+   doc.text('...', x, y, { width: 100, align: 'right' });
+4. ALWAYS ensure every opening parenthesis '(' has a matching closing parenthesis ')'. Ensure all option objects { ... } are properly closed inside text() calls.
+5. Accurately replicate the layout from the image: business title, address sub-strip, customer line grid, table headers, item rows, totals breakdown, amount in words, and signature stamp box.
+6. DYNAMIC CHARGES & SUBTOTAL PLACEMENT (CRITICAL):
+   - The item table grid is STRICTLY for invoice.items (goods/services). NEVER place Subtotal, charges, or discounts inside the item table rows!
+   - Invoices frequently contain extra charges, taxes, discounts, or logistics fees stored in \`invoice.charges = [{ name, amount }]\` alongside \`invoice.subtotal\`.
+   - If \`invoice.charges && invoice.charges.length > 0\`:
+     * Render the breakdown BENEATH the item table (in the totals area on the right, directly above the final TOTAL):
+       1. Subtotal: helpers.formatCurrency(invoice.subtotal)
+       2. Each dynamic charge: loop through \`invoice.charges.forEach(charge => ...)\` showing charge.name and formatted amount (e.g. "Installation:", "Transportation:", "WHT:", prefixing with '-' if negative).
+       3. Final TOTAL with helpers.formatCurrency(invoice.total)
+   - When there are NO charges (!invoice.charges || invoice.charges.length === 0):
+     * Keep it clean! Do NOT render subtotal or extra charge lines; render ONLY the standard TOTAL box beneath the table.
+7. SMART ADAPTIVE LOGO RULE (CRITICAL):
+   - When a logo or emblem appears on the paper receipt, ALWAYS structure the logo code with an if/else check:
+     var logoBoxX = startX;
+     var logoBoxY = 32;
+     var logoBoxSize = 50;
+     if (business && business.logoBuffer) {
+       // 1. If client uploaded an official logo, use the real image instead of drawing shapes:
+       try {
+         doc.image(business.logoBuffer, logoBoxX, logoBoxY, { fit: [logoBoxSize, logoBoxSize] });
+       } catch (e) {}
+     } else {
+       // 2. Fallback: If no logo is uploaded, draw the vector logo shapes described from the paper image:
+       doc.save();
+       // ... your vector logo code here ...
+       doc.restore();
+     }
+8. Return ONLY the code for \`async function renderInvoicePDF(doc, invoice, business, helpers) { ... }\` without wrapping in markdown or explanations.`;
 
 export const isValidPhoneNumber = (val: string): boolean => {
   if (!val || typeof val !== 'string') return false;
@@ -76,8 +131,9 @@ export default function OnboardBusinessPage() {
   const [receiptPrefix, setReceiptPrefix] = useState('INV');
   const [tagline, setTagline] = useState('');
 
-  // Invoice Template State (Modern Corporate Universal Default)
-  const [receiptTemplateId, setReceiptTemplateId] = useState<'classic' | 'modern'>('modern');
+  // Invoice Template State (Modern Corporate Universal Default or Custom PDFKit Script)
+  const [receiptTemplateId, setReceiptTemplateId] = useState<'classic' | 'modern' | 'custom'>('modern');
+  const [customTemplateUrl, setCustomTemplateUrl] = useState<string>('');
 
   // Domains State (Live custom domain / Bolxolve subdomain, Dev domain businessname.localhost)
   const [customDomain, setCustomDomain] = useState('');
@@ -88,7 +144,7 @@ export default function OnboardBusinessPage() {
   const [plan, setPlan] = useState<PlanType>('BUSINESS');
   const [billingMode, setBillingMode] = useState<BillingMode>('SUBSCRIPTION');
   const [maxStaffCount, setMaxStaffCount] = useState<number>(5);
-  const [aiScansLimit, setAiScansLimit] = useState<number>(150);
+  const [aiScansLimit, setAiScansLimit] = useState<number>(60);
   const [hasCustomDomain, setHasCustomDomain] = useState<boolean>(false);
   const [hasMultipleBranches, setHasMultipleBranches] = useState<boolean>(false);
   const [hasAdvancedReports, setHasAdvancedReports] = useState<boolean>(true);
@@ -102,6 +158,15 @@ export default function OnboardBusinessPage() {
 
   // Status & Validation
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleCopyPrompt = () => {
+    navigator.clipboard.writeText(MASTER_AI_PROMPT);
+    modal.alert(
+      'AI Prompt Copied to Clipboard',
+      'Attach your client invoice image and paste this prompt into Claude or ChatGPT. Once the AI writes the PDFKit code, paste it into the script box below!',
+      'success'
+    );
+  };
 
   // Slug generator helper
   const handleBusinessNameChange = (name: string) => {
@@ -136,17 +201,17 @@ export default function OnboardBusinessPage() {
     setPlan(selectedPlan);
     if (selectedPlan === 'STARTER') {
       setMaxStaffCount(3);
-      setAiScansLimit(15);
+      setAiScansLimit(10);
       setHasMultipleBranches(false);
       setHasAdvancedReports(false);
     } else if (selectedPlan === 'BUSINESS') {
       setMaxStaffCount(5);
-      setAiScansLimit(150);
+      setAiScansLimit(60);
       setHasMultipleBranches(false);
       setHasAdvancedReports(true);
     } else if (selectedPlan === 'ENTERPRISE') {
       setMaxStaffCount(11);
-      setAiScansLimit(300);
+      setAiScansLimit(150);
       setHasCustomDomain(true);
       setHasMultipleBranches(true);
       setHasAdvancedReports(true);
@@ -211,14 +276,14 @@ export default function OnboardBusinessPage() {
         email: email.trim(),
         receiptPrefix: receiptPrefix.trim().toUpperCase(),
         receiptTemplateId,
-        customTemplateUrl: null,
+        customTemplateUrl: receiptTemplateId === 'custom' ? (customTemplateUrl.trim() || null) : null,
         tagline: tagline.trim() || null,
         plan,
         billingMode,
         maxStaffCount,
         aiScansLimit: Number(aiScansLimit),
         hasCustomDomain: isCustomDomainActive,
-        hasMultipleBranches: hasMultipleBranches,
+        hasMultipleBranches: plan === 'ENTERPRISE' ? hasMultipleBranches : false,
         hasAdvancedReports,
         customDomain: isCustomDomainActive ? cleanLiveDomain : '',
         devDomain: cleanDevDomain,
@@ -304,9 +369,9 @@ export default function OnboardBusinessPage() {
               <Label className="text-xs font-bold text-foreground">Subscription Tier Package</Label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 {[
-                  { id: 'STARTER' as PlanType, name: 'STARTER', staff: '3 Users (1 Admin + 2 Cashiers)', desc: '₦6,000/mo (₦60,000/yr) • 15 AI scans/mo • PDF only' },
-                  { id: 'BUSINESS' as PlanType, name: 'BUSINESS', staff: '5 Users (1 Admin + 4 Cashiers)', desc: '₦20,000/mo (₦200,000/yr) • 150 AI scans/mo • Excel & Activity Logs' },
-                  { id: 'ENTERPRISE' as PlanType, name: 'ENTERPRISE', staff: '11 Users (1 Admin + 2 Sub-admins + 8 Cashiers)', desc: '₦40,000/mo (₦400,000/yr) • 2 Branches • 300 AI scans/mo • Excel & Logs' },
+                  { id: 'STARTER' as PlanType, name: 'STARTER', staff: '3 Users (1 Admin + 2 Cashiers)', desc: '₦6,500/mo (₦65,000/yr) • 10 AI scans/mo • PDF only' },
+                  { id: 'BUSINESS' as PlanType, name: 'BUSINESS', staff: '5 Users (1 Admin + 4 Cashiers)', desc: '₦10,500/mo (₦105,000/yr) • 60 AI scans/mo • Excel & Activity Logs' },
+                  { id: 'ENTERPRISE' as PlanType, name: 'ENTERPRISE', staff: '11 Users (1 Admin + 2 Sub-admins + 8 Cashiers)', desc: '₦20,000/mo (₦200,000/yr) • 2 Branches • 150 AI scans/mo • Excel & Logs' },
                 ].map((tier) => {
                   const isSelected = plan === tier.id;
                   return (
@@ -385,9 +450,9 @@ export default function OnboardBusinessPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (plan === 'STARTER') setAiScansLimit(15);
-                      else if (plan === 'BUSINESS') setAiScansLimit(150);
-                      else if (plan === 'ENTERPRISE') setAiScansLimit(300);
+                      if (plan === 'STARTER') setAiScansLimit(10);
+                      else if (plan === 'BUSINESS') setAiScansLimit(60);
+                      else if (plan === 'ENTERPRISE') setAiScansLimit(150);
                     }}
                     className="text-[10px] text-muted-foreground hover:text-foreground underline cursor-pointer"
                   >
@@ -440,19 +505,21 @@ export default function OnboardBusinessPage() {
                   />
                 </label>
 
-                {/* Multi-Branches */}
-                <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
-                  <div className="pr-2">
-                    <span className="text-xs font-semibold text-foreground block">Multi-Branches</span>
-                    <span className="text-[10px] text-muted-foreground">{plan === 'ENTERPRISE' ? 'Included (2 Branches)' : '+₦5,000/mo Add-on'}</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={hasMultipleBranches}
-                    onChange={(e) => setHasMultipleBranches(e.target.checked)}
-                    className="h-4 w-4 rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
-                  />
-                </label>
+                {/* Multi-Branches - Only visible on Enterprise tier */}
+                {plan === 'ENTERPRISE' && (
+                  <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors animate-in fade-in duration-200">
+                    <div className="pr-2">
+                      <span className="text-xs font-semibold text-foreground block">Multi-Branches</span>
+                      <span className="text-[10px] text-muted-foreground">Included (2 Branches)</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={hasMultipleBranches}
+                      onChange={(e) => setHasMultipleBranches(e.target.checked)}
+                      className="h-4 w-4 rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
+                    />
+                  </label>
+                )}
 
                 {/* AI Reports & Scanner */}
                 <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
@@ -796,63 +863,129 @@ export default function OnboardBusinessPage() {
                 receiptPrefix?.toUpperCase() === 'LSV'
               );
 
-              if (isLaoSteel) {
-                return (
-                  <div className="grid grid-cols-1 gap-4">
-                    <div
-                      onClick={() => setReceiptTemplateId('classic')}
-                      className="p-5 rounded-2xl border text-left transition-all relative cursor-pointer border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold font-heading text-foreground">
-                            Lao Steel Bespoke Ledger
-                          </span>
-                          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px]">
-                            Dedicated Bespoke
-                          </Badge>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          Dual company ledger dark-green border, centered header with circular green emblem, LSV watermark across itemized rebar specifications table, and guarantee disclaimer.
-                        </p>
-                      </div>
-
-                      <div className="pt-4 border-t border-border/60 mt-4">
-                        <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                          ✓ Dedicated Bespoke Layout
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
+              const templateOptions = isLaoSteel
+                ? [
+                    {
+                      id: 'classic' as const,
+                      name: 'Lao Steel Bespoke Ledger',
+                      badge: 'Dedicated Bespoke',
+                      desc: 'Dual company ledger dark-green border, centered header with circular green emblem, LSV watermark across itemized rebar specifications table, and guarantee disclaimer.',
+                    },
+                    {
+                      id: 'custom' as const,
+                      name: 'Custom PDFKit Code',
+                      badge: 'External AI Engine',
+                      desc: 'Full programmatic PDFKit code generated from client invoice image using Claude or ChatGPT.',
+                    },
+                  ]
+                : [
+                    {
+                      id: 'modern' as const,
+                      name: 'Modern Corporate Executive',
+                      badge: 'Universal Default',
+                      desc: 'Sleek minimalist executive design with modern typography, itemized charge breakdown, and structured digital verification.',
+                    },
+                    {
+                      id: 'custom' as const,
+                      name: 'Custom PDFKit Code',
+                      badge: 'External AI Engine',
+                      desc: 'Full programmatic PDFKit code generated from client invoice image using Claude or ChatGPT.',
+                    },
+                  ];
 
               return (
-                <div className="grid grid-cols-1 gap-4">
-                  <div
-                    onClick={() => setReceiptTemplateId('modern')}
-                    className="p-5 rounded-2xl border text-left transition-all relative cursor-pointer border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold font-heading text-foreground">
-                          Modern Corporate Executive
-                        </span>
-                        <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px]">
-                          Universal Default
-                        </Badge>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground leading-relaxed">
-                        Sleek minimalist executive design with modern typography, itemized charge breakdown, and structured digital verification.
-                      </p>
-                    </div>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {templateOptions.map((tpl) => {
+                      const isSelected = receiptTemplateId === tpl.id;
+                      return (
+                        <div
+                          key={tpl.id}
+                          onClick={() => setReceiptTemplateId(tpl.id)}
+                          className={`p-5 rounded-2xl border text-left transition-all relative cursor-pointer ${
+                            isSelected
+                              ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
+                              : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className={`text-xs font-bold font-heading ${isSelected ? 'text-emerald-500' : 'text-foreground'}`}>
+                                {tpl.name}
+                              </span>
+                              <Badge className={`text-[10px] ${
+                                tpl.id === 'modern'
+                                  ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                                  : tpl.id === 'classic'
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                  : 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
+                              }`}>
+                                {tpl.badge}
+                              </Badge>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed">
+                              {tpl.desc}
+                            </p>
+                          </div>
 
-                    <div className="pt-4 border-t border-border/60 mt-4">
-                      <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                        ✓ Selected Default Layout
-                      </span>
-                    </div>
+                          <div className="pt-4 border-t border-border/60 mt-4">
+                            <span className={`text-[10px] font-semibold ${isSelected ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                              {isSelected ? '✓ Selected Template Layout' : 'Click to select this layout'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
+
+                  {/* If Custom Script Mode is Selected */}
+                  {receiptTemplateId === 'custom' && (
+                    <div className="space-y-4 pt-2 border-t border-border/60 animate-in fade-in duration-200">
+                      <div className="p-4 rounded-2xl bg-secondary/30 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center space-x-2">
+                            <Code2 className="h-4 w-4 text-emerald-500" />
+                            <span className="text-xs font-bold text-foreground font-heading">
+                              External AI PDFKit Engine Code
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">
+                            Feed the client invoice scan along with our master prompt to Claude or ChatGPT, then paste the generated code below.
+                          </p>
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCopyPrompt}
+                          className="h-8 px-3 text-xs font-semibold rounded-xl border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10 shrink-0 cursor-pointer"
+                        >
+                          <Copy className="h-3.5 w-3.5 mr-1" />
+                          Copy Master AI Prompt
+                        </Button>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <Label className="text-xs font-bold text-foreground">
+                            PDFKit Rendering Script (JavaScript)
+                          </Label>
+                          <span className="text-[11px] text-muted-foreground font-mono">
+                            Parameters: (doc, invoice, business, helpers)
+                          </span>
+                        </div>
+                        <textarea
+                          value={customTemplateUrl || ''}
+                          onChange={(e) => setCustomTemplateUrl(e.target.value)}
+                          placeholder={`// Paste the generated PDFKit code from Claude / ChatGPT here\nasync function renderInvoicePDF(doc, invoice, business, helpers) {\n  doc.rect(30, 30, 535, 780).strokeColor('#0d47a1').lineWidth(1.5).stroke();\n  // ...\n}`}
+                          rows={14}
+                          className="w-full rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs p-4 border border-border focus:border-emerald-500 focus:outline-none leading-relaxed resize-y"
+                          spellCheck={false}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}
