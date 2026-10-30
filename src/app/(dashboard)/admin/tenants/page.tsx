@@ -856,10 +856,10 @@ export default function TenantsAdminPage() {
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-1">
                       {plan === 'STARTER'
-                        ? '3 Users (1 Admin + 2 Cashiers) • ₦6k/mo • 15 AI'
+                        ? '3 Users (1 Admin + 2 Cashiers) • ₦6.5k/mo • 10 AI'
                         : plan === 'BUSINESS'
-                        ? '5 Users (1 Admin + 4 Cashiers) • ₦20k/mo • 150 AI'
-                        : '11 Users (1 Admin + 2 Sub-admins + 8 Cashiers) • ₦40k/mo'}
+                        ? '5 Users (1 Admin + 4 Cashiers) • ₦10.5k/mo • 60 AI'
+                        : '11 Users (1 Admin + 2 Sub-admins + 8 Cashiers) • ₦20k/mo • 150 AI'}
                     </p>
                   </button>
                 ))}
@@ -912,15 +912,17 @@ export default function TenantsAdminPage() {
                       <span>Custom Domain</span>
                     </label>
 
-                    <label className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={newBizMultipleBranches}
-                        onChange={(e) => setNewBizMultipleBranches(e.target.checked)}
-                        className="rounded text-emerald-500 focus:ring-emerald-500"
-                      />
-                      <span>Multi-Branch</span>
-                    </label>
+                    {newBizPlan === 'ENTERPRISE' && (
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newBizMultipleBranches}
+                          onChange={(e) => setNewBizMultipleBranches(e.target.checked)}
+                          className="rounded text-emerald-500 focus:ring-emerald-500"
+                        />
+                        <span>Multi-Branch (Included)</span>
+                      </label>
+                    )}
 
                     <label className="flex items-center space-x-2 cursor-pointer">
                       <input
@@ -1048,9 +1050,9 @@ export default function TenantsAdminPage() {
                 onChange={(e) => handleEditPlanChange(e.target.value as PlanType)}
                 className="w-full h-9 rounded-xl border border-border bg-background px-3 text-xs font-semibold"
               >
-                <option value="STARTER">STARTER (3 Users, 15 AI Scans, PDF only)</option>
-                <option value="BUSINESS">BUSINESS (5 Users, 150 AI Scans, Excel & Logs)</option>
-                <option value="ENTERPRISE">ENTERPRISE (11 Users, 2 Branches, 300 AI Scans)</option>
+                <option value="STARTER">STARTER (3 Users, 10 AI Scans, PDF only)</option>
+                <option value="BUSINESS">BUSINESS (5 Users, 60 AI Scans, Excel & Logs)</option>
+                <option value="ENTERPRISE">ENTERPRISE (11 Users, 2 Branches, 150 AI Scans)</option>
               </select>
             </div>
 
@@ -1101,15 +1103,17 @@ export default function TenantsAdminPage() {
                   <span>Allow Custom Domain Routing (+₦10,000 add-on)</span>
                 </label>
 
-                <label className="flex items-center space-x-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editMultipleBranches}
-                    onChange={(e) => setEditMultipleBranches(e.target.checked)}
-                    className="rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
-                  />
-                  <span>Enable Multiple Branches {editPlan === 'ENTERPRISE' ? '(Included)' : '(+₦5,000/mo)'}</span>
-                </label>
+                {editPlan === 'ENTERPRISE' && (
+                  <label className="flex items-center space-x-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editMultipleBranches}
+                      onChange={(e) => setEditMultipleBranches(e.target.checked)}
+                      className="rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-600"
+                    />
+                    <span>Enable Multiple Branches (Included 2 Branches)</span>
+                  </label>
+                )}
 
                 <label className="flex items-center space-x-2.5 cursor-pointer">
                   <input
