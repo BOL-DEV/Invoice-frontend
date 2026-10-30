@@ -68,8 +68,8 @@ export default function SettingsPage() {
   const initiatePaymentMutation = useInitiateSubscriptionPayment();
 
   const getPlanPrice = (plan: 'STARTER' | 'BUSINESS' | 'ENTERPRISE', months: number) => {
-    const monthlyRates = { STARTER: 10000, BUSINESS: 22000, ENTERPRISE: 44000 };
-    const annualRates = { STARTER: 100000, BUSINESS: 220000, ENTERPRISE: 440000 };
+    const monthlyRates = { STARTER: 6500, BUSINESS: 10500, ENTERPRISE: 20000 };
+    const annualRates = { STARTER: 65000, BUSINESS: 105000, ENTERPRISE: 200000 };
     if (months === 12) {
       return { total: annualRates[plan], ratePerMonth: Math.round(annualRates[plan] / 12), isDiscounted: true };
     }
@@ -1067,9 +1067,9 @@ export default function SettingsPage() {
                       <div>
                         <p className="font-semibold text-foreground">AI Document Scanner</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {subPlan === 'STARTER' && '15 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
-                          {subPlan === 'BUSINESS' && '150 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
-                          {subPlan === 'ENTERPRISE' && '300 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
+                          {subPlan === 'STARTER' && '10 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
+                          {subPlan === 'BUSINESS' && '60 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
+                          {subPlan === 'ENTERPRISE' && '150 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
                         </p>
                       </div>
                     </div>
@@ -1325,7 +1325,7 @@ export default function SettingsPage() {
                             </h5>
                             {pricing.isDiscounted && (
                               <p className="text-[11px] text-emerald-400 font-medium mt-0.5">
-                                Effective: ₦{pricing.ratePerMonth.toLocaleString()}/mo (Save ₦20,000)
+                                Effective: ₦{pricing.ratePerMonth.toLocaleString()}/mo (Save ₦13,000)
                               </p>
                             )}
                           </div>
@@ -1343,7 +1343,7 @@ export default function SettingsPage() {
                           </li>
                           <li className="flex items-center space-x-2">
                             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                            <span>15 AI Scans / Month</span>
+                            <span>10 AI Scans / Month</span>
                           </li>
                           <li className="flex items-center space-x-2">
                             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
@@ -1389,7 +1389,7 @@ export default function SettingsPage() {
                             </h5>
                             {pricing.isDiscounted && (
                               <p className="text-[11px] text-emerald-400 font-medium mt-0.5">
-                                Effective: ₦{pricing.ratePerMonth.toLocaleString()}/mo (Save ₦44,000)
+                                Effective: ₦{pricing.ratePerMonth.toLocaleString()}/mo (Save ₦21,000)
                               </p>
                             )}
                           </div>
@@ -1411,7 +1411,7 @@ export default function SettingsPage() {
                           </li>
                           <li className="flex items-center space-x-2">
                             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                            <span>150 AI Scans / Month</span>
+                            <span>60 AI Scans / Month</span>
                           </li>
                           <li className="flex items-center space-x-2">
                             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
@@ -1457,7 +1457,7 @@ export default function SettingsPage() {
                             </h5>
                             {pricing.isDiscounted && (
                               <p className="text-[11px] text-emerald-400 font-medium mt-0.5">
-                                Effective: ₦{pricing.ratePerMonth.toLocaleString()}/mo (Save ₦88,000)
+                                Effective: ₦{pricing.ratePerMonth.toLocaleString()}/mo (Save ₦40,000)
                               </p>
                             )}
                           </div>
@@ -1475,7 +1475,7 @@ export default function SettingsPage() {
                           </li>
                           <li className="flex items-center space-x-2">
                             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                            <span>300 AI Scans / Month</span>
+                            <span>150 AI Scans / Month</span>
                           </li>
                           <li className="flex items-center space-x-2">
                             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
