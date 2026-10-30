@@ -52,7 +52,8 @@ import {
 import { useModal } from '../../../components/ui/modal-provider';
 import { BusinessSettings } from '../../../types/api';
 import { getErrorDialog, getErrorMessage } from '../../../lib/api-error';
-import { useSubscription } from '../../../features/subscriptions/hooks/useSubscription';
+import { useSubscription, useInitiateSubscriptionPayment, PaymentInitiationResult } from '../../../features/subscriptions/hooks/useSubscription';
+import { DynamicBankTransferModal } from '../../../components/subscriptions/DynamicBankTransferModal';
 import { InvoiceTemplatePreviewModal } from '../../../components/templates/InvoiceTemplatePreviewModal';
 
 export default function SettingsPage() {
@@ -61,8 +62,24 @@ export default function SettingsPage() {
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const modal = useModal();
 
+  const [activePaymentData, setActivePaymentData] = useState<PaymentInitiationResult | null>(null);
+  const [selectedBillingCycle, setSelectedBillingCycle] = useState<'MONTHLY' | 'ANNUAL'>('MONTHLY');
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const initiatePaymentMutation = useInitiateSubscriptionPayment();
+
+  const handleStartUpgrade = async (plan: 'STARTER' | 'BUSINESS' | 'ENTERPRISE', cycle: 'MONTHLY' | 'ANNUAL' = 'MONTHLY') => {
+    try {
+      const data = await initiatePaymentMutation.mutateAsync({ plan, billingCycle: cycle });
+      setActivePaymentData(data);
+      setIsPaymentModalOpen(true);
+    } catch (err: any) {
+      const { title, message, variant } = getErrorDialog(err, 'Payment Initiation Failed', 'Failed to generate dynamic virtual bank transfer account.');
+      modal.alert(title, message, variant);
+    }
+  };
+
   // Active Tab state: 'profile' (all users), 'business' (admin only), or 'subscription' (admin only)
-  const [activeTab, setActiveTab] = useState<'profile' | 'business' | 'subscription'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'business' | 'subscription' | 'upgrade'>('profile');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewTemplateId, setPreviewTemplateId] = useState<string>('classic');
   const [isDownloadingSamplePdf, setIsDownloadingSamplePdf] = useState(false);
@@ -98,6 +115,20 @@ export default function SettingsPage() {
 
   // Subscription data
   const { data: subDetails, isLoading: isSubLoading, refetch: refetchSub } = useSubscription();
+  const subPlan = subDetails?.subscription?.plan || (subDetails as any)?.plan || 'STARTER';
+  const subMode = subDetails?.subscription?.billingMode || (subDetails as any)?.billingMode;
+  const isComplimentary = subMode === 'COMPLIMENTARY';
+
+  const staffCount = subDetails?.usage?.staffCount ?? (subDetails as any)?.activeStaffCount ?? 0;
+  const maxStaffCount = subDetails?.usage?.maxStaffCount ?? subDetails?.subscription?.maxStaffCount ?? (subDetails as any)?.staffLimit ?? (subDetails as any)?.maxStaffCount ?? 3;
+  const cashierCount = subDetails?.usage?.cashierCount ?? (subDetails as any)?.cashierCount ?? 0;
+  const managerCount = subDetails?.usage?.managerCount ?? (subDetails as any)?.managerCount ?? 0;
+
+  const aiExtractionEnabled = subDetails?.capabilities?.aiExtraction ?? true;
+  const customDomainCapability = subDetails?.capabilities?.customDomain ?? subDetails?.subscription?.hasCustomDomain ?? (subDetails as any)?.hasCustomDomain ?? false;
+  const multipleBranchesEnabled = subDetails?.capabilities?.multipleBranches ?? subDetails?.subscription?.hasMultipleBranches ?? (subDetails as any)?.hasMultipleBranches ?? false;
+  const excelExportEnabled = subDetails?.capabilities?.excelExport ?? (subPlan === 'BUSINESS' || subPlan === 'ENTERPRISE');
+  const activityLogsEnabled = subDetails?.capabilities?.activityLogs ?? (subPlan === 'BUSINESS' || subPlan === 'ENTERPRISE');
 
   // --- Profile & Security Form State ---
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -345,7 +376,7 @@ export default function SettingsPage() {
 
       {/* Tabs Selection (Modern Segmented Control) */}
       {isAdmin && !isSuperAdmin && (
-        <div className="p-1 rounded-xl bg-secondary/70 dark:bg-slate-900/80 border border-border/80 grid grid-cols-3 sm:max-w-md gap-1 w-full">
+        <div className={`p-1 rounded-xl bg-secondary/70 dark:bg-slate-900/80 border border-border/80 grid ${isComplimentary ? 'grid-cols-3 max-w-md' : 'grid-cols-4 max-w-xl'} gap-1 w-full`}>
           <button
             type="button"
             onClick={() => setActiveTab('profile')}
@@ -372,6 +403,7 @@ export default function SettingsPage() {
             <span className="truncate">Company</span>
           </button>
 
+          {/* Plan & Quotas Tab (Always visible to all businesses so they can see limits & quotas) */}
           <button
             type="button"
             onClick={() => setActiveTab('subscription')}
@@ -382,8 +414,24 @@ export default function SettingsPage() {
             }`}
           >
             <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{hasCustomDomainEnabled ? 'Plan & Domains' : 'Plan & Quotas'}</span>
+            <span className="truncate">Plan & Quotas</span>
           </button>
+
+          {/* Subscription & Payment Tab (Hidden for complimentary businesses) */}
+          {!isComplimentary && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('upgrade')}
+              className={`flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'upgrade'
+                  ? 'bg-card text-foreground shadow-sm border border-border/60 text-emerald-600 dark:text-emerald-400 font-bold'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+              }`}
+            >
+              <CreditCard className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Subscription</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -969,26 +1017,26 @@ export default function SettingsPage() {
                         <span>Staff Members Allocation</span>
                       </span>
                       <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                        {subDetails.usage.staffCount} of {subDetails.usage.maxStaffCount} staff registered
+                        {staffCount} of {maxStaffCount} staff registered
                       </span>
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
                       <div
                         className="bg-emerald-500 h-full rounded-full transition-all duration-300"
                         style={{
-                          width: `${Math.min(100, (subDetails.usage.staffCount / Math.max(1, subDetails.usage.maxStaffCount)) * 100)}%`,
+                          width: `${Math.min(100, (staffCount / Math.max(1, maxStaffCount)) * 100)}%`,
                         }}
                       />
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-muted-foreground mt-1 gap-1">
                       <p>
-                        {subDetails.subscription.plan === 'STARTER' && 'Starter plan includes 3 total user accounts (1 business administrator + 2 cashiers). Extra seats: ₦2,000/seat/month.'}
-                        {subDetails.subscription.plan === 'BUSINESS' && 'Business plan includes 5 total user accounts (1 business administrator + 4 cashiers). Extra seats: ₦2,000/seat/month.'}
-                        {subDetails.subscription.plan === 'ENTERPRISE' && 'Enterprise plan includes 11 total user accounts (1 business admin + 2 branch managers + 8 cashiers) across 2 branches.'}
+                        {subPlan === 'STARTER' && 'Starter plan includes 3 total user accounts (1 business administrator + 2 cashiers). Extra seats: ₦2,000/seat/month.'}
+                        {subPlan === 'BUSINESS' && 'Business plan includes 5 total user accounts (1 business administrator + 4 cashiers). Extra seats: ₦2,000/seat/month.'}
+                        {subPlan === 'ENTERPRISE' && 'Enterprise plan includes 11 total user accounts (1 business admin + 2 branch managers + 8 cashiers) across 2 branches.'}
                       </p>
-                      {(subDetails.usage.cashierCount !== undefined || subDetails.usage.managerCount !== undefined) && (
+                      {(cashierCount > 0 || managerCount > 0) && (
                         <span className="font-medium text-slate-500 dark:text-slate-400 shrink-0">
-                          Breakdown: {subDetails.usage.managerCount ?? 0} branch {subDetails.usage.managerCount === 1 ? 'manager' : 'managers'}, {subDetails.usage.cashierCount ?? 0} {subDetails.usage.cashierCount === 1 ? 'cashier' : 'cashiers'}
+                          Breakdown: {managerCount} branch {managerCount === 1 ? 'manager' : 'managers'}, {cashierCount} {cashierCount === 1 ? 'cashier' : 'cashiers'}
                         </span>
                       )}
                     </div>
@@ -997,27 +1045,27 @@ export default function SettingsPage() {
                   {/* Feature Capabilities Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div className="p-3.5 rounded-xl border border-border/80 flex items-start space-x-3">
-                      <div className={`p-2 rounded-lg shrink-0 ${subDetails.capabilities.aiExtraction ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                      <div className={`p-2 rounded-lg shrink-0 ${aiExtractionEnabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
                         <Sparkles className="h-4 w-4" />
                       </div>
                       <div>
                         <p className="font-semibold text-foreground">AI Document Scanner</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {subDetails.subscription.plan === 'STARTER' && '15 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
-                          {subDetails.subscription.plan === 'BUSINESS' && '150 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
-                          {subDetails.subscription.plan === 'ENTERPRISE' && '300 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
+                          {subPlan === 'STARTER' && '15 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
+                          {subPlan === 'BUSINESS' && '150 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
+                          {subPlan === 'ENTERPRISE' && '300 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
                         </p>
                       </div>
                     </div>
 
                     <div className="p-3.5 rounded-xl border border-border/80 flex items-start space-x-3">
-                      <div className={`p-2 rounded-lg shrink-0 ${subDetails.capabilities.customDomain ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                      <div className={`p-2 rounded-lg shrink-0 ${customDomainCapability ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
                         <Globe className="h-4 w-4" />
                       </div>
                       <div>
                         <p className="font-semibold text-foreground">Custom Branded Domain</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {subDetails.capabilities.customDomain
+                          {customDomainCapability
                             ? 'Active (Branded Domain Configured)'
                             : 'Available on all tiers as a ₦10,000 add-on'}
                         </p>
@@ -1025,25 +1073,25 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="p-3.5 rounded-xl border border-border/80 flex items-start space-x-3">
-                      <div className={`p-2 rounded-lg shrink-0 ${subDetails.capabilities.multipleBranches ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                      <div className={`p-2 rounded-lg shrink-0 ${multipleBranchesEnabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
                         <Layers className="h-4 w-4" />
                       </div>
                       <div>
                         <p className="font-semibold text-foreground">Multiple Branches</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {subDetails.capabilities.multipleBranches ? 'Active (2 Branches on Enterprise)' : 'Standard Single Branch (Add-on: ₦5,000/mo)'}
+                          {multipleBranchesEnabled ? 'Active (2 Branches on Enterprise)' : 'Standard Single Branch (Add-on: ₦5,000/mo)'}
                         </p>
                       </div>
                     </div>
 
                     <div className="p-3.5 rounded-xl border border-border/80 flex items-start space-x-3">
-                      <div className={`p-2 rounded-lg shrink-0 ${subDetails.capabilities.excelExport ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                      <div className={`p-2 rounded-lg shrink-0 ${excelExportEnabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
                         <FileSpreadsheet className="h-4 w-4" />
                       </div>
                       <div>
                         <p className="font-semibold text-foreground">Excel Spreadsheet Export</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {subDetails.capabilities.excelExport ? 'Active (Business & Enterprise)' : 'Locked on Starter Plan (PDF Only)'}
+                          {excelExportEnabled ? 'Active (Business & Enterprise)' : 'Locked on Starter Plan (PDF Only)'}
                         </p>
                       </div>
                     </div>
@@ -1055,27 +1103,30 @@ export default function SettingsPage() {
                       <div>
                         <p className="font-semibold text-foreground">Standard & Advanced Analytics</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {subDetails.capabilities.multipleBranches ? 'Multi-branch Aggregated Analytics' : 'Standard Full Analytics Report'}
+                          {multipleBranchesEnabled ? 'Multi-branch Aggregated Analytics' : 'Standard Full Analytics Report'}
                         </p>
                       </div>
                     </div>
 
                     <div className="p-3.5 rounded-xl border border-border/80 flex items-start space-x-3">
-                      <div className={`p-2 rounded-lg shrink-0 ${subDetails.capabilities.activityLogs ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                      <div className={`p-2 rounded-lg shrink-0 ${activityLogsEnabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
                         <Activity className="h-4 w-4" />
                       </div>
                       <div>
                         <p className="font-semibold text-foreground">Audit & Activity Logs</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {subDetails.capabilities.activityLogs ? 'Active (Business & Enterprise)' : 'Locked on Starter Plan'}
+                          {activityLogsEnabled ? 'Active (Business & Enterprise)' : 'Locked on Starter Plan'}
                         </p>
                       </div>
                     </div>
+
                   </div>
                 </div>
               ) : null}
             </CardContent>
           </Card>
+
+
 
           {/* Custom Domains Manager - only visible when customDomain capability is toggled ON */}
           {hasCustomDomainEnabled && (
@@ -1150,6 +1201,229 @@ export default function SettingsPage() {
         </div>
       )}
 
+
+
+      {/* ========================================================= */}
+      {/* TAB 4: SUBSCRIPTION & PAYMENTS (PAID UPGRADE FLOW)        */}
+      {/* ========================================================= */}
+      {activeTab === 'upgrade' && !isComplimentary && isAdmin && !isSuperAdmin && (
+        <div className="space-y-6">
+          <Card className="border-border/80 bg-card shadow-premium rounded-2xl overflow-hidden">
+            <CardHeader className="p-4 sm:p-6 border-b border-border/80 bg-slate-50/50 dark:bg-slate-900/30">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-sm sm:text-base font-bold text-foreground">
+                      Upgrade or Renew Subscription
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Instant activation via Lenco Dynamic Virtual Bank Transfer with zero onboarding fees.
+                    </CardDescription>
+                  </div>
+                </div>
+
+                {/* Billing Cycle Toggle */}
+                <div className="inline-flex items-center p-1 rounded-xl bg-slate-900/80 border border-slate-800 text-xs self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBillingCycle('MONTHLY')}
+                    className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+                      selectedBillingCycle === 'MONTHLY'
+                        ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBillingCycle('ANNUAL')}
+                    className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center space-x-1.5 ${
+                      selectedBillingCycle === 'ANNUAL'
+                        ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>Annual</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 font-bold">2 Mos Free</span>
+                  </button>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Starter Card */}
+                <div className={`flex flex-col justify-between p-5 rounded-2xl border transition-all ${
+                  subPlan === 'STARTER'
+                    ? 'border-emerald-500/60 bg-emerald-500/[0.04] shadow-sm ring-1 ring-emerald-500/20'
+                    : 'border-border/80 bg-slate-900/40 hover:border-slate-700'
+                }`}>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Starter</span>
+                        <h5 className="text-lg font-bold text-white mt-0.5">
+                          {selectedBillingCycle === 'ANNUAL' ? '₦100,000' : '₦10,000'}
+                          <span className="text-xs font-normal text-slate-400">/{selectedBillingCycle === 'ANNUAL' ? 'year' : 'mo'}</span>
+                        </h5>
+                      </div>
+                      {subPlan === 'STARTER' && (
+                        <Badge className="bg-emerald-500/15 border-emerald-500/30 text-emerald-400 text-[10px] px-2 py-0.5">
+                          Active Tier
+                        </Badge>
+                      )}
+                    </div>
+
+                    <ul className="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-800/80">
+                      <li className="flex items-center space-x-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                        <span>3 Users (1 Admin + 2 Cashiers)</span>
+                      </li>
+                      <li className="flex items-center space-x-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                        <span>15 AI Scans / Month</span>
+                      </li>
+                      <li className="flex items-center space-x-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                        <span>Thermal & A4 Printable Invoices</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="pt-5">
+                    <Button
+                      size="sm"
+                      disabled={initiatePaymentMutation.isPending}
+                      onClick={() => handleStartUpgrade('STARTER', selectedBillingCycle)}
+                      className="w-full text-xs h-10 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all cursor-pointer shadow-sm"
+                    >
+                      {subPlan === 'STARTER' ? 'Renew Starter Plan' : 'Select Starter'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Business Card */}
+                <div className={`flex flex-col justify-between p-5 rounded-2xl border transition-all ${
+                  subPlan === 'BUSINESS'
+                    ? 'border-emerald-500/60 bg-emerald-500/[0.04] shadow-sm ring-1 ring-emerald-500/20'
+                    : 'border-border/80 bg-slate-900/40 hover:border-slate-700'
+                }`}>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Business</span>
+                        <h5 className="text-lg font-bold text-white mt-0.5">
+                          {selectedBillingCycle === 'ANNUAL' ? '₦220,000' : '₦22,000'}
+                          <span className="text-xs font-normal text-slate-400">/{selectedBillingCycle === 'ANNUAL' ? 'year' : 'mo'}</span>
+                        </h5>
+                      </div>
+                      {subPlan === 'BUSINESS' ? (
+                        <Badge className="bg-emerald-500/15 border-emerald-500/30 text-emerald-400 text-[10px] px-2 py-0.5">
+                          Active Tier
+                        </Badge>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                          Popular
+                        </span>
+                      )}
+                    </div>
+
+                    <ul className="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-800/80">
+                      <li className="flex items-center space-x-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                        <span>5 Users (1 Admin + 4 Cashiers)</span>
+                      </li>
+                      <li className="flex items-center space-x-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                        <span>150 AI Scans / Month</span>
+                      </li>
+                      <li className="flex items-center space-x-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                        <span>Custom Domain + Excel Export</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="pt-5">
+                    <Button
+                      size="sm"
+                      disabled={initiatePaymentMutation.isPending}
+                      onClick={() => handleStartUpgrade('BUSINESS', selectedBillingCycle)}
+                      className="w-full text-xs h-10 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all cursor-pointer shadow-sm"
+                    >
+                      {subPlan === 'BUSINESS' ? 'Renew Business Plan' : 'Upgrade to Business'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Enterprise Card */}
+                <div className={`flex flex-col justify-between p-5 rounded-2xl border transition-all ${
+                  subPlan === 'ENTERPRISE'
+                    ? 'border-emerald-500/60 bg-emerald-500/[0.04] shadow-sm ring-1 ring-emerald-500/20'
+                    : 'border-border/80 bg-slate-900/40 hover:border-slate-700'
+                }`}>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Enterprise</span>
+                        <h5 className="text-lg font-bold text-white mt-0.5">
+                          {selectedBillingCycle === 'ANNUAL' ? '₦440,000' : '₦44,000'}
+                          <span className="text-xs font-normal text-slate-400">/{selectedBillingCycle === 'ANNUAL' ? 'year' : 'mo'}</span>
+                        </h5>
+                      </div>
+                      {subPlan === 'ENTERPRISE' && (
+                        <Badge className="bg-emerald-500/15 border-emerald-500/30 text-emerald-400 text-[10px] px-2 py-0.5">
+                          Active Tier
+                        </Badge>
+                      )}
+                    </div>
+
+                    <ul className="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-800/80">
+                      <li className="flex items-center space-x-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                        <span>11 Users (Owner + Sub-admins + 8 Cashiers)</span>
+                      </li>
+                      <li className="flex items-center space-x-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                        <span>300 AI Scans / Month</span>
+                      </li>
+                      <li className="flex items-center space-x-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                        <span>Multi-Branch Real-Time Control & Audits</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="pt-5">
+                    <Button
+                      size="sm"
+                      disabled={initiatePaymentMutation.isPending}
+                      onClick={() => handleStartUpgrade('ENTERPRISE', selectedBillingCycle)}
+                      className="w-full text-xs h-10 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all cursor-pointer shadow-sm"
+                    >
+                      {subPlan === 'ENTERPRISE' ? 'Renew Enterprise Plan' : 'Upgrade to Enterprise'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Lenco Dynamic Bank Transfer Modal */}
+      <DynamicBankTransferModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        paymentData={activePaymentData}
+        onSuccess={() => {
+          setIsPaymentModalOpen(false);
+        }}
+      />
 
       {/* Template Preview Modal */}
       <InvoiceTemplatePreviewModal
