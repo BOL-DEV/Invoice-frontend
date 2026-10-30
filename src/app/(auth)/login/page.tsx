@@ -156,7 +156,7 @@ function LoginForm() {
 
     try {
       await login(data);
-      router.push('/');
+      router.push('/dashboard');
     } catch (err) {
       console.error('Login failure:', err);
       const normalized = normalizeApiError(err);

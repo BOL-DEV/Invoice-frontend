@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { useAuth } from '../../../features/auth/context/AuthContext';
 import { useDashboardStats } from '../../../features/dashboard/hooks/useDashboardStats';
 import { useBusinessSettings } from '../../../features/business/hooks/useBusinessSettings';
-import { AppLayout } from '../../../components/layout/AppLayout';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../../components/ui/card';
 import { motion } from 'framer-motion';
 import {
@@ -58,9 +57,7 @@ export default function DashboardPage() {
   // Super Admin Platform Command Center:
   if (user.role === 'SUPER_ADMIN') {
     return (
-      <AppLayout>
-        <SuperAdminDashboard user={user} />
-      </AppLayout>
+      <SuperAdminDashboard user={user} />
     );
   }
 
@@ -84,8 +81,7 @@ export default function DashboardPage() {
   const totalTrendRevenue = chartData.reduce((acc, curr) => acc + curr.sales, 0);
 
   return (
-    <AppLayout>
-      <div className="space-y-6 max-w-[1400px] mx-auto pb-10">
+    <div className="space-y-6 max-w-[1400px] mx-auto pb-10">
         
         {/* ========================================================= */}
         {/* HERO HEADER & QUICK ACTIONS                               */}
@@ -453,6 +449,5 @@ export default function DashboardPage() {
           </motion.div>
         )}
       </div>
-    </AppLayout>
   );
 }

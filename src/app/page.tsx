@@ -356,11 +356,11 @@ export default function LandingPage() {
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Starter</span>
                 <p className="text-2xl sm:text-3xl font-bold text-white mt-1">
-                  ₦{billingCycle === 'monthly' ? '10,000' : '100,000'}
+                  ₦{billingCycle === 'monthly' ? '6,500' : '65,000'}
                   <span className="text-xs text-slate-400 font-normal">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
                 </p>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  {billingCycle === 'annual' ? '₦8,333/mo effective (Save ₦20,000/yr)' : 'Billed monthly recurring'}
+                  {billingCycle === 'annual' ? '₦5,416/mo effective (Save ₦13,000/yr)' : 'Billed monthly recurring'}
                 </p>
               </div>
 
@@ -379,7 +379,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>15 Smart OCR scans/month</span>
+                  <span>10 Smart OCR scans/month</span>
                 </div>
                 <div className="flex items-center space-x-2 text-slate-500">
                   <X className="h-4 w-4 text-slate-600 shrink-0" />
@@ -392,7 +392,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <a href={getWhatsAppPlanLink('Starter', 10000, 100000)} target="_blank" rel="noopener noreferrer">
+            <a href={getWhatsAppPlanLink('Starter', 6500, 65000)} target="_blank" rel="noopener noreferrer">
               <Button variant="outline" className="w-full text-xs font-semibold h-10 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-200">
                 Choose Starter
               </Button>
@@ -409,11 +409,11 @@ export default function LandingPage() {
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">Business</span>
                 <p className="text-2xl sm:text-3xl font-bold text-white mt-1">
-                  ₦{billingCycle === 'monthly' ? '22,000' : '220,000'}
+                  ₦{billingCycle === 'monthly' ? '10,500' : '105,000'}
                   <span className="text-xs text-slate-400 font-normal">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
                 </p>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  {billingCycle === 'annual' ? '₦18,333/mo effective (Save ₦44,000/yr)' : 'Billed monthly recurring'}
+                  {billingCycle === 'annual' ? '₦8,750/mo effective (Save ₦21,000/yr)' : 'Billed monthly recurring'}
                 </p>
               </div>
 
@@ -440,7 +440,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>150 Smart OCR scans/month</span>
+                  <span>60 Smart OCR scans/month</span>
                 </div>
               </div>
 
@@ -449,7 +449,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <a href={getWhatsAppPlanLink('Business', 22000, 220000)} target="_blank" rel="noopener noreferrer">
+            <a href={getWhatsAppPlanLink('Business', 10500, 105000)} target="_blank" rel="noopener noreferrer">
               <Button className="w-full text-xs font-bold h-10 bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-sm">
                 Choose Business
               </Button>
@@ -462,11 +462,11 @@ export default function LandingPage() {
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Enterprise</span>
                 <p className="text-2xl sm:text-3xl font-bold text-white mt-1">
-                  ₦{billingCycle === 'monthly' ? '44,000' : '440,000'}
+                  ₦{billingCycle === 'monthly' ? '20,000' : '200,000'}
                   <span className="text-xs text-slate-400 font-normal">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
                 </p>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  {billingCycle === 'annual' ? '₦36,666/mo effective (Save ₦88,000/yr)' : 'Billed monthly recurring'}
+                  {billingCycle === 'annual' ? '₦16,666/mo effective (Save ₦40,000/yr)' : 'Billed monthly recurring'}
                 </p>
               </div>
 
@@ -489,7 +489,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>300 Smart OCR scans/month</span>
+                  <span>150 Smart OCR scans/month</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Check className="h-4 w-4 text-emerald-400 shrink-0" />
@@ -502,7 +502,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <a href={getWhatsAppPlanLink('Enterprise', 44000, 440000)} target="_blank" rel="noopener noreferrer">
+            <a href={getWhatsAppPlanLink('Enterprise', 20000, 200000)} target="_blank" rel="noopener noreferrer">
               <Button variant="outline" className="w-full text-xs font-semibold h-10 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-200">
                 Choose Enterprise
               </Button>
@@ -663,9 +663,9 @@ export default function LandingPage() {
             <div className="space-y-3">
               <h4 className="text-xs font-bold uppercase tracking-wider text-white">Commercial</h4>
               <ul className="space-y-2 text-xs">
-                <li><a href="#pricing" className="hover:text-emerald-400 transition-colors">Starter (₦10,000/mo)</a></li>
-                <li><a href="#pricing" className="hover:text-emerald-400 transition-colors">Business (₦22,000/mo)</a></li>
-                <li><a href="#pricing" className="hover:text-emerald-400 transition-colors">Enterprise (₦44,000/mo)</a></li>
+                <li><a href="#pricing" className="hover:text-emerald-400 transition-colors">Starter (₦6,500/mo)</a></li>
+                <li><a href="#pricing" className="hover:text-emerald-400 transition-colors">Business (₦10,500/mo)</a></li>
+                <li><a href="#pricing" className="hover:text-emerald-400 transition-colors">Enterprise (₦20,000/mo)</a></li>
                 <li><a href="#faq" className="hover:text-emerald-400 transition-colors">Frequently Asked Questions</a></li>
                 <li><Link href="/login" className="text-emerald-400 hover:text-emerald-300 font-semibold">Staff & Owner Login →</Link></li>
               </ul>
