@@ -157,9 +157,9 @@ export default function InvoicesPage() {
 
   const isSubAdmin = user?.role === 'ADMIN' && Boolean(user?.branchId);
   const isCashier = user?.role === 'APPRENTICE';
-  const effectiveBranchFilter = (isSubAdmin || (isCashier && user?.branchId))
+  const effectiveBranchFilter = isSubAdmin
     ? (user?.branchId || undefined)
-    : (branchFilter !== 'ALL' ? branchFilter : undefined);
+    : (isCashier ? undefined : (branchFilter !== 'ALL' ? branchFilter : undefined));
 
   const { data, isLoading, isError } = useInvoicesList({
     page,
