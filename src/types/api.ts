@@ -407,6 +407,15 @@ export interface Invoice {
     phone?: string | null;
   } | null;
   shares?: InvoiceShare[];
+  approvalRequests?: {
+    id: string;
+    type: ApprovalType;
+    status: ApprovalStatus;
+    reason: string;
+    adminNotes?: string | null;
+    requesterId: string;
+    createdAt: string;
+  }[];
 }
 
 export type ApprovalType = 'EDIT' | 'PRINT' | 'DELETE';

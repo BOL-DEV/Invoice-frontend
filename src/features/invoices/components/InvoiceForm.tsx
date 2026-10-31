@@ -11,6 +11,7 @@ import { useBusinessSettings } from '../../business/hooks/useBusinessSettings';
 import { useModal } from '../../../components/ui/modal-provider';
 import { numberToNairaWords } from '../utils/numberToWords';
 import { usePermission } from '../../auth/hooks/usePermission';
+import { useAuth } from '../../auth/context/AuthContext';
 import { CustomerSearchInput } from '../../../components/forms/CustomerSearchInput';
 import { PhoneInput } from '../../../components/forms/PhoneInput';
 import { QuantityInput } from '../../../components/forms/QuantityInput';
@@ -60,6 +61,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   const queryClient = useQueryClient();
   const modal = useModal();
   const { isAdmin } = usePermission();
+  const { user } = useAuth();
   
   // Context state
   const {
@@ -496,27 +498,58 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     );
   }
 
-  if (mode === 'edit' && existingInvoice && existingInvoice.status !== 'DRAFT') {
+  const isInvoiceUnder24Hours = existingInvoice?.createdAt
+    ? Date.now() - new Date(existingInvoice.createdAt).getTime() <= 24 * 60 * 60 * 1000
+    : true;
+  const hasApprovedEdit = existingInvoice?.approvalRequests?.some(
+    (r) => r.type === 'EDIT' && r.status === 'APPROVED' && (!user?.id || r.requesterId === user.id)
+  );
+  const canEditFinalized = isInvoiceUnder24Hours && (isAdmin || hasApprovedEdit);
+
+  if (mode === 'edit' && existingInvoice && existingInvoice.status !== 'DRAFT' && !canEditFinalized) {
     return (
       <div className="flex flex-col items-center justify-center py-20 max-w-md mx-auto text-center space-y-4">
         <div className="p-3.5 bg-amber-500/10 text-amber-500 rounded-full border border-amber-500/20">
           <Lock className="h-8 w-8" />
         </div>
         <div className="space-y-1.5">
-          <h3 className="text-lg font-bold text-foreground">Invoice Is Locked</h3>
+          <h3 className="text-lg font-bold text-foreground">
+            {!isInvoiceUnder24Hours ? 'Invoice Permanently Locked' : 'Administrative Approval Required'}
+          </h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Invoice #{existingInvoice.invoiceNumber} is marked as <strong className="font-semibold text-foreground">{existingInvoice.status}</strong> and cannot be edited. Only draft invoices can be modified.
+            {!isInvoiceUnder24Hours
+              ? `Invoice #${existingInvoice.invoiceNumber} was created over 24 hours ago and is permanently locked from further modifications.`
+              : `Invoice #${existingInvoice.invoiceNumber} is marked as ${existingInvoice.status}. Modifying finalized ledger entries requires administrative approval.`}
           </p>
         </div>
-        <Button onClick={() => router.push('/invoices')} className="text-xs rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-medium">
-          Return to Invoices
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => router.push('/invoices')} variant="outline" className="text-xs rounded-xl">
+            Return to Invoices
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto">
+      {mode === 'edit' && existingInvoice && existingInvoice.status !== 'DRAFT' && canEditFinalized && (
+        <div className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs shadow-sm">
+          <div className="flex items-center space-x-2.5">
+            <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
+              <FileCheck className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="font-semibold text-xs text-foreground">Editing Finalized Invoice #{existingInvoice.invoiceNumber}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {isAdmin
+                  ? 'Editing permitted within 24 hours of creation.'
+                  : 'Administrative edit authorization active. Save your modifications below.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Draft restoration alert banner */}
       {mode === 'create' && hasRestoredDraft && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-300 text-xs shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
@@ -1086,33 +1119,50 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
               {/* Action operations buttons */}
               <div className="space-y-2 pt-1.5">
-                <Button
-                  onClick={() => handleSave('DRAFT')}
-                  disabled={createMutation.isPending || updateMutation.isPending}
-                  variant="outline"
-                  className="w-full font-semibold border-[#10B981] hover:bg-emerald-500/5 text-[#059669] dark:text-[#10B981] py-5 text-xs rounded-xl"
-                >
-                  {createMutation.isPending || updateMutation.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="mr-2 h-4 w-4" />
-                  )}
-                  <span>Save Invoice Draft</span>
-                </Button>
-
-                {(isAdmin || status === 'DRAFT' || mode === 'create') && (
+                {mode === 'edit' && existingInvoice && existingInvoice.status !== 'DRAFT' ? (
                   <Button
                     onClick={() => handleSave('FINALIZED')}
-                    disabled={createMutation.isPending || updateMutation.isPending}
+                    disabled={updateMutation.isPending}
                     className="w-full font-bold bg-[#10B981] hover:bg-[#059669] text-white py-5 text-xs rounded-xl shadow-premium"
                   >
-                    {createMutation.isPending || updateMutation.isPending ? (
+                    {updateMutation.isPending ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
-                      <FileCheck className="mr-2 h-4 w-4" />
+                      <Save className="mr-2 h-4 w-4" />
                     )}
-                    <span>Save & Finalize Invoice</span>
+                    <span>Save & Update Finalized Invoice</span>
                   </Button>
+                ) : (
+                  <>
+                    <Button
+                      onClick={() => handleSave('DRAFT')}
+                      disabled={createMutation.isPending || updateMutation.isPending}
+                      variant="outline"
+                      className="w-full font-semibold border-[#10B981] hover:bg-emerald-500/5 text-[#059669] dark:text-[#10B981] py-5 text-xs rounded-xl"
+                    >
+                      {createMutation.isPending || updateMutation.isPending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="mr-2 h-4 w-4" />
+                      )}
+                      <span>Save Invoice Draft</span>
+                    </Button>
+
+                    {(isAdmin || status === 'DRAFT' || mode === 'create') && (
+                      <Button
+                        onClick={() => handleSave('FINALIZED')}
+                        disabled={createMutation.isPending || updateMutation.isPending}
+                        className="w-full font-bold bg-[#10B981] hover:bg-[#059669] text-white py-5 text-xs rounded-xl shadow-premium"
+                      >
+                        {createMutation.isPending || updateMutation.isPending ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <FileCheck className="mr-2 h-4 w-4" />
+                        )}
+                        <span>Save & Finalize Invoice</span>
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
             </CardContent>
