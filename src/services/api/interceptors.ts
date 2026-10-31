@@ -18,6 +18,23 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = [];
 };
 
+function detectClientDevice(): string {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return 'Web Client';
+  }
+  const ua = navigator.userAgent || '';
+  if (/iPhone/i.test(ua)) return 'iPhone';
+  if (/iPad/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return 'iPad';
+  if (/iPod/i.test(ua)) return 'iPod';
+  if (/Android/i.test(ua)) {
+    return /Mobile/i.test(ua) ? 'Android Mobile' : 'Android Tablet';
+  }
+  if (/Windows NT/i.test(ua)) return 'Windows PC';
+  if (/Macintosh|Mac OS X/i.test(ua)) return 'MacBook / Mac';
+  if (/Linux/i.test(ua)) return 'Linux PC';
+  return 'Web Client';
+}
+
 export const setupInterceptors = () => {
   // Request Interceptor
   apiClient.interceptors.request.use(
@@ -28,6 +45,7 @@ export const setupInterceptors = () => {
       }
       if (typeof window !== 'undefined' && config.headers) {
         config.headers['x-tenant-host'] = window.location.host;
+        config.headers['x-device-name'] = detectClientDevice();
         const activeBusinessId = localStorage.getItem('active_business_id');
         if (activeBusinessId) {
           config.headers['x-business-id'] = activeBusinessId;

@@ -10,8 +10,46 @@ import { Card } from '../../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
-import { ShieldAlert, ChevronLeft, ChevronRight, Activity, Loader2, Lock, Sparkles, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import {
+  ShieldAlert,
+  ChevronLeft,
+  ChevronRight,
+  Activity,
+  Loader2,
+  Lock,
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle2,
+  Smartphone,
+  Laptop,
+  Monitor,
+  Tablet,
+} from 'lucide-react';
 import { Skeleton } from '../../../components/ui/skeleton';
+
+function getDeviceDetails(log: { deviceName?: string | null; ipAddress?: string | null }) {
+  let deviceName = log.deviceName || '';
+  let ip = log.ipAddress || '';
+
+  if (!deviceName && ip.includes(' • ')) {
+    const parts = ip.split(' • ');
+    deviceName = parts[0]?.trim() || '';
+    ip = parts[1]?.trim() || '';
+  }
+
+  if (!deviceName) {
+    if (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost') {
+      deviceName = 'Localhost (Dev)';
+    } else if (ip) {
+      deviceName = 'Mobile / Web Client';
+    } else {
+      deviceName = 'Web Client';
+    }
+  }
+
+  return { deviceName, ip };
+}
 
 export default function ActivityPage() {
   const { user } = useAuth();
@@ -223,7 +261,7 @@ export default function ActivityPage() {
                   User Email
                 </TableHead>
                 <TableHead className="w-[20%] px-6 py-4 font-bold text-xs text-foreground whitespace-nowrap">
-                  IP Address
+                  Device Name
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -250,29 +288,58 @@ export default function ActivityPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                data.logs.map((log) => (
-                  <TableRow key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/35 border-b border-border/60 transition-colors">
-                    <TableCell className="px-6 py-4 whitespace-nowrap text-xs text-muted-foreground font-mono">
-                      {new Date(log.createdAt).toLocaleString(undefined, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })}
-                    </TableCell>
-                    <TableCell className="px-6 py-4 whitespace-nowrap">
-                      {getActionBadge(log.action)}
-                    </TableCell>
-                    <TableCell className="px-6 py-4 whitespace-nowrap font-medium text-foreground text-xs">
-                      {log.user?.email || `User ID: ${log.userId.slice(0, 8)}...`}
-                    </TableCell>
-                    <TableCell className="px-6 py-4 whitespace-nowrap font-mono text-xs text-muted-foreground">
-                      {log.ipAddress || 'Unknown'}
-                    </TableCell>
-                  </TableRow>
-                ))
+                data.logs.map((log) => {
+                  const { deviceName, ip } = getDeviceDetails(log);
+                  const isMobile = /iPhone|Android|Mobile|iPod/i.test(deviceName);
+                  const isTablet = /iPad|Tablet/i.test(deviceName);
+                  const isDesktop = /Windows|Mac|Linux/i.test(deviceName);
+
+                  return (
+                    <TableRow key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/35 border-b border-border/60 transition-colors">
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-xs text-muted-foreground font-mono">
+                        {new Date(log.createdAt).toLocaleString(undefined, {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                        })}
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
+                        {getActionBadge(log.action)}
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap font-medium text-foreground text-xs">
+                        {log.user?.email || `User ID: ${log.userId.slice(0, 8)}...`}
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                            {isMobile ? (
+                              <Smartphone className="w-3.5 h-3.5" />
+                            ) : isTablet ? (
+                              <Tablet className="w-3.5 h-3.5" />
+                            ) : isDesktop ? (
+                              <Monitor className="w-3.5 h-3.5" />
+                            ) : (
+                              <Laptop className="w-3.5 h-3.5" />
+                            )}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-semibold text-foreground truncate">
+                              {deviceName}
+                            </span>
+                            {ip && (
+                              <span className="text-[10px] text-muted-foreground font-mono leading-none mt-0.5">
+                                {ip}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

@@ -262,11 +262,10 @@ export default function ReportsPage() {
                 key={item.id}
                 type="button"
                 onClick={() => handlePresetChange(item.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                  preset === item.id
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${preset === item.id
                     ? 'bg-primary text-primary-foreground shadow-sm scale-102'
                     : 'bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground'
-                }`}
+                  }`}
               >
                 {item.label}
               </button>
@@ -355,52 +354,6 @@ export default function ReportsPage() {
               </div>
             )}
 
-            {/* Cashier Filter (For Admins) - Custom Dark Themed Select Box */}
-            {isAdminOrSuper ? (
-              <div className="space-y-1">
-                <Label className="text-[11px] font-semibold text-muted-foreground flex items-center">
-                  <Users className="h-3 w-3 mr-1 text-primary" />
-                  {isSuperAdmin && businessId !== 'all' ? 'Cashier in Business' : 'Cashier / Staff'}
-                </Label>
-                <div className="relative">
-                  <select
-                    value={cashierId}
-                    onChange={(e) => {
-                      setCashierId(e.target.value);
-                      setPage(1);
-                    }}
-                    style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}
-                    className="w-full h-9 pl-3 pr-8 rounded-xl text-xs bg-slate-900 border border-slate-700/80 text-slate-100 focus:outline-none focus:ring-1 focus:ring-primary shadow-inner cursor-pointer appearance-none"
-                  >
-                    <option value="all" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }} className="bg-slate-900 text-slate-100">
-                      {isSuperAdmin && businessId !== 'all' ? 'All Cashiers in Business' : 'All Cashiers'}
-                    </option>
-                    {cashiers.map((c) => (
-                      <option
-                        key={c.id}
-                        value={c.id}
-                        style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}
-                        className="bg-slate-900 text-slate-100"
-                      >
-                        {c.firstName} {c.lastName} ({c.email})
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="h-4 w-4 absolute right-2.5 top-2.5 text-slate-400 pointer-events-none" />
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <Label className="text-[11px] font-semibold text-muted-foreground flex items-center">
-                  <User className="h-3 w-3 mr-1 text-primary" />
-                  Your Cashier Shift
-                </Label>
-                <div className="h-9 px-3 rounded-xl text-xs bg-slate-900 border border-slate-700/80 flex items-center text-slate-300 font-medium truncate">
-                  {user?.firstName} {user?.lastName} (Self)
-                </div>
-              </div>
-            )}
-
             {/* Branch Filter */}
             {isSubAdmin || (isCashier && user?.branchId) ? (
               <div className="space-y-1">
@@ -451,6 +404,54 @@ export default function ReportsPage() {
                 </div>
               )
             )}
+
+            {/* Cashier Filter (For Admins) - Custom Dark Themed Select Box */}
+            {isAdminOrSuper ? (
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold text-muted-foreground flex items-center">
+                  <Users className="h-3 w-3 mr-1 text-primary" />
+                  {isSuperAdmin && businessId !== 'all' ? 'Cashier in Business' : 'Cashier / Staff'}
+                </Label>
+                <div className="relative">
+                  <select
+                    value={cashierId}
+                    onChange={(e) => {
+                      setCashierId(e.target.value);
+                      setPage(1);
+                    }}
+                    style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}
+                    className="w-full h-9 pl-3 pr-8 rounded-xl text-xs bg-slate-900 border border-slate-700/80 text-slate-100 focus:outline-none focus:ring-1 focus:ring-primary shadow-inner cursor-pointer appearance-none"
+                  >
+                    <option value="all" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }} className="bg-slate-900 text-slate-100">
+                      {isSuperAdmin && businessId !== 'all' ? 'All Cashiers in Business' : 'All Cashiers'}
+                    </option>
+                    {cashiers.map((c) => (
+                      <option
+                        key={c.id}
+                        value={c.id}
+                        style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}
+                        className="bg-slate-900 text-slate-100"
+                      >
+                        {c.firstName} {c.lastName} ({c.email})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="h-4 w-4 absolute right-2.5 top-2.5 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold text-muted-foreground flex items-center">
+                  <User className="h-3 w-3 mr-1 text-primary" />
+                  Your Cashier Shift
+                </Label>
+                <div className="h-9 px-3 rounded-xl text-xs bg-slate-900 border border-slate-700/80 flex items-center text-slate-300 font-medium truncate">
+                  {user?.firstName} {user?.lastName} (Self)
+                </div>
+              </div>
+            )}
+
+
 
             {/* Invoice Status Filter - Custom Dark Themed Select Box */}
             <div className="space-y-1">
@@ -627,9 +628,8 @@ export default function ReportsPage() {
                     return (
                       <tr
                         key={c.id}
-                        className={`hover:bg-secondary/20 transition-colors ${
-                          isSelected ? 'bg-primary/5 font-semibold' : ''
-                        }`}
+                        className={`hover:bg-secondary/20 transition-colors ${isSelected ? 'bg-primary/5 font-semibold' : ''
+                          }`}
                       >
                         <td className="py-3 px-4 font-bold text-foreground flex items-center space-x-2">
                           <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
@@ -939,11 +939,10 @@ export default function ReportsPage() {
                 </DialogDescription>
               </div>
               <Badge
-                className={`text-xs font-bold self-start sm:self-auto ${
-                  selectedInvoice?.status === 'FINALIZED'
+                className={`text-xs font-bold self-start sm:self-auto ${selectedInvoice?.status === 'FINALIZED'
                     ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
                     : 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
-                }`}
+                  }`}
               >
                 {selectedInvoice?.status}
               </Badge>

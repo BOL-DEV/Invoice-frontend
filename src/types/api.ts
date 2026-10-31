@@ -322,6 +322,7 @@ export interface ActivityLog {
   action: string;
   details: Record<string, unknown> | null;
   ipAddress: string | null;
+  deviceName?: string | null;
   createdAt: string;
   user?: {
     id: string;

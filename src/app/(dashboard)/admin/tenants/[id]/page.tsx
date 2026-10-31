@@ -1792,7 +1792,9 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
                           </span>
                         </div>
                         {log.ipAddress && (
-                          <p className="text-[10px] text-muted-foreground font-mono">IP: {log.ipAddress}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono">
+                            {log.ipAddress.includes(' • ') ? log.ipAddress : `IP: ${log.ipAddress}`}
+                          </p>
                         )}
                       </div>
                       <span className="font-mono text-muted-foreground text-[11px]">
