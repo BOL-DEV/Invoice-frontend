@@ -62,6 +62,8 @@ export default function SettingsPage() {
   const { user, updateCurrentUser } = useAuth();
   const { isAdmin, isLoading: isAuthLoading } = usePermission();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isSubAdmin = user?.role === 'ADMIN' && Boolean(user?.branchId);
+  const isMainAdmin = (user?.role === 'ADMIN' && !user?.branchId) || isSuperAdmin;
   const modal = useModal();
 
   const [activePaymentData, setActivePaymentData] = useState<PaymentInitiationResult | null>(null);
@@ -392,7 +394,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Tabs Selection (Modern Segmented Control) */}
-      {isAdmin && !isSuperAdmin && (
+      {isMainAdmin && !isSuperAdmin && (
         <div className={`p-1 rounded-xl bg-secondary/70 dark:bg-slate-900/80 border border-border/80 grid ${isComplimentary ? 'grid-cols-3 max-w-md' : 'grid-cols-4 max-w-xl'} gap-1 w-full`}>
           <button
             type="button"

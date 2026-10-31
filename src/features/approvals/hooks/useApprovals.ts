@@ -18,8 +18,11 @@ export const useCreateApproval = () => {
   return useMutation({
     mutationFn: (payload: { invoiceId: string; type: 'EDIT' | 'PRINT' | 'DELETE'; reason: string }) =>
       approvalService.create(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['approvals', 'list'] });
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices', 'details', variables.invoiceId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 };
@@ -30,9 +33,10 @@ export const useActionApproval = () => {
     mutationFn: ({ id, payload }: { id: string; payload: { status: 'APPROVED' | 'REJECTED'; adminNotes?: string | null } }) =>
       approvalService.action(id, payload),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['approvals', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoices', 'details', data.invoiceId] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 };

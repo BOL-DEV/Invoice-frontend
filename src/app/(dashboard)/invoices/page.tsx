@@ -852,20 +852,23 @@ export default function InvoicesPage() {
 
                         {(() => {
                           const isRowUnder24Hours = inv.createdAt ? Date.now() - new Date(inv.createdAt).getTime() <= 24 * 60 * 60 * 1000 : true;
+                          const hasApprovedEditRow = inv.approvalRequests?.some(
+                            (r) => r.type === 'EDIT' && r.status === 'APPROVED' && (!user?.id || r.requesterId === user.id)
+                          );
                           const canEditRow = inv.status === 'DRAFT'
                             ? (isAdmin || (user && inv.creatorId === user.id))
-                            : (isAdmin && isRowUnder24Hours);
+                            : (isRowUnder24Hours && (isAdmin || hasApprovedEditRow));
                           if (!canEditRow) return null;
                           return (
                             <Link href={`/invoices/${inv.id}`}>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                title={inv.status === 'DRAFT' ? 'Edit draft invoice' : 'Edit invoice within 24h'}
+                                title={inv.status === 'DRAFT' ? 'Edit draft invoice' : hasApprovedEditRow ? 'Edit invoice (Approved)' : 'Edit invoice within 24h'}
                                 className="h-8 px-2.5 rounded-xl text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1 cursor-pointer font-medium transition-colors"
                               >
                                 <Pencil className="h-3.5 w-3.5 text-emerald-500" />
-                                <span>Edit</span>
+                                <span>Edit{hasApprovedEditRow ? ' (Approved)' : ''}</span>
                               </Button>
                             </Link>
                           );

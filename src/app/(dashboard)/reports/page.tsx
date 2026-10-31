@@ -49,7 +49,7 @@ export default function ReportsPage() {
   const [isPrintingSheet, setIsPrintingSheet] = useState(false);
 
   // Filters state - default to all_time so user immediately sees all invoices & finalized sales
-  const [preset, setPreset] = useState<DatePreset>('today');
+  const [preset, setPreset] = useState<DatePreset>('all_time');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [businessId, setBusinessId] = useState<string>('all');
