@@ -558,16 +558,6 @@ export default function UsersPage() {
                 </p>
               </div>
             </div>
-
-            <Button
-              onClick={handleOpenBranchWithHead}
-              size="sm"
-              variant="outline"
-              className="text-xs h-8 px-3 rounded-xl border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 cursor-pointer"
-            >
-              <Plus className="h-3.5 w-3.5 mr-1 text-emerald-500" />
-              <span>New Branch & Manager</span>
-            </Button>
           </div>
 
           <div className="p-4 sm:p-5">

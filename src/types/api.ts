@@ -442,6 +442,26 @@ export interface ApprovalRequest {
   } | null;
 }
 
+export interface BranchStat {
+  id: string;
+  name: string;
+  code: string | null;
+  address: string;
+  isMain: boolean;
+  isActive: boolean;
+  totalSales: number;
+  invoiceCount: number;
+  finalizedCount: number;
+  draftCount: number;
+  staffCount: number;
+  manager: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
+}
+
 export interface DashboardStats {
   invoiceCounts: {
     total: number;
@@ -455,6 +475,9 @@ export interface DashboardStats {
     date: string;
     sales: number;
   }>;
+  branchBreakdown?: BranchStat[];
+  isMultiBranch?: boolean;
+  selectedBranchId?: string | null;
 }
 
 export interface AxiosErrorLike {
