@@ -109,6 +109,9 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isNavVisible, setIsNavVisible] = useState(true);
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const lastScrollYRef = React.useRef(0);
 
   useEffect(() => {
     setMounted(true);
@@ -121,6 +124,53 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       // localStorage may be disabled
     }
   }, []);
+
+  // Smart auto-hiding navbar on scroll (hide when scrolling down past threshold, show when scrolling up)
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = container.scrollTop;
+          const prevScrollY = lastScrollYRef.current;
+          const diff = currentScrollY - prevScrollY;
+
+          // Always visible near top of screen
+          if (currentScrollY <= 20) {
+            setIsNavVisible(true);
+          } else if (currentScrollY > 60) {
+            // After threshold covered (~8-10vh), hide on scroll down, show on scroll up
+            if (diff > 6) {
+              setIsNavVisible(false);
+            } else if (diff < -6) {
+              setIsNavVisible(true);
+            }
+          }
+
+          lastScrollYRef.current = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Reset navbar visibility on route change
+  useEffect(() => {
+    setIsNavVisible(true);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [pathname]);
 
   const toggleSidebar = () => {
     setIsCollapsed((prev) => {
@@ -497,9 +547,18 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       />
 
       {/* Main Panel Content Container */}
-      <div className="flex-1 flex flex-col h-screen min-w-0 overflow-y-auto overflow-x-hidden">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 flex flex-col h-screen min-w-0 overflow-y-auto overflow-x-hidden"
+      >
         {/* Header toolbar */}
-        <header className="h-16 border-b border-border bg-card/90 backdrop-blur-md sticky top-0 z-40 flex items-center justify-between px-4 sm:px-6 shadow-sm shrink-0">
+        <header
+          className={`h-16 border-b border-border bg-card/90 backdrop-blur-md sticky top-0 z-40 flex items-center justify-between px-4 sm:px-6 shadow-sm shrink-0 transition-transform duration-300 ease-in-out ${
+            isNavVisible || isUserMenuOpen || isMobileOpen
+              ? 'translate-y-0'
+              : '-translate-y-full pointer-events-none'
+          }`}
+        >
           <div className="flex items-center space-x-3">
             <Button
               variant="ghost"
@@ -604,7 +663,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
         </header>
 
         {/* Content body */}
-        <main className="flex-1 p-3.5 sm:p-6 md:p-8 pb-32 sm:pb-12 md:pb-8 overflow-y-auto">
+        <main className="flex-1 p-3.5 sm:p-6 md:p-8 pb-32 sm:pb-12 md:pb-8">
           {children}
         </main>
       </div>
