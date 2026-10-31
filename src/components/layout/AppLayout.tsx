@@ -111,7 +111,26 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const [mounted, setMounted] = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(true);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const userMenuRef = React.useRef<HTMLDivElement>(null);
   const lastScrollYRef = React.useRef(0);
+
+  // Close user profile dropdown on click or tap outside
+  useEffect(() => {
+    if (!isUserMenuOpen) return;
+
+    const handlePointerDownOutside = (event: MouseEvent | TouchEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDownOutside);
+    document.addEventListener('touchstart', handlePointerDownOutside, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDownOutside);
+      document.removeEventListener('touchstart', handlePointerDownOutside);
+    };
+  }, [isUserMenuOpen]);
 
   useEffect(() => {
     setMounted(true);
@@ -609,7 +628,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             </Button>
 
             {user && (
-              <div className="relative">
+              <div className="relative" ref={userMenuRef}>
                 <button
                   type="button"
                   onClick={() => setIsUserMenuOpen((prev) => !prev)}
@@ -625,37 +644,31 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                 </button>
 
                 {isUserMenuOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    />
-                    <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-card border border-border shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                      <div className="p-2.5 border-b border-border/80">
-                        <p className="text-xs font-bold text-foreground truncate">{user.firstName} {user.lastName}</p>
-                        <p className="text-[11px] text-muted-foreground font-mono truncate">{user.email}</p>
-                        <div className="mt-1.5">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold font-mono tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                            {user.role === 'ADMIN' ? 'ADMINISTRATOR' : 'CASHIER'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="py-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsUserMenuOpen(false);
-                            logout();
-                          }}
-                          className="w-full flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-xs text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                        >
-                          <LogOut className="h-4 w-4" />
-                          <span>Log Out</span>
-                        </button>
+                  <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-card border border-border shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="p-2.5 border-b border-border/80">
+                      <p className="text-xs font-bold text-foreground truncate">{user.firstName} {user.lastName}</p>
+                      <p className="text-[11px] text-muted-foreground font-mono truncate">{user.email}</p>
+                      <div className="mt-1.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold font-mono tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          {user.role === 'ADMIN' ? 'ADMINISTRATOR' : 'CASHIER'}
+                        </span>
                       </div>
                     </div>
-                  </>
+
+                    <div className="py-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          logout();
+                        }}
+                        className="w-full flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-xs text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        <span>Log Out</span>
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
