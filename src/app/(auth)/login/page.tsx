@@ -171,7 +171,7 @@ function LoginForm() {
 
   // Sleek, minimal loading spinner while resolving branding / environment
   if (!mounted || isBrandingLoading) {
-    return <LoadingScreen logoSrc={logoSrc} />;
+    return <LoadingScreen />;
   }
 
   return (
@@ -204,8 +204,8 @@ function LoginForm() {
           </div>
 
           <div className="flex items-center space-x-3.5 mb-3">
-            <div className="h-14 w-14 rounded-2xl bg-white p-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/25 shrink-0 overflow-hidden">
-              {renderLoginLogo(48)}
+            <div className="h-14 w-14 flex items-center justify-center shrink-0">
+              {renderLoginLogo(52, 'w-12 h-12')}
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-white font-heading">
@@ -268,8 +268,8 @@ function LoginForm() {
           
           {/* Mobile Header Branding (Visible on mobile & tablets only) */}
           <div className="lg:hidden flex flex-col items-center text-center space-y-3 mb-6">
-            <div className="h-14 w-14 rounded-2xl bg-white p-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/20 border border-border shrink-0 overflow-hidden">
-              {renderLoginLogo(48)}
+            <div className="h-14 w-14 flex items-center justify-center shrink-0">
+              {renderLoginLogo(52, 'w-12 h-12')}
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC] font-heading">

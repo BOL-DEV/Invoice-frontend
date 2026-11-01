@@ -408,10 +408,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   // This prevents child routes from rendering in an unauthorized state
   if (isLoading || !user || isLoggingOut) {
     return (
-      <LoadingScreen
-        message={isLoggingOut ? 'Logging out...' : 'Authenticating session...'}
-        logoSrc={logoSrc}
-      />
+      <LoadingScreen message={isLoggingOut ? 'Logging out...' : 'Authenticating session...'} />
     );
   }
 

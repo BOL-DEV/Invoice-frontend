@@ -16,7 +16,7 @@ export function LoadingScreen({
   fullScreen = true,
   className = '',
 }: LoadingScreenProps) {
-  // Graceful fallback for logo image src
+  // Always fallback to standard platform logo if invalid or missing
   const resolvedLogo =
     logoSrc &&
     typeof logoSrc === 'string' &&
@@ -34,18 +34,15 @@ export function LoadingScreen({
         fullScreen ? 'fixed inset-0 min-h-screen w-screen z-50' : 'w-full py-16'
       } flex flex-col items-center justify-center bg-[#0B0F19] text-foreground select-none overflow-hidden ${className}`}
     >
-      {/* Ambient background glow */}
-      <div className="absolute w-56 h-56 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
-
-      {/* Breathing Logo Container */}
+      {/* Standalone Logo with pure natural breathing animation (no background box, no glowing effects) */}
       <div className="relative z-10 flex flex-col items-center space-y-4">
-        <div className="h-16 w-16 rounded-2xl bg-slate-900/90 border border-emerald-500/25 p-2.5 flex items-center justify-center shadow-2xl shadow-emerald-500/15 animate-logo-breathe">
+        <div className="animate-logo-breathe flex items-center justify-center">
           <Image
             src={resolvedLogo}
             alt="BOLXolve"
-            width={48}
-            height={48}
-            className="w-10 h-10 object-contain"
+            width={56}
+            height={56}
+            className="w-14 h-14 object-contain"
             priority
           />
         </div>
@@ -61,4 +58,3 @@ export function LoadingScreen({
 }
 
 export default LoadingScreen;
-
