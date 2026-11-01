@@ -931,18 +931,18 @@ export default function UsersPage() {
       {/* MODAL 1: CREATE BRANCH & HEAD MANAGER SIMULTANEOUSLY     */}
       {/* ======================================================== */}
       <Dialog open={isBranchWithHeadOpen} onOpenChange={setIsBranchWithHeadOpen}>
-        <DialogContent className="bg-card border-border/80 rounded-2xl p-6 sm:p-7 shadow-2xl sm:max-w-[700px] w-full max-h-[92vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border/80 rounded-2xl p-4 sm:p-6 shadow-2xl w-[96vw] max-w-lg lg:max-w-xl max-h-[92dvh] overflow-y-auto overflow-x-hidden">
           <form onSubmit={branchForm.handleSubmit(onSubmitBranchWithHead)}>
-            <DialogHeader className="border-b border-border/70 pb-4">
-              <div className="flex items-center space-x-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shadow-sm shrink-0">
-                  <Store className="h-5 w-5" />
+            <DialogHeader className="border-b border-border/70 pb-4 pr-8 sm:pr-0">
+              <div className="flex items-start sm:items-center space-x-3">
+                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shadow-sm shrink-0 mt-0.5 sm:mt-0">
+                  <Store className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <div className="space-y-0.5">
-                  <DialogTitle className="text-base sm:text-lg font-bold font-heading tracking-tight text-foreground flex items-center gap-2">
-                    <span>Create Branch & Appoint Head Manager</span>
+                <div className="space-y-0.5 min-w-0">
+                  <DialogTitle className="text-sm sm:text-base md:text-lg font-bold font-heading tracking-tight text-foreground leading-snug">
+                    Create Branch & Appoint Head Manager
                   </DialogTitle>
-                  <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                  <DialogDescription className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
                     Establish a new physical branch depot and automatically provision its dedicated Sub-Admin manager.
                   </DialogDescription>
                 </div>
@@ -958,17 +958,17 @@ export default function UsersPage() {
               )}
 
               {/* Section 1: Branch Details */}
-              <div className="p-4 sm:p-5 rounded-2xl border border-border/70 bg-secondary/15 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <div className="h-6 w-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
+              <div className="p-3.5 sm:p-5 rounded-2xl border border-border/70 bg-secondary/15 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
+                  <div className="flex items-center space-x-2 min-w-0">
+                    <div className="h-6 w-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shrink-0">
                       <Building2 className="h-3.5 w-3.5" />
                     </div>
                     <span className="text-xs font-bold font-heading text-foreground tracking-wide">
                       1. Physical Branch Location
                     </span>
                   </div>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0 whitespace-nowrap">
                     Location Info
                   </span>
                 </div>
@@ -1017,17 +1017,17 @@ export default function UsersPage() {
               </div>
 
               {/* Section 2: Head Manager (Sub-Admin) Details */}
-              <div className="p-4 sm:p-5 rounded-2xl border border-border/70 bg-secondary/15 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <div className="h-6 w-6 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500">
+              <div className="p-3.5 sm:p-5 rounded-2xl border border-border/70 bg-secondary/15 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
+                  <div className="flex items-center space-x-2 min-w-0">
+                    <div className="h-6 w-6 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 shrink-0">
                       <Shield className="h-3.5 w-3.5" />
                     </div>
                     <span className="text-xs font-bold font-heading text-foreground tracking-wide">
                       2. Head Manager (Sub-Admin Credentials)
                     </span>
                   </div>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shrink-0 whitespace-nowrap">
                     Account Access
                   </span>
                 </div>
@@ -1122,7 +1122,7 @@ export default function UsersPage() {
                 </div>
 
                 {/* Sub-Admin Scope Info Box */}
-                <div className="p-3.5 rounded-xl bg-gradient-to-r from-indigo-500/10 via-indigo-500/5 to-transparent border border-indigo-500/20 flex items-start space-x-2.5 text-xs text-indigo-700 dark:text-indigo-300">
+                <div className="p-3 sm:p-3.5 rounded-xl bg-gradient-to-r from-indigo-500/10 via-indigo-500/5 to-transparent border border-indigo-500/20 flex items-start space-x-2.5 text-xs text-indigo-700 dark:text-indigo-300">
                   <Sparkles className="h-4 w-4 shrink-0 text-indigo-500 mt-0.5" />
                   <span className="leading-relaxed text-[11px] sm:text-xs">
                     This manager will automatically receive <strong>Sub-Admin</strong> status locked to this branch depot. They will have access to create and manage cashiers, review sales records, and run reports for this location exclusively.
@@ -1131,19 +1131,19 @@ export default function UsersPage() {
               </div>
             </div>
 
-            <DialogFooter className="border-t border-border/70 pt-4 flex flex-row items-center justify-end gap-2.5">
+            <DialogFooter className="border-t border-border/70 pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={() => setIsBranchWithHeadOpen(false)}
-                className="rounded-xl h-10 text-xs px-4 text-muted-foreground hover:text-foreground cursor-pointer"
+                className="rounded-xl h-10 text-xs px-4 text-muted-foreground hover:text-foreground cursor-pointer w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={createBranchWithHeadMutation.isPending}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-10 text-xs px-5 shadow-lg shadow-emerald-500/20 font-semibold cursor-pointer active:scale-[0.98] transition-all flex items-center space-x-2"
+                className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-10 text-xs px-5 shadow-lg shadow-emerald-500/20 font-semibold cursor-pointer active:scale-[0.98] transition-all flex items-center justify-center space-x-2 w-full sm:w-auto"
               >
                 {createBranchWithHeadMutation.isPending ? (
                   <>
@@ -1166,9 +1166,9 @@ export default function UsersPage() {
       {/* MODAL 2: ADD CASHIER (BRANCH SELECTION MANDATORY)        */}
       {/* ======================================================== */}
       <Dialog open={isCashierOpen} onOpenChange={setIsCashierOpen}>
-        <DialogContent className="bg-card border-border rounded-2xl p-6 shadow-2xl sm:max-w-lg w-full">
+        <DialogContent className="bg-card border-border rounded-2xl p-4 sm:p-6 shadow-2xl w-[96vw] max-w-lg max-h-[92dvh] overflow-y-auto overflow-x-hidden">
           <form onSubmit={cashierForm.handleSubmit(onSubmitCashier)}>
-            <DialogHeader className="border-b border-border pb-4">
+            <DialogHeader className="border-b border-border pb-4 pr-8 sm:pr-0">
               <DialogTitle className="flex items-center space-x-2.5 font-bold font-heading">
                 <UserCheck className="h-5 w-5 text-emerald-500" />
                 <span>Register Point-of-Sale Cashier</span>
@@ -1225,7 +1225,7 @@ export default function UsersPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="cashierFirstName" className="text-xs font-semibold text-muted-foreground">
                     First Name <span className="text-rose-500">*</span>
@@ -1319,19 +1319,19 @@ export default function UsersPage() {
               </div>
             </div>
 
-            <DialogFooter className="border-t border-border pt-4 gap-2">
+            <DialogFooter className="border-t border-border pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsCashierOpen(false)}
-                className="rounded-xl h-10 text-xs px-4 cursor-pointer"
+                className="rounded-xl h-10 text-xs px-4 cursor-pointer w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={createCashierMutation.isPending}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-10 text-xs px-5 shadow-premium font-semibold cursor-pointer"
+                className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-10 text-xs px-5 shadow-premium font-semibold cursor-pointer w-full sm:w-auto flex items-center justify-center"
               >
                 {createCashierMutation.isPending ? (
                   <>
@@ -1351,8 +1351,8 @@ export default function UsersPage() {
       {/* MODAL 3: REASSIGN / ASSIGN BRANCH TO STAFF MEMBER        */}
       {/* ======================================================== */}
       <Dialog open={isReassignOpen} onOpenChange={setIsReassignOpen}>
-        <DialogContent className="bg-card border-border rounded-2xl p-6 shadow-2xl sm:max-w-md w-full">
-          <DialogHeader className="border-b border-border pb-4">
+        <DialogContent className="bg-card border-border rounded-2xl p-4 sm:p-6 shadow-2xl w-[96vw] max-w-md max-h-[92dvh] overflow-y-auto overflow-x-hidden">
+          <DialogHeader className="border-b border-border pb-4 pr-8 sm:pr-0">
             <DialogTitle className="flex items-center space-x-2.5 font-bold font-heading">
               <Store className="h-5 w-5 text-emerald-500" />
               <span>Assign Staff to Branch</span>
@@ -1380,12 +1380,12 @@ export default function UsersPage() {
             </div>
           </div>
 
-          <DialogFooter className="border-t border-border pt-4 gap-2">
+          <DialogFooter className="border-t border-border pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => setIsReassignOpen(false)}
-              className="rounded-xl h-10 text-xs px-4"
+              className="rounded-xl h-10 text-xs px-4 w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -1393,7 +1393,7 @@ export default function UsersPage() {
               type="button"
               disabled={!reassignBranchId || adminUpdateMutation.isPending}
               onClick={onSubmitReassign}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-10 text-xs px-5 shadow-premium font-semibold"
+              className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-10 text-xs px-5 shadow-premium font-semibold w-full sm:w-auto flex items-center justify-center"
             >
               {adminUpdateMutation.isPending ? (
                 <>
