@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { usePermission } from '@/features/auth/hooks/usePermission';
 import { User, Building2, ShieldCheck, CreditCard, Loader2 } from 'lucide-react';
@@ -23,7 +24,24 @@ export default function SettingsPage() {
   const isMainAdmin = (isAdmin && !isBranchScoped) || isSuperAdmin;
 
   // For Main Admin, manage active tab
-  const [activeTab, setActiveTab] = useState<'profile' | 'business' | 'subscription' | 'upgrade'>('profile');
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'profile' | 'business' | 'subscription' | 'upgrade'>(() => {
+    if (tabParam === 'subscription' || tabParam === 'upgrade') return 'upgrade';
+    if (tabParam === 'plan') return 'subscription';
+    if (tabParam === 'business' || tabParam === 'company') return 'business';
+    return 'profile';
+  });
+
+  useEffect(() => {
+    if (tabParam === 'subscription' || tabParam === 'upgrade') {
+      setActiveTab('upgrade');
+    } else if (tabParam === 'plan') {
+      setActiveTab('subscription');
+    } else if (tabParam === 'business' || tabParam === 'company') {
+      setActiveTab('business');
+    }
+  }, [tabParam]);
 
   // Load subscription only for Main Admin to check if complimentary tier hides upgrade tab
   const { data: subDetails } = useSubscription();

@@ -13,17 +13,22 @@ import {
   Activity,
   Receipt,
   Loader2,
+  Calendar,
+  Clock,
+  AlertTriangle,
+  AlertCircle,
 } from 'lucide-react';
 import { useSubscription } from '@/features/subscriptions/hooks/useSubscription';
 
 export function SubscriptionPlanSettings() {
   const { data: subDetails, isLoading: isSubLoading } = useSubscription();
 
-  const subPlan = subDetails?.subscription?.plan || (subDetails as any)?.plan || 'STARTER';
+  const sub = subDetails?.subscription;
+  const subPlan = sub?.plan || (subDetails as any)?.plan || 'STARTER';
   const staffCount = subDetails?.usage?.staffCount ?? (subDetails as any)?.activeStaffCount ?? 0;
   const maxStaffCount =
     subDetails?.usage?.maxStaffCount ??
-    subDetails?.subscription?.maxStaffCount ??
+    sub?.maxStaffCount ??
     (subDetails as any)?.staffLimit ??
     (subDetails as any)?.maxStaffCount ??
     3;
@@ -33,12 +38,12 @@ export function SubscriptionPlanSettings() {
   const aiExtractionEnabled = subDetails?.capabilities?.aiExtraction ?? true;
   const customDomainCapability =
     subDetails?.capabilities?.customDomain ??
-    subDetails?.subscription?.hasCustomDomain ??
+    sub?.hasCustomDomain ??
     (subDetails as any)?.hasCustomDomain ??
     false;
   const multipleBranchesEnabled =
     subDetails?.capabilities?.multipleBranches ??
-    subDetails?.subscription?.hasMultipleBranches ??
+    sub?.hasMultipleBranches ??
     (subDetails as any)?.hasMultipleBranches ??
     false;
   const excelExportEnabled =
@@ -46,8 +51,116 @@ export function SubscriptionPlanSettings() {
   const activityLogsEnabled =
     subDetails?.capabilities?.activityLogs ?? (subPlan === 'BUSINESS' || subPlan === 'ENTERPRISE');
 
+  // Subscription dates & expiration calculations
+  const startDate = sub?.startDate;
+  const effectiveEndDate = sub?.effectiveEndDate || sub?.endDate;
+  const isInitialGrace = sub?.isInitialGrace;
+  const isExpired = sub?.isExpired;
+  const isExpiringSoon = sub?.isExpiringSoon;
+  const hoursRemaining = sub?.hoursRemaining;
+  const daysRemaining = sub?.daysRemaining;
+
+  const formatDate = (dateStr?: string | null, includeTime = false) => {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      ...(includeTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+    });
+  };
+
   return (
     <div className="space-y-6">
+      {/* 1. URGENT EXPIRATION BANNERS */}
+      {isExpired ? (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-start space-x-3.5 shadow-lg shadow-rose-500/5 animate-in fade-in">
+          <AlertTriangle className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <h4 className="text-sm font-bold text-rose-300">Subscription Suspended / Expired</h4>
+            <p className="text-xs text-rose-200/80 leading-relaxed">
+              Your organization subscription {isInitialGrace ? '24-hour setup grace window' : ''} expired on{' '}
+              <strong className="text-white">{formatDate(effectiveEndDate, true)}</strong>. Invoice creation and staff
+              actions are suspended. Please renew your subscription to reactivate full operations.
+            </p>
+          </div>
+        </div>
+      ) : isInitialGrace ? (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start space-x-3.5 shadow-lg shadow-amber-500/5 animate-in fade-in">
+          <Clock className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <h4 className="text-sm font-bold text-amber-300">24-Hour Setup Grace Window Active</h4>
+            <p className="text-xs text-amber-200/80 leading-relaxed">
+              Welcome! Your workspace was registered on the <strong className="text-white">{subPlan}</strong> tier. You
+              have <strong className="text-amber-300 font-mono">{hoursRemaining ?? 24} hours remaining</strong> (until{' '}
+              {formatDate(effectiveEndDate, true)}) to make your initial subscription payment from the Subscription tab before
+              account suspension.
+            </p>
+          </div>
+        </div>
+      ) : isExpiringSoon ? (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start space-x-3.5 shadow-lg shadow-amber-500/5 animate-in fade-in">
+          <AlertCircle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <h4 className="text-sm font-bold text-amber-300">
+              Subscription Expiring Soon ({daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} remaining)
+            </h4>
+            <p className="text-xs text-amber-200/80 leading-relaxed">
+              Your <strong className="text-white">{subPlan}</strong> subscription is approaching its expiration on{' '}
+              <strong className="text-white">{formatDate(effectiveEndDate)}</strong>. Please renew in the Subscription tab to
+              guarantee uninterrupted billing for your business.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Subscription Dates Overview Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="p-3.5 rounded-xl border border-border/80 bg-card space-y-1">
+          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+            <Calendar className="h-3.5 w-3.5 text-emerald-500" />
+            <span>Day of Subscription</span>
+          </div>
+          <p className="text-xs sm:text-sm font-bold text-foreground font-mono">{formatDate(startDate)}</p>
+        </div>
+
+        <div className="p-3.5 rounded-xl border border-border/80 bg-card space-y-1">
+          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+            <Clock className="h-3.5 w-3.5 text-amber-500" />
+            <span>Date of Expiry</span>
+          </div>
+          <p
+            className={`text-xs sm:text-sm font-bold font-mono ${
+              isExpired ? 'text-rose-400' : isExpiringSoon || isInitialGrace ? 'text-amber-400' : 'text-foreground'
+            }`}
+          >
+            {formatDate(effectiveEndDate, Boolean(isInitialGrace))}
+          </p>
+        </div>
+
+        <div className="p-3.5 rounded-xl border border-border/80 bg-card space-y-1">
+          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+            <span>Subscription Status</span>
+          </div>
+          <div>
+            {isExpired ? (
+              <Badge className="bg-rose-500/20 border-rose-500/40 text-rose-400 text-[10px]">EXPIRED</Badge>
+            ) : isInitialGrace ? (
+              <Badge className="bg-amber-500/20 border-amber-500/40 text-amber-300 text-[10px]">
+                24H GRACE ({hoursRemaining ?? 24}h left)
+              </Badge>
+            ) : isExpiringSoon ? (
+              <Badge className="bg-amber-500/20 border-amber-500/40 text-amber-300 text-[10px]">
+                EXPIRING IN {daysRemaining}D
+              </Badge>
+            ) : (
+              <Badge className="bg-emerald-500/15 border-emerald-500/30 text-emerald-400 text-[10px]">ACTIVE</Badge>
+            )}
+          </div>
+        </div>
+      </div>
       {/* Plan & Quota Card */}
       <Card className="border-border/80 bg-card shadow-premium rounded-2xl overflow-hidden">
         <CardHeader className="p-4 sm:p-6 border-b border-border/80 bg-slate-50/50 dark:bg-slate-900/30">

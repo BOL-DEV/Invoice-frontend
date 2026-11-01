@@ -244,6 +244,14 @@ export interface Subscription {
   endDate: string | null;
   createdAt: string;
   updatedAt: string;
+  isInitialGrace?: boolean;
+  graceExpiresAt?: string | null;
+  effectiveEndDate?: string | null;
+  hasSuccessfulPayment?: boolean;
+  isExpired?: boolean;
+  isExpiringSoon?: boolean;
+  hoursRemaining?: number | null;
+  daysRemaining?: number | null;
 }
 
 export interface SubscriptionDetails {
