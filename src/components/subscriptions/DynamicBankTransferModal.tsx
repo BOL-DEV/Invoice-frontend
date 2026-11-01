@@ -12,9 +12,14 @@ import {
   CheckCircle2,
   X,
   ExternalLink,
+  Zap,
 } from 'lucide-react';
 import { Button } from '../ui/button';
-import { PaymentInitiationResult, useVerifySubscriptionPayment } from '../../features/subscriptions/hooks/useSubscription';
+import {
+  PaymentInitiationResult,
+  useVerifySubscriptionPayment,
+  useSimulateSubscriptionPayment,
+} from '../../features/subscriptions/hooks/useSubscription';
 
 interface DynamicBankTransferModalProps {
   isOpen: boolean;
@@ -33,8 +38,10 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
   const [copiedAmount, setCopiedAmount] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(30 * 60); // seconds
   const [isPaid, setIsPaid] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   const verifyMutation = useVerifySubscriptionPayment();
+  const simulateMutation = useSimulateSubscriptionPayment();
 
   // Timer countdown
   useEffect(() => {
@@ -89,14 +96,32 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
   };
 
   const handleManualCheck = async () => {
+    setFeedbackMessage(null);
     try {
       const res = await verifyMutation.mutateAsync(paymentData.transactionReference);
       if (res?.paid) {
         setIsPaid(true);
         if (onSuccess) onSuccess();
+      } else {
+        setFeedbackMessage(
+          'Payment has not been detected yet. Bank network settlements may take 1-2 minutes. If you are testing in sandbox mode, use the simulation button below.'
+        );
       }
-    } catch (err) {
-      // handled by mutation state
+    } catch (err: any) {
+      setFeedbackMessage(err?.response?.data?.message || 'Unable to verify payment at this moment. Please try again.');
+    }
+  };
+
+  const handleSimulatePayment = async () => {
+    setFeedbackMessage(null);
+    try {
+      const res = await simulateMutation.mutateAsync(paymentData.transactionReference);
+      if (res?.paid) {
+        setIsPaid(true);
+        if (onSuccess) onSuccess();
+      }
+    } catch (err: any) {
+      setFeedbackMessage(err?.response?.data?.message || 'Simulation failed. Please try again.');
     }
   };
 
@@ -242,12 +267,51 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
               <span>Listening for payment transfer in real-time...</span>
             </div>
 
+            {/* Feedback Message */}
+            {feedbackMessage && (
+              <div className="flex items-start space-x-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300">
+                <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                <p className="leading-relaxed">{feedbackMessage}</p>
+              </div>
+            )}
+
+            {/* Sandbox Quick Simulator */}
+            {paymentData.isSandbox && (
+              <div className="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-2">
+                <div className="flex items-center space-x-1.5 text-emerald-400 text-xs font-semibold">
+                  <Zap className="h-3.5 w-3.5" />
+                  <span>Sandbox Testing Environment</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Real bank apps cannot credit sandbox virtual accounts. Click below to simulate an instant transfer confirmation.
+                </p>
+                <Button
+                  type="button"
+                  onClick={handleSimulatePayment}
+                  disabled={simulateMutation.isPending || verifyMutation.isPending}
+                  className="w-full h-9 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 font-semibold text-xs rounded-lg flex items-center justify-center space-x-1.5 transition-all"
+                >
+                  {simulateMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Simulating Incoming Bank Transfer...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="h-3.5 w-3.5 text-emerald-400" />
+                      <span>⚡ Simulate Test Transfer (Instant Credit)</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
             {/* Manual Verification Button */}
             <div className="space-y-2 pt-1">
               <Button
                 onClick={handleManualCheck}
-                disabled={verifyMutation.isPending}
-                className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all"
+                disabled={verifyMutation.isPending || simulateMutation.isPending}
+                className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all shadow-lg shadow-emerald-500/10"
               >
                 {verifyMutation.isPending ? (
                   <>

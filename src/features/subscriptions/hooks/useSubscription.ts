@@ -15,6 +15,7 @@ export interface PaymentInitiationResult {
   accountNumber: string;
   accountName: string;
   expiresAt: string;
+  isSandbox?: boolean;
 }
 
 export const useSubscription = () => {
@@ -49,6 +50,24 @@ export const useVerifySubscriptionPayment = () => {
     mutationFn: async (reference: string) => {
       const response = await apiClient.get<ApiResponse<{ status: string; paid: boolean; message?: string }>>(
         API_ENDPOINTS.SUBSCRIPTIONS.VERIFY_PAYMENT(reference)
+      );
+      return response.data.data;
+    },
+    onSuccess: (data) => {
+      if (data?.paid) {
+        queryClient.invalidateQueries({ queryKey: ['subscription'] });
+        queryClient.invalidateQueries({ queryKey: ['business'] });
+      }
+    },
+  });
+};
+
+export const useSimulateSubscriptionPayment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (reference: string) => {
+      const response = await apiClient.post<ApiResponse<{ status: string; paid: boolean; message?: string }>>(
+        API_ENDPOINTS.SUBSCRIPTIONS.SIMULATE_PAYMENT(reference)
       );
       return response.data.data;
     },
