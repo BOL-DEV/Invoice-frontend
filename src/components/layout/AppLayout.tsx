@@ -109,6 +109,28 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isNavVisible, setIsNavVisible] = useState(true);
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const userMenuRef = React.useRef<HTMLDivElement>(null);
+  const lastScrollYRef = React.useRef(0);
+
+  // Close user profile dropdown on click or tap outside
+  useEffect(() => {
+    if (!isUserMenuOpen) return;
+
+    const handlePointerDownOutside = (event: MouseEvent | TouchEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDownOutside);
+    document.addEventListener('touchstart', handlePointerDownOutside, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDownOutside);
+      document.removeEventListener('touchstart', handlePointerDownOutside);
+    };
+  }, [isUserMenuOpen]);
 
   useEffect(() => {
     setMounted(true);
@@ -121,6 +143,53 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       // localStorage may be disabled
     }
   }, []);
+
+  // Smart auto-hiding navbar on scroll (hide when scrolling down past threshold, show when scrolling up)
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = container.scrollTop;
+          const prevScrollY = lastScrollYRef.current;
+          const diff = currentScrollY - prevScrollY;
+
+          // Always visible near top of screen
+          if (currentScrollY <= 20) {
+            setIsNavVisible(true);
+          } else if (currentScrollY > 60) {
+            // After threshold covered (~8-10vh), hide on scroll down, show on scroll up
+            if (diff > 6) {
+              setIsNavVisible(false);
+            } else if (diff < -6) {
+              setIsNavVisible(true);
+            }
+          }
+
+          lastScrollYRef.current = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Reset navbar visibility on route change
+  useEffect(() => {
+    setIsNavVisible(true);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [pathname]);
 
   const toggleSidebar = () => {
     setIsCollapsed((prev) => {
@@ -497,9 +566,18 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       />
 
       {/* Main Panel Content Container */}
-      <div className="flex-1 flex flex-col h-screen min-w-0 overflow-y-auto overflow-x-hidden">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 flex flex-col h-screen min-w-0 overflow-y-auto overflow-x-hidden"
+      >
         {/* Header toolbar */}
-        <header className="h-16 border-b border-border bg-card/90 backdrop-blur-md sticky top-0 z-40 flex items-center justify-between px-4 sm:px-6 shadow-sm shrink-0">
+        <header
+          className={`h-16 border-b border-border bg-card/90 backdrop-blur-md sticky top-0 z-40 flex items-center justify-between px-4 sm:px-6 shadow-sm shrink-0 transition-transform duration-300 ease-in-out ${
+            isNavVisible || isUserMenuOpen || isMobileOpen
+              ? 'translate-y-0'
+              : '-translate-y-full pointer-events-none'
+          }`}
+        >
           <div className="flex items-center space-x-3">
             <Button
               variant="ghost"
@@ -550,7 +628,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             </Button>
 
             {user && (
-              <div className="relative">
+              <div className="relative" ref={userMenuRef}>
                 <button
                   type="button"
                   onClick={() => setIsUserMenuOpen((prev) => !prev)}
@@ -566,37 +644,31 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                 </button>
 
                 {isUserMenuOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    />
-                    <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-card border border-border shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                      <div className="p-2.5 border-b border-border/80">
-                        <p className="text-xs font-bold text-foreground truncate">{user.firstName} {user.lastName}</p>
-                        <p className="text-[11px] text-muted-foreground font-mono truncate">{user.email}</p>
-                        <div className="mt-1.5">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold font-mono tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                            {user.role === 'ADMIN' ? 'ADMINISTRATOR' : 'CASHIER'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="py-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsUserMenuOpen(false);
-                            logout();
-                          }}
-                          className="w-full flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-xs text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                        >
-                          <LogOut className="h-4 w-4" />
-                          <span>Log Out</span>
-                        </button>
+                  <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-card border border-border shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="p-2.5 border-b border-border/80">
+                      <p className="text-xs font-bold text-foreground truncate">{user.firstName} {user.lastName}</p>
+                      <p className="text-[11px] text-muted-foreground font-mono truncate">{user.email}</p>
+                      <div className="mt-1.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold font-mono tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          {user.role === 'ADMIN' ? 'ADMINISTRATOR' : 'CASHIER'}
+                        </span>
                       </div>
                     </div>
-                  </>
+
+                    <div className="py-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          logout();
+                        }}
+                        className="w-full flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-xs text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        <span>Log Out</span>
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -604,7 +676,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
         </header>
 
         {/* Content body */}
-        <main className="flex-1 p-3.5 sm:p-6 md:p-8 pb-32 sm:pb-12 md:pb-8 overflow-y-auto">
+        <main className="flex-1 p-3.5 sm:p-6 md:p-8 pb-32 sm:pb-12 md:pb-8">
           {children}
         </main>
       </div>

@@ -3,12 +3,15 @@ import { apiClient } from '../../../services/api/axios';
 import { API_ENDPOINTS } from '../../../services/api/endpoints';
 import { ApiResponse, DashboardStats } from '../../../types/api';
 
-export const useDashboardStats = () => {
+export const useDashboardStats = (branchId?: string) => {
   return useQuery<DashboardStats>({
-    queryKey: ['dashboard', 'stats'],
+    queryKey: ['dashboard', 'stats', branchId || 'all'],
     queryFn: async () => {
       const response = await apiClient.get<ApiResponse<DashboardStats>>(
-        API_ENDPOINTS.DASHBOARD.BASE
+        API_ENDPOINTS.DASHBOARD.BASE,
+        {
+          params: branchId && branchId !== 'all' ? { branchId } : {},
+        }
       );
       return response.data.data;
     },

@@ -378,48 +378,19 @@ export default function UsersPage() {
             {isMainAdmin && hasMultiBranch
               ? 'Branches & Staff Management'
               : isSubAdmin
-              ? 'Branch Cashiers & Staff'
-              : 'Cashier & Staff Management'}
+                ? 'Branch Cashiers & Staff'
+                : 'Cashier & Staff Management'}
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
             {isMainAdmin && hasMultiBranch
               ? 'Create physical branches, appoint head managers (sub-admins), and provision branch cashiers.'
               : isSubAdmin
-              ? 'Manage cashiers registered under your assigned branch location.'
-              : 'Register and manage authorized system cashiers for point-of-sale invoicing.'}
+                ? 'Manage cashiers registered under your assigned branch location.'
+                : 'Register and manage authorized system cashiers for point-of-sale invoicing.'}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {isSubAdmin ? (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border bg-card text-xs shadow-sm">
-              <span className="text-muted-foreground">
-                Cashiers:{' '}
-                <strong className="text-foreground font-semibold">
-                  {displayedUsers.length}
-                </strong>
-              </span>
-            </div>
-          ) : subscription ? (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border bg-card text-xs shadow-sm">
-              <span className="font-semibold text-foreground">
-                Plan: <span className="uppercase text-emerald-600 dark:text-emerald-400 font-bold">{subscription.plan}</span>
-              </span>
-              <span className="text-muted-foreground">•</span>
-              <span className="text-muted-foreground">
-                Staff Quota:{' '}
-                <strong className={isStaffQuotaReached ? 'text-rose-500 font-bold' : 'text-foreground font-semibold'}>
-                  {totalStaffCount} / {maxStaffQuota}
-                </strong>
-                {hasMultiBranch && (
-                  <span className="text-[11px] ml-1 text-muted-foreground">
-                    ({activeSubAdminCount} managers, {activeCashierCount} cashiers)
-                  </span>
-                )}
-              </span>
-            </div>
-          ) : null}
-
           {/* Action Buttons */}
           {isMainAdmin && hasMultiBranch ? (
             <div className="flex items-center gap-2">
@@ -533,8 +504,8 @@ export default function UsersPage() {
                 isStaffQuotaReached
                   ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
                   : totalStaffCount >= maxStaffQuota * 0.8
-                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
               )}
             >
               {totalStaffCount} / {maxStaffQuota}
@@ -587,16 +558,6 @@ export default function UsersPage() {
                 </p>
               </div>
             </div>
-
-            <Button
-              onClick={handleOpenBranchWithHead}
-              size="sm"
-              variant="outline"
-              className="text-xs h-8 px-3 rounded-xl border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 cursor-pointer"
-            >
-              <Plus className="h-3.5 w-3.5 mr-1 text-emerald-500" />
-              <span>New Branch & Manager</span>
-            </Button>
           </div>
 
           <div className="p-4 sm:p-5">

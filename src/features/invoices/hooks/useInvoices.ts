@@ -26,6 +26,8 @@ export const useInvoiceDetails = (id: string | null) => {
     queryKey: ['invoices', 'details', id],
     queryFn: () => (id ? invoiceService.getById(id) : null),
     enabled: !!id,
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 };
 

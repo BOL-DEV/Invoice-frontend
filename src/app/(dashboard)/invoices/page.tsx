@@ -44,6 +44,7 @@ import {
   CalendarDays,
   TrendingUp,
   Clock,
+  Check,
   User,
   X,
   Loader2,
@@ -157,9 +158,9 @@ export default function InvoicesPage() {
 
   const isSubAdmin = user?.role === 'ADMIN' && Boolean(user?.branchId);
   const isCashier = user?.role === 'APPRENTICE';
-  const effectiveBranchFilter = (isSubAdmin || (isCashier && user?.branchId))
+  const effectiveBranchFilter = isSubAdmin
     ? (user?.branchId || undefined)
-    : (branchFilter !== 'ALL' ? branchFilter : undefined);
+    : (isCashier ? undefined : (branchFilter !== 'ALL' ? branchFilter : undefined));
 
   const { data, isLoading, isError } = useInvoicesList({
     page,
@@ -173,6 +174,25 @@ export default function InvoicesPage() {
   });
 
   const { data: invoiceDetails, isLoading: detailsLoading } = useInvoiceDetails(selectedInvoiceId);
+
+  const isDetailUnder24Hours = invoiceDetails?.createdAt
+    ? Date.now() - new Date(invoiceDetails.createdAt).getTime() <= 24 * 60 * 60 * 1000
+    : true;
+  const hasApprovedPrint = invoiceDetails?.approvalRequests?.some(
+    (r) => r.type === 'PRINT' && r.status === 'APPROVED' && (!user?.id || r.requesterId === user.id)
+  );
+  const hasPendingPrint = invoiceDetails?.approvalRequests?.some(
+    (r) => r.type === 'PRINT' && r.status === 'PENDING'
+  );
+  const hasApprovedEdit = invoiceDetails?.approvalRequests?.some(
+    (r) => r.type === 'EDIT' && r.status === 'APPROVED' && (!user?.id || r.requesterId === user.id)
+  );
+  const hasPendingEdit = invoiceDetails?.approvalRequests?.some(
+    (r) => r.type === 'EDIT' && r.status === 'PENDING'
+  );
+  const hasPendingDelete = invoiceDetails?.approvalRequests?.some(
+    (r) => r.type === 'DELETE' && r.status === 'PENDING'
+  );
   const deleteInvoiceMutation = useDeleteInvoice();
 
   const handleRowClick = (id: string) => {
@@ -223,40 +243,7 @@ export default function InvoicesPage() {
       return;
     }
 
-    // If apprentice trying to print a PRINTED invoice, check if they need approval
-    if (!isAdmin && format === 'pdf' && invoiceDetails?.status === 'PRINTED') {
-      const shouldRequest = await modal.confirm(
-        'Reprint Approval Required',
-        'This invoice has already been printed. Administrative authorization is required to reprint official documents. Would you like to request approval now?',
-        'Request Approval',
-        'Cancel'
-      );
-      if (shouldRequest) {
-        const reason = await modal.prompt(
-          'Reprint Reason',
-          'Please enter the reason for this reprint request (e.g. Printer paper jam, customer copy replacement):',
-          'Customer requested reprint'
-        );
-        if (reason) {
-          try {
-            await createApprovalMutation.mutateAsync({
-              invoiceId,
-              type: 'PRINT',
-              reason,
-            });
-            modal.alert(
-              'Request Submitted',
-              'Your reprint authorization request has been submitted to the administrators. You will be able to print once approved.',
-              'success'
-            );
-          } catch (approvalErr) {
-            const { title, message, variant } = getErrorDialog(approvalErr, 'Submission Error', 'Failed to submit approval request');
-            modal.alert(title, message, variant);
-          }
-        }
-      }
-      return;
-    }
+    // Note: Backend verifyAccess performs the authoritative check for reprint approval.
 
     setExportingFormat(format);
     try {
@@ -863,19 +850,29 @@ export default function InvoicesPage() {
                           <span>View</span>
                         </Button>
 
-                        {(inv.status === 'DRAFT' && (isAdmin || (user && inv.creatorId === user.id))) && (
-                          <Link href={`/invoices/${inv.id}`}>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              title="Edit draft invoice"
-                              className="h-8 px-2.5 rounded-xl text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1 cursor-pointer font-medium transition-colors"
-                            >
-                              <Pencil className="h-3.5 w-3.5 text-emerald-500" />
-                              <span>Edit</span>
-                            </Button>
-                          </Link>
-                        )}
+                        {(() => {
+                          const isRowUnder24Hours = inv.createdAt ? Date.now() - new Date(inv.createdAt).getTime() <= 24 * 60 * 60 * 1000 : true;
+                          const hasApprovedEditRow = inv.approvalRequests?.some(
+                            (r) => r.type === 'EDIT' && r.status === 'APPROVED' && (!user?.id || r.requesterId === user.id)
+                          );
+                          const canEditRow = inv.status === 'DRAFT'
+                            ? (isAdmin || (user && inv.creatorId === user.id))
+                            : (isRowUnder24Hours && (isAdmin || hasApprovedEditRow));
+                          if (!canEditRow) return null;
+                          return (
+                            <Link href={`/invoices/${inv.id}`}>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                title={inv.status === 'DRAFT' ? 'Edit draft invoice' : hasApprovedEditRow ? 'Edit invoice (Approved)' : 'Edit invoice within 24h'}
+                                className="h-8 px-2.5 rounded-xl text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1 cursor-pointer font-medium transition-colors"
+                              >
+                                <Pencil className="h-3.5 w-3.5 text-emerald-500" />
+                                <span>Edit{hasApprovedEditRow ? ' (Approved)' : ''}</span>
+                              </Button>
+                            </Link>
+                          );
+                        })()}
 
                         {(isAdmin || (user && inv.creatorId === user.id)) && (
                           <Button
@@ -991,18 +988,98 @@ export default function InvoicesPage() {
               {invoiceDetails && (
                 <div className="flex items-center space-x-2">
                   
-                  {/* Edit Button strictly for Draft */}
-                  {(invoiceDetails.status === 'DRAFT' && (isAdmin || (user && invoiceDetails.creatorId === user.id))) && (
-                    <Link href={`/invoices/${invoiceDetails.id}`}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 text-xs rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1.5 cursor-pointer font-medium transition-colors"
-                      >
-                        <Pencil className="h-3.5 w-3.5 text-emerald-500" />
-                        <span>Edit Draft</span>
-                      </Button>
-                    </Link>
+                  {/* Edit Actions: Draft vs Finalized with 24hr window */}
+                  {invoiceDetails.status === 'DRAFT' ? (
+                    (isAdmin || (user && invoiceDetails.creatorId === user.id)) && (
+                      <Link href={`/invoices/${invoiceDetails.id}`}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 text-xs rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1.5 cursor-pointer font-medium transition-colors"
+                        >
+                          <Pencil className="h-3.5 w-3.5 text-emerald-500" />
+                          <span>Edit Draft</span>
+                        </Button>
+                      </Link>
+                    )
+                  ) : (
+                    isAdmin ? (
+                      isDetailUnder24Hours ? (
+                        <Link href={`/invoices/${invoiceDetails.id}`}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 text-xs rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1.5 cursor-pointer font-medium transition-colors"
+                          >
+                            <Pencil className="h-3.5 w-3.5 text-emerald-500" />
+                            <span>Edit Invoice</span>
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Badge variant="outline" className="h-9 text-xs border-muted-foreground/30 text-muted-foreground px-2.5 rounded-xl flex items-center gap-1">
+                          <Lock className="h-3 w-3" />
+                          <span>Editing Locked (&gt;24h)</span>
+                        </Badge>
+                      )
+                    ) : (
+                      isDetailUnder24Hours ? (
+                        hasApprovedEdit ? (
+                          <Link href={`/invoices/${invoiceDetails.id}`}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9 text-xs rounded-xl border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25 flex items-center space-x-1.5 cursor-pointer font-semibold shadow-sm"
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-emerald-500" />
+                              <span>Edit Invoice (Approved)</span>
+                            </Button>
+                          </Link>
+                        ) : hasPendingEdit ? (
+                          <Button disabled variant="outline" size="sm" className="h-9 text-xs rounded-xl border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center space-x-1.5">
+                            <Clock className="h-3.5 w-3.5 animate-pulse text-amber-500" />
+                            <span>Edit Approval Pending</span>
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              const reason = await modal.prompt(
+                                'Edit Authorization Request',
+                                'Enter the reason for requesting edit authorization (e.g. Correct client name, update line item quantity):',
+                                'Correction needed'
+                              );
+                              if (reason) {
+                                try {
+                                  await createApprovalMutation.mutateAsync({
+                                    invoiceId: invoiceDetails.id,
+                                    type: 'EDIT',
+                                    reason,
+                                  });
+                                  modal.alert(
+                                    'Request Submitted',
+                                    'Your edit authorization request has been submitted to the administrators. You will be able to edit once approved.',
+                                    'success'
+                                  );
+                                } catch (err) {
+                                  const { title, message, variant } = getErrorDialog(err, 'Request Failed', 'Failed to submit edit request');
+                                  modal.alert(title, message, variant);
+                                }
+                              }
+                            }}
+                            className="h-9 text-xs rounded-xl border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 flex items-center space-x-1.5 cursor-pointer"
+                          >
+                            <Pencil className="h-3.5 w-3.5 text-blue-500" />
+                            <span>Request Edit</span>
+                          </Button>
+                        )
+                      ) : (
+                        <Badge variant="outline" className="h-9 text-xs border-muted-foreground/30 text-muted-foreground px-2.5 rounded-xl flex items-center gap-1">
+                          <Lock className="h-3 w-3" />
+                          <span>Edit Expired (&gt;24h)</span>
+                        </Badge>
+                      )
+                    )
                   )}
 
                   {/* Share Button */}
@@ -1018,40 +1095,52 @@ export default function InvoicesPage() {
                     </Button>
                   )}
 
-                  {/* Request Reprint Button for Apprentice if PRINTED */}
+                  {/* Reprint Status / Action for Apprentice if PRINTED */}
                   {!isAdmin && invoiceDetails.status === 'PRINTED' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        const reason = await modal.prompt(
-                          'Reprint Authorization Request',
-                          'Enter the reason for requesting reprint authorization (e.g. Paper damaged, client duplicate copy):',
-                          'Customer copy replacement'
-                        );
-                        if (reason) {
-                          try {
-                            await createApprovalMutation.mutateAsync({
-                              invoiceId: invoiceDetails.id,
-                              type: 'PRINT',
-                              reason,
-                            });
-                            modal.alert(
-                              'Request Submitted',
-                              'Your reprint authorization request has been submitted to the administrators. You will be able to print once approved.',
-                              'success'
-                            );
-                          } catch (err) {
-                            const { title, message, variant } = getErrorDialog(err, 'Request Failed', 'Failed to submit reprint request');
-                            modal.alert(title, message, variant);
+                    hasApprovedPrint ? (
+                      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-xs font-semibold h-9 px-2.5 rounded-xl flex items-center space-x-1">
+                        <Check className="h-3 w-3 text-emerald-500 mr-1" />
+                        <span>Reprint Authorized</span>
+                      </Badge>
+                    ) : hasPendingPrint ? (
+                      <Button disabled variant="outline" size="sm" className="h-9 text-xs rounded-xl border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center space-x-1.5">
+                        <Clock className="h-3.5 w-3.5 animate-pulse text-amber-500" />
+                        <span>Reprint Pending</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const reason = await modal.prompt(
+                            'Reprint Authorization Request',
+                            'Enter the reason for requesting reprint authorization (e.g. Paper damaged, client duplicate copy):',
+                            'Customer copy replacement'
+                          );
+                          if (reason) {
+                            try {
+                              await createApprovalMutation.mutateAsync({
+                                invoiceId: invoiceDetails.id,
+                                type: 'PRINT',
+                                reason,
+                              });
+                              modal.alert(
+                                'Request Submitted',
+                                'Your reprint authorization request has been submitted to the administrators. You will be able to print once approved.',
+                                'success'
+                              );
+                            } catch (err) {
+                              const { title, message, variant } = getErrorDialog(err, 'Request Failed', 'Failed to submit reprint request');
+                              modal.alert(title, message, variant);
+                            }
                           }
-                        }
-                      }}
-                      className="h-9 text-xs rounded-xl border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 flex items-center space-x-1.5 cursor-pointer"
-                    >
-                      <Lock className="h-3.5 w-3.5 text-amber-500" />
-                      <span>Request Reprint</span>
-                    </Button>
+                        }}
+                        className="h-9 text-xs rounded-xl border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 flex items-center space-x-1.5 cursor-pointer"
+                      >
+                        <Lock className="h-3.5 w-3.5 text-amber-500" />
+                        <span>Request Reprint</span>
+                      </Button>
+                    )
                   )}
 
                   {/* PDF Export */}
@@ -1089,8 +1178,8 @@ export default function InvoicesPage() {
                     )}
                   </Button>
 
-                  {/* Admin Delete */}
-                  {isAdmin && (
+                  {/* Delete Actions: Admin direct vs Cashier request */}
+                  {isAdmin ? (
                     <Button
                       variant="destructive"
                       size="sm"
@@ -1100,6 +1189,58 @@ export default function InvoicesPage() {
                       <Trash2 className="h-3.5 w-3.5" />
                       <span className="hidden sm:inline">Delete</span>
                     </Button>
+                  ) : (
+                    invoiceDetails.status === 'DRAFT' && user && invoiceDetails.creatorId === user.id ? (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(invoiceDetails.id)}
+                        className="h-9 text-xs rounded-xl flex items-center space-x-1"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Delete Draft</span>
+                      </Button>
+                    ) : invoiceDetails.status !== 'DRAFT' ? (
+                      hasPendingDelete ? (
+                        <Button disabled variant="outline" size="sm" className="h-9 text-xs rounded-xl border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center space-x-1.5">
+                          <Clock className="h-3.5 w-3.5 animate-pulse text-rose-500" />
+                          <span>Deletion Pending</span>
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            const reason = await modal.prompt(
+                              'Invoice Deletion Request',
+                              'Enter the reason for requesting invoice deletion:',
+                              'Created in error'
+                            );
+                            if (reason) {
+                              try {
+                                await createApprovalMutation.mutateAsync({
+                                  invoiceId: invoiceDetails.id,
+                                  type: 'DELETE',
+                                  reason,
+                                });
+                                modal.alert(
+                                  'Request Submitted',
+                                  'Your deletion request has been submitted to administrators.',
+                                  'success'
+                                );
+                              } catch (err) {
+                                const { title, message, variant } = getErrorDialog(err, 'Request Failed', 'Failed to submit deletion request');
+                                modal.alert(title, message, variant);
+                              }
+                            }
+                          }}
+                          className="h-9 text-xs rounded-xl border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 flex items-center space-x-1.5 cursor-pointer"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-rose-500" />
+                          <span>Request Delete</span>
+                        </Button>
+                      )
+                    ) : null
                   )}
                 </div>
               )}

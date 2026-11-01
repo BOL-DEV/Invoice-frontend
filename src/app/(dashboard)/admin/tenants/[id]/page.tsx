@@ -571,7 +571,7 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
     setEditAiScansLimit(
       subLimit && !(subLimit === 10 && (subPlan === 'BUSINESS' || subPlan === 'ENTERPRISE'))
         ? subLimit
-        : (subPlan === 'ENTERPRISE' ? 300 : subPlan === 'BUSINESS' ? 150 : 15)
+        : (subPlan === 'ENTERPRISE' ? 150 : subPlan === 'BUSINESS' ? 60 : 10)
     );
     setEditCustomDomain(tenantData.subscription.hasCustomDomain || false);
     setEditMultipleBranches(tenantData.subscription.hasMultipleBranches || false);
@@ -996,7 +996,7 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
           {(() => {
             const effectiveAiLimit = (subscription?.aiScansLimit && !(subscription.aiScansLimit === 10 && (plan === 'BUSINESS' || plan === 'ENTERPRISE')))
               ? subscription.aiScansLimit
-              : (plan === 'ENTERPRISE' ? 300 : plan === 'BUSINESS' ? 150 : 15);
+              : (plan === 'ENTERPRISE' ? 150 : plan === 'BUSINESS' ? 60 : 10);
             const scansUsed = subscription?.aiScansUsed ?? 0;
             const ratio = scansUsed / effectiveAiLimit;
             return (
@@ -1792,7 +1792,9 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
                           </span>
                         </div>
                         {log.ipAddress && (
-                          <p className="text-[10px] text-muted-foreground font-mono">IP: {log.ipAddress}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono">
+                            {log.ipAddress.includes(' • ') ? log.ipAddress : `IP: ${log.ipAddress}`}
+                          </p>
                         )}
                       </div>
                       <span className="font-mono text-muted-foreground text-[11px]">

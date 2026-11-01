@@ -58,6 +58,7 @@ export const API_ENDPOINTS = {
   REPORTS: {
     BASE: '/api/reports',
     CASHIERS: '/api/reports/cashiers',
+    PDF: '/api/reports/pdf',
   },
   BRANCHES: {
     BASE: '/api/branches',

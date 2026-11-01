@@ -34,16 +34,22 @@ import {
   Store,
 } from 'lucide-react';
 import { useBranches } from '../../../features/branches';
+import { apiClient } from '../../../services/api/axios';
+import { API_ENDPOINTS } from '../../../services/api/endpoints';
+import { useModal } from '../../../components/ui/modal-provider';
+import { Loader2 } from 'lucide-react';
 
 type DatePreset = 'all_time' | 'today' | 'yesterday' | 'this_week' | 'this_month' | 'last_30_days' | 'custom';
 
 export default function ReportsPage() {
   const { user } = useAuth();
+  const modal = useModal();
   const isAdminOrSuper = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const [isPrintingSheet, setIsPrintingSheet] = useState(false);
 
   // Filters state - default to all_time so user immediately sees all invoices & finalized sales
-  const [preset, setPreset] = useState<DatePreset>('today');
+  const [preset, setPreset] = useState<DatePreset>('all_time');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [businessId, setBusinessId] = useState<string>('all');
@@ -106,9 +112,34 @@ export default function ReportsPage() {
     setPage(1);
   };
 
-  const handlePrint = () => {
-    if (typeof window !== 'undefined') {
-      window.print();
+  const handlePrintReportSheet = async () => {
+    try {
+      setIsPrintingSheet(true);
+      const cleanParams: Record<string, any> = {};
+      Object.entries(queryParams).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '' && val !== 'ALL') {
+          cleanParams[key] = val;
+        }
+      });
+      // Fetch comprehensive records for the printed statement
+      cleanParams.limit = 200;
+
+      const response = await apiClient.get(API_ENDPOINTS.REPORTS.PDF, {
+        params: cleanParams,
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const blobUrl = window.URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+    } catch (err: any) {
+      modal.alert(
+        'Report Sheet Generation Failed',
+        err?.response?.data?.message || err?.message || 'Unable to generate official report sheet. Please try again.',
+        'error'
+      );
+    } finally {
+      setIsPrintingSheet(false);
     }
   };
 
@@ -152,27 +183,19 @@ export default function ReportsPage() {
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-5">
         <div>
-          <div className="flex items-center space-x-2.5">
-            <div className="h-10 w-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm">
-              <BarChart3 className="h-5 w-5" />
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-heading">
+            Business Reports & Reconciliation
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
+            Financial performance, cashier shifts, and customer sales analysis across {isSuperAdmin ? 'the platform' : 'your business'}.
+          </p>
+          {isSuperAdmin && businessId !== 'all' && (
+            <div className="mt-2">
+              <Badge variant="outline" className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                Filtered: {tenants.find((t) => t.id === businessId)?.businessName || 'Selected Business'}
+              </Badge>
             </div>
-            <div>
-              <h1 className="text-2xl font-black tracking-tight text-foreground flex items-center gap-2">
-                Business Reports & Reconciliation
-                <Badge variant="outline" className="text-[11px] font-semibold bg-primary/10 text-primary border-primary/20 uppercase">
-                  {preset === 'all_time' ? 'All Time' : preset.replace('_', ' ')}
-                </Badge>
-                {isSuperAdmin && (
-                  <Badge variant="outline" className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-                    {businessId === 'all' ? 'All Businesses' : tenants.find(t => t.id === businessId)?.businessName || 'Filtered Business'}
-                  </Badge>
-                )}
-              </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Financial performance, cashier reconciliation shifts, and customer sales analysis across {isSuperAdmin ? 'the platform' : 'your business'}.
-              </p>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* TOP ACTIONS */}
@@ -182,7 +205,7 @@ export default function ReportsPage() {
             variant="outline"
             size="sm"
             onClick={() => refetch()}
-            disabled={isFetching}
+            disabled={isFetching || isPrintingSheet}
             className="rounded-xl border-border hover:bg-secondary text-xs h-9"
           >
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isFetching ? 'animate-spin text-primary' : ''}`} />
@@ -192,11 +215,16 @@ export default function ReportsPage() {
           <Button
             type="button"
             size="sm"
-            onClick={handlePrint}
-            className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold h-9 shadow-sm"
+            onClick={handlePrintReportSheet}
+            disabled={isPrintingSheet || isFetching}
+            className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold h-9 shadow-sm flex items-center space-x-1.5"
           >
-            <Printer className="h-3.5 w-3.5 mr-1.5" />
-            Print Report Sheet
+            {isPrintingSheet ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Printer className="h-3.5 w-3.5" />
+            )}
+            <span>{isPrintingSheet ? 'Generating Sheet...' : 'Print Report Sheet'}</span>
           </Button>
         </div>
       </div>
@@ -234,11 +262,10 @@ export default function ReportsPage() {
                 key={item.id}
                 type="button"
                 onClick={() => handlePresetChange(item.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                  preset === item.id
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${preset === item.id
                     ? 'bg-primary text-primary-foreground shadow-sm scale-102'
                     : 'bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground'
-                }`}
+                  }`}
               >
                 {item.label}
               </button>
@@ -327,52 +354,6 @@ export default function ReportsPage() {
               </div>
             )}
 
-            {/* Cashier Filter (For Admins) - Custom Dark Themed Select Box */}
-            {isAdminOrSuper ? (
-              <div className="space-y-1">
-                <Label className="text-[11px] font-semibold text-muted-foreground flex items-center">
-                  <Users className="h-3 w-3 mr-1 text-primary" />
-                  {isSuperAdmin && businessId !== 'all' ? 'Cashier in Business' : 'Cashier / Staff'}
-                </Label>
-                <div className="relative">
-                  <select
-                    value={cashierId}
-                    onChange={(e) => {
-                      setCashierId(e.target.value);
-                      setPage(1);
-                    }}
-                    style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}
-                    className="w-full h-9 pl-3 pr-8 rounded-xl text-xs bg-slate-900 border border-slate-700/80 text-slate-100 focus:outline-none focus:ring-1 focus:ring-primary shadow-inner cursor-pointer appearance-none"
-                  >
-                    <option value="all" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }} className="bg-slate-900 text-slate-100">
-                      {isSuperAdmin && businessId !== 'all' ? 'All Cashiers in Business' : 'All Cashiers'}
-                    </option>
-                    {cashiers.map((c) => (
-                      <option
-                        key={c.id}
-                        value={c.id}
-                        style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}
-                        className="bg-slate-900 text-slate-100"
-                      >
-                        {c.firstName} {c.lastName} ({c.email})
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="h-4 w-4 absolute right-2.5 top-2.5 text-slate-400 pointer-events-none" />
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <Label className="text-[11px] font-semibold text-muted-foreground flex items-center">
-                  <User className="h-3 w-3 mr-1 text-primary" />
-                  Your Cashier Shift
-                </Label>
-                <div className="h-9 px-3 rounded-xl text-xs bg-slate-900 border border-slate-700/80 flex items-center text-slate-300 font-medium truncate">
-                  {user?.firstName} {user?.lastName} (Self)
-                </div>
-              </div>
-            )}
-
             {/* Branch Filter */}
             {isSubAdmin || (isCashier && user?.branchId) ? (
               <div className="space-y-1">
@@ -423,6 +404,54 @@ export default function ReportsPage() {
                 </div>
               )
             )}
+
+            {/* Cashier Filter (For Admins) - Custom Dark Themed Select Box */}
+            {isAdminOrSuper ? (
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold text-muted-foreground flex items-center">
+                  <Users className="h-3 w-3 mr-1 text-primary" />
+                  {isSuperAdmin && businessId !== 'all' ? 'Cashier in Business' : 'Cashier / Staff'}
+                </Label>
+                <div className="relative">
+                  <select
+                    value={cashierId}
+                    onChange={(e) => {
+                      setCashierId(e.target.value);
+                      setPage(1);
+                    }}
+                    style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}
+                    className="w-full h-9 pl-3 pr-8 rounded-xl text-xs bg-slate-900 border border-slate-700/80 text-slate-100 focus:outline-none focus:ring-1 focus:ring-primary shadow-inner cursor-pointer appearance-none"
+                  >
+                    <option value="all" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }} className="bg-slate-900 text-slate-100">
+                      {isSuperAdmin && businessId !== 'all' ? 'All Cashiers in Business' : 'All Cashiers'}
+                    </option>
+                    {cashiers.map((c) => (
+                      <option
+                        key={c.id}
+                        value={c.id}
+                        style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}
+                        className="bg-slate-900 text-slate-100"
+                      >
+                        {c.firstName} {c.lastName} ({c.email})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="h-4 w-4 absolute right-2.5 top-2.5 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold text-muted-foreground flex items-center">
+                  <User className="h-3 w-3 mr-1 text-primary" />
+                  Your Cashier Shift
+                </Label>
+                <div className="h-9 px-3 rounded-xl text-xs bg-slate-900 border border-slate-700/80 flex items-center text-slate-300 font-medium truncate">
+                  {user?.firstName} {user?.lastName} (Self)
+                </div>
+              </div>
+            )}
+
+
 
             {/* Invoice Status Filter - Custom Dark Themed Select Box */}
             <div className="space-y-1">
@@ -599,9 +628,8 @@ export default function ReportsPage() {
                     return (
                       <tr
                         key={c.id}
-                        className={`hover:bg-secondary/20 transition-colors ${
-                          isSelected ? 'bg-primary/5 font-semibold' : ''
-                        }`}
+                        className={`hover:bg-secondary/20 transition-colors ${isSelected ? 'bg-primary/5 font-semibold' : ''
+                          }`}
                       >
                         <td className="py-3 px-4 font-bold text-foreground flex items-center space-x-2">
                           <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
@@ -911,11 +939,10 @@ export default function ReportsPage() {
                 </DialogDescription>
               </div>
               <Badge
-                className={`text-xs font-bold self-start sm:self-auto ${
-                  selectedInvoice?.status === 'FINALIZED'
+                className={`text-xs font-bold self-start sm:self-auto ${selectedInvoice?.status === 'FINALIZED'
                     ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
                     : 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
-                }`}
+                  }`}
               >
                 {selectedInvoice?.status}
               </Badge>

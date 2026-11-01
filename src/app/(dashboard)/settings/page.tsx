@@ -22,6 +22,8 @@ import {
   Building2,
   User,
   Lock,
+  Key,
+  X,
   Eye,
   EyeOff,
   CheckCircle2,
@@ -60,6 +62,8 @@ export default function SettingsPage() {
   const { user, updateCurrentUser } = useAuth();
   const { isAdmin, isLoading: isAuthLoading } = usePermission();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isSubAdmin = user?.role === 'ADMIN' && Boolean(user?.branchId);
+  const isMainAdmin = (user?.role === 'ADMIN' && !user?.branchId) || isSuperAdmin;
   const modal = useModal();
 
   const [activePaymentData, setActivePaymentData] = useState<PaymentInitiationResult | null>(null);
@@ -151,6 +155,7 @@ export default function SettingsPage() {
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const updateProfileMutation = useUpdateProfile();
 
@@ -158,6 +163,7 @@ export default function SettingsPage() {
     register: registerProfile,
     handleSubmit: handleProfileSubmit,
     reset: resetProfile,
+    setValue: setValueProfile,
     formState: { errors: profileErrors, isSubmitting: isProfileSubmitting },
   } = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
@@ -208,6 +214,7 @@ export default function SettingsPage() {
       }
 
       setProfileSuccess('Profile details and security preferences updated successfully!');
+      setIsChangingPassword(false);
       resetProfile({
         firstName: res?.firstName || data.firstName || '',
         lastName: res?.lastName || data.lastName || '',
@@ -377,10 +384,6 @@ export default function SettingsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-1 border-b border-border/60">
         <div>
-          <div className="inline-flex items-center space-x-2 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-medium mb-1">
-            <SettingsIcon className="h-3 w-3" />
-            <span>Account Preferences</span>
-          </div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-heading">
             Settings & Security
           </h1>
@@ -391,7 +394,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Tabs Selection (Modern Segmented Control) */}
-      {isAdmin && !isSuperAdmin && (
+      {isMainAdmin && !isSuperAdmin && (
         <div className={`p-1 rounded-xl bg-secondary/70 dark:bg-slate-900/80 border border-border/80 grid ${isComplimentary ? 'grid-cols-3 max-w-md' : 'grid-cols-4 max-w-xl'} gap-1 w-full`}>
           <button
             type="button"
@@ -548,82 +551,117 @@ export default function SettingsPage() {
               </div>
 
               {/* Security & Password Change */}
-              <div className="space-y-3 pt-4 border-t border-border/70">
-                <div>
-                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center space-x-1.5">
-                    <Lock className="h-3.5 w-3.5 text-emerald-500" />
-                    <span>Security & Password</span>
-                  </h4>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Leave password fields blank if you only wish to change your profile name.
-                  </p>
-                </div>
-
-                {/* Current Password */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="settings-currentPassword" className="text-xs font-semibold text-muted-foreground">
-                    Current Password
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="settings-currentPassword"
-                      type={showCurrentPassword ? 'text' : 'password'}
-                      placeholder="Required only when setting a new password"
-                      {...registerProfile('currentPassword')}
-                      className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs pr-10"
-                    />
-                    <button
-                      type="button"
-                      tabIndex={-1}
-                      onClick={() => setShowCurrentPassword((prev) => !prev)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 cursor-pointer"
-                    >
-                      {showCurrentPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                    </button>
+              <div className="space-y-3.5 pt-4 border-t border-border/70">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center space-x-1.5">
+                      <Lock className="h-3.5 w-3.5 text-emerald-500" />
+                      <span>Security & Password</span>
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {isChangingPassword
+                        ? 'Enter your current password and choose a secure new password.'
+                        : 'Update your account sign-in password anytime.'}
+                    </p>
                   </div>
-                  {profileErrors.currentPassword && <p className="text-[11px] text-rose-500">{profileErrors.currentPassword.message}</p>}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (isChangingPassword) {
+                        setValueProfile('currentPassword', '');
+                        setValueProfile('newPassword', '');
+                        setValueProfile('confirmPassword', '');
+                      }
+                      setIsChangingPassword((prev) => !prev);
+                    }}
+                    className="h-8 rounded-xl text-xs font-semibold px-3 border-border hover:bg-secondary cursor-pointer shrink-0 self-start sm:self-auto"
+                  >
+                    {isChangingPassword ? (
+                      <>
+                        <X className="h-3.5 w-3.5 mr-1" />
+                        <span>Cancel Password Change</span>
+                      </>
+                    ) : (
+                      <>
+                        <Key className="h-3.5 w-3.5 mr-1 text-emerald-500" />
+                        <span>Change Password</span>
+                      </>
+                    )}
+                  </Button>
                 </div>
 
-                {/* New Password & Confirm Password */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="settings-newPassword" className="text-xs font-semibold text-muted-foreground">
-                      New Password
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="settings-newPassword"
-                        type={showNewPassword ? 'text' : 'password'}
-                        placeholder="Minimum 6 characters"
-                        {...registerProfile('newPassword')}
-                        className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs pr-10"
-                      />
-                      <button
-                        type="button"
-                        tabIndex={-1}
-                        onClick={() => setShowNewPassword((prev) => !prev)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 cursor-pointer"
-                      >
-                        {showNewPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                      </button>
+                {isChangingPassword && (
+                  <div className="space-y-3.5 pt-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                    {/* Current Password */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="settings-currentPassword" className="text-xs font-semibold text-muted-foreground">
+                        Current Password
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="settings-currentPassword"
+                          type={showCurrentPassword ? 'text' : 'password'}
+                          placeholder="Required to set a new password"
+                          {...registerProfile('currentPassword')}
+                          className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs pr-10"
+                        />
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          onClick={() => setShowCurrentPassword((prev) => !prev)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 cursor-pointer"
+                        >
+                          {showCurrentPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                      {profileErrors.currentPassword && <p className="text-[11px] text-rose-500">{profileErrors.currentPassword.message}</p>}
                     </div>
-                    {profileErrors.newPassword && <p className="text-[11px] text-rose-500">{profileErrors.newPassword.message}</p>}
-                  </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="settings-confirmPassword" className="text-xs font-semibold text-muted-foreground">
-                      Confirm New Password
-                    </Label>
-                    <Input
-                      id="settings-confirmPassword"
-                      type={showNewPassword ? 'text' : 'password'}
-                      placeholder="Repeat new password"
-                      {...registerProfile('confirmPassword')}
-                      className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs"
-                    />
-                    {profileErrors.confirmPassword && <p className="text-[11px] text-rose-500">{profileErrors.confirmPassword.message}</p>}
+                    {/* New Password & Confirm Password */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="settings-newPassword" className="text-xs font-semibold text-muted-foreground">
+                          New Password
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id="settings-newPassword"
+                            type={showNewPassword ? 'text' : 'password'}
+                            placeholder="Minimum 6 characters"
+                            {...registerProfile('newPassword')}
+                            className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs pr-10"
+                          />
+                          <button
+                            type="button"
+                            tabIndex={-1}
+                            onClick={() => setShowNewPassword((prev) => !prev)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 cursor-pointer"
+                          >
+                            {showNewPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </button>
+                        </div>
+                        {profileErrors.newPassword && <p className="text-[11px] text-rose-500">{profileErrors.newPassword.message}</p>}
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="settings-confirmPassword" className="text-xs font-semibold text-muted-foreground">
+                          Confirm New Password
+                        </Label>
+                        <Input
+                          id="settings-confirmPassword"
+                          type={showNewPassword ? 'text' : 'password'}
+                          placeholder="Repeat new password"
+                          {...registerProfile('confirmPassword')}
+                          className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs"
+                        />
+                        {profileErrors.confirmPassword && <p className="text-[11px] text-rose-500">{profileErrors.confirmPassword.message}</p>}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </CardContent>
 
@@ -1058,6 +1096,39 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
+                  {/* AI Document Scanning Quota Usage Bar */}
+                  {subDetails?.aiScans && (
+                    <div className="p-4 rounded-xl border border-border/80 bg-slate-50/60 dark:bg-slate-900/50 space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-semibold text-foreground flex items-center space-x-1.5">
+                          <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+                          <span>AI Document Scanning Quota</span>
+                        </span>
+                        <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                          {subDetails.aiScans.used} of {subDetails.aiScans.limit} scans used ({subDetails.aiScans.remaining} remaining)
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                        <div
+                          className="bg-indigo-500 h-full rounded-full transition-all duration-300"
+                          style={{
+                            width: `${Math.min(100, (subDetails.aiScans.used / Math.max(1, subDetails.aiScans.limit)) * 100)}%`,
+                          }}
+                        />
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-muted-foreground mt-1 gap-1">
+                        <p>
+                          Monthly cycle quota. Resets every 30 days. Extra AI Vision scans pack: ₦5,000 for 100 scans.
+                        </p>
+                        {subDetails.aiScans.resetAt && (
+                          <span className="font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                            Cycle resets: {new Date(subDetails.aiScans.resetAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Feature Capabilities Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div className="p-3.5 rounded-xl border border-border/80 flex items-start space-x-3">
@@ -1067,9 +1138,7 @@ export default function SettingsPage() {
                       <div>
                         <p className="font-semibold text-foreground">AI Document Scanner</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {subPlan === 'STARTER' && '10 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
-                          {subPlan === 'BUSINESS' && '60 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
-                          {subPlan === 'ENTERPRISE' && '150 scans/month included (Extra pack: ₦5,000 for 100 scans)'}
+                          {subDetails?.aiScans?.limit ?? (subPlan === 'STARTER' ? 10 : subPlan === 'BUSINESS' ? 60 : 150)} scans/month included (Extra pack: ₦5,000 for 100 scans)
                         </p>
                       </div>
                     </div>

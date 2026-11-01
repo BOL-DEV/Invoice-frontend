@@ -322,6 +322,7 @@ export interface ActivityLog {
   action: string;
   details: Record<string, unknown> | null;
   ipAddress: string | null;
+  deviceName?: string | null;
   createdAt: string;
   user?: {
     id: string;
@@ -406,6 +407,15 @@ export interface Invoice {
     phone?: string | null;
   } | null;
   shares?: InvoiceShare[];
+  approvalRequests?: {
+    id: string;
+    type: ApprovalType;
+    status: ApprovalStatus;
+    reason: string;
+    adminNotes?: string | null;
+    requesterId: string;
+    createdAt: string;
+  }[];
 }
 
 export type ApprovalType = 'EDIT' | 'PRINT' | 'DELETE';
@@ -441,6 +451,26 @@ export interface ApprovalRequest {
   } | null;
 }
 
+export interface BranchStat {
+  id: string;
+  name: string;
+  code: string | null;
+  address: string;
+  isMain: boolean;
+  isActive: boolean;
+  totalSales: number;
+  invoiceCount: number;
+  finalizedCount: number;
+  draftCount: number;
+  staffCount: number;
+  manager: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
+}
+
 export interface DashboardStats {
   invoiceCounts: {
     total: number;
@@ -454,6 +484,9 @@ export interface DashboardStats {
     date: string;
     sales: number;
   }>;
+  branchBreakdown?: BranchStat[];
+  isMultiBranch?: boolean;
+  selectedBranchId?: string | null;
 }
 
 export interface AxiosErrorLike {

@@ -10,7 +10,18 @@ import { Card } from '../../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
-import { ShieldAlert, ChevronLeft, ChevronRight, Activity, Loader2, Lock, Sparkles, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import {
+  ShieldAlert,
+  ChevronLeft,
+  ChevronRight,
+  Activity,
+  Loader2,
+  Lock,
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle2,
+} from 'lucide-react';
 import { Skeleton } from '../../../components/ui/skeleton';
 
 export default function ActivityPage() {
@@ -213,17 +224,17 @@ export default function ActivityPage() {
           <Table className="w-full min-w-[800px] table-fixed">
             <TableHeader className="bg-secondary/70 border-b border-border">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="w-[30%] px-6 py-4 font-bold text-xs text-foreground whitespace-nowrap">
+                <TableHead className="w-[25%] px-6 py-4 font-bold text-xs text-foreground whitespace-nowrap">
                   Timestamp
                 </TableHead>
                 <TableHead className="w-[20%] px-6 py-4 font-bold text-xs text-foreground whitespace-nowrap">
                   Action
                 </TableHead>
+                <TableHead className="w-[25%] px-6 py-4 font-bold text-xs text-foreground whitespace-nowrap">
+                  User Name
+                </TableHead>
                 <TableHead className="w-[30%] px-6 py-4 font-bold text-xs text-foreground whitespace-nowrap">
                   User Email
-                </TableHead>
-                <TableHead className="w-[20%] px-6 py-4 font-bold text-xs text-foreground whitespace-nowrap">
-                  IP Address
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -234,7 +245,7 @@ export default function ActivityPage() {
                     <TableCell className="px-6 py-4"><Skeleton className="h-4 w-36" /></TableCell>
                     <TableCell className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
                     <TableCell className="px-6 py-4"><Skeleton className="h-4 w-40" /></TableCell>
-                    <TableCell className="px-6 py-4"><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell className="px-6 py-4"><Skeleton className="h-4 w-32" /></TableCell>
                   </TableRow>
                 ))
               ) : isError || !data?.logs ? (
@@ -250,29 +261,45 @@ export default function ActivityPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                data.logs.map((log) => (
-                  <TableRow key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/35 border-b border-border/60 transition-colors">
-                    <TableCell className="px-6 py-4 whitespace-nowrap text-xs text-muted-foreground font-mono">
-                      {new Date(log.createdAt).toLocaleString(undefined, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })}
-                    </TableCell>
-                    <TableCell className="px-6 py-4 whitespace-nowrap">
-                      {getActionBadge(log.action)}
-                    </TableCell>
-                    <TableCell className="px-6 py-4 whitespace-nowrap font-medium text-foreground text-xs">
-                      {log.user?.email || `User ID: ${log.userId.slice(0, 8)}...`}
-                    </TableCell>
-                    <TableCell className="px-6 py-4 whitespace-nowrap font-mono text-xs text-muted-foreground">
-                      {log.ipAddress || 'Unknown'}
-                    </TableCell>
-                  </TableRow>
-                ))
+                data.logs.map((log) => {
+                  const fullName = log.user
+                    ? `${log.user.firstName || ''} ${log.user.lastName || ''}`.trim() || 'Staff User'
+                    : (log.userId ? `User ID: ${log.userId.slice(0, 8)}...` : 'System / Platform');
+                  const initials = log.user?.firstName
+                    ? `${log.user.firstName[0]}${log.user.lastName ? log.user.lastName[0] : ''}`.toUpperCase()
+                    : 'U';
+
+                  return (
+                    <TableRow key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/35 border-b border-border/60 transition-colors">
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-xs text-muted-foreground font-mono">
+                        {new Date(log.createdAt).toLocaleString(undefined, {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                        })}
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
+                        {getActionBadge(log.action)}
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] flex items-center justify-center shrink-0 border border-emerald-500/20">
+                            {initials}
+                          </div>
+                          <span className="text-xs font-semibold text-foreground truncate">
+                            {fullName}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap font-mono text-xs text-muted-foreground">
+                        {log.user?.email || 'N/A'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
