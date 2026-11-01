@@ -2,6 +2,7 @@
 
 import { useIdleTimeout } from '../../features/auth/hooks/useIdleTimeout';
 import { SessionTimeoutModal } from '../shared/SessionTimeoutModal';
+import { LoadingScreen } from '../shared/LoadingScreen';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -102,7 +103,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, label, active, is
 
 export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const pathname = usePathname();
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout, isLoading, isLoggingOut } = useAuth();
   const { isWarningOpen, secondsRemaining, stayLoggedIn, logOutNow } = useIdleTimeout();
   const { theme, setTheme } = useTheme();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -405,17 +406,12 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
   // When auth is resolving or user is unauthenticated/logging out, render clean loading screen
   // This prevents child routes from rendering in an unauthorized state
-  if (isLoading || !user) {
+  if (isLoading || !user || isLoggingOut) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background text-foreground space-y-4">
-        <div className="h-12 w-12 rounded-2xl bg-white dark:bg-slate-900 border border-border p-1.5 flex items-center justify-center shadow-lg animate-pulse">
-          <Image src="/platform-logo.svg" alt="BOLXolve Platform" width={40} height={40} className="w-9 h-9 object-contain" priority />
-        </div>
-        <div className="flex items-center space-x-2 text-xs text-muted-foreground font-mono">
-          <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
-          <span>Authenticating session...</span>
-        </div>
-      </div>
+      <LoadingScreen
+        message={isLoggingOut ? 'Logging out...' : 'Authenticating session...'}
+        logoSrc={logoSrc}
+      />
     );
   }
 

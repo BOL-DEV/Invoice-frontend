@@ -12,6 +12,7 @@ import { Label } from '../../../components/ui/label';
 import { normalizeApiError, applyApiFieldErrors, NormalizedError } from '../../../lib/api-error';
 import Image from 'next/image';
 import { useBranding } from '../../../features/business/hooks/useBranding';
+import { LoadingScreen } from '../../../components/shared/LoadingScreen';
 import {
   Clock,
   Loader2,
@@ -170,15 +171,7 @@ function LoginForm() {
 
   // Sleek, minimal loading spinner while resolving branding / environment
   if (!mounted || isBrandingLoading) {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-[#0B0F19]">
-        <div className="relative flex items-center justify-center">
-          <div className="h-14 w-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center shadow-xl shadow-emerald-500/10">
-            <Loader2 className="h-7 w-7 animate-spin text-emerald-500" />
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingScreen logoSrc={logoSrc} />;
   }
 
   return (
@@ -522,13 +515,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingScreen />}>
       <LoginForm />
     </Suspense>
   );
