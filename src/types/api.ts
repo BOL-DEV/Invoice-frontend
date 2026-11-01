@@ -342,6 +342,8 @@ export interface InvoiceItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  totalAmount?: number;
+  unit?: string | null;
   weight: number | null;
   createdAt: string;
   updatedAt: string;
@@ -386,6 +388,8 @@ export interface Invoice {
   status: InvoiceStatus;
   subtotal: number;
   total: number;
+  totalAmount?: number;
+  unit?: string | null;
   notes: string | null;
   isDeleted: boolean;
   createdAt: string;
@@ -474,6 +478,8 @@ export interface BranchStat {
 export interface DashboardStats {
   invoiceCounts: {
     total: number;
+  totalAmount?: number;
+  unit?: string | null;
     finalized: number;
     draft: number;
   };
@@ -534,6 +540,7 @@ export interface ExtractedDiscrepancy {
 export interface ExtractedInvoiceData {
   customerName?: string | null;
   customerPhone?: string | null;
+  cashierName?: string;
   items: ExtractedItem[];
   charges?: ExtractedCharge[];
   discrepancies?: ExtractedDiscrepancy[];
@@ -595,6 +602,8 @@ export interface TenantFullDetails {
     status: string;
     subtotal: number;
     total: number;
+  totalAmount?: number;
+  unit?: string | null;
     notes?: string | null;
     createdAt: string;
     creator: {
@@ -609,6 +618,8 @@ export interface TenantFullDetails {
       quantity: number;
       unitPrice: number;
       totalPrice: number;
+  totalAmount?: number;
+  unit?: string | null;
       weight: number | null;
     }>;
     charges?: Array<{
@@ -669,6 +680,8 @@ export interface ReportInvoiceLineItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  totalAmount?: number;
+  unit?: string | null;
 }
 
 export interface ReportInvoiceCharge {
@@ -682,8 +695,11 @@ export interface ReportInvoiceItem {
   invoiceNumber: string;
   customerName: string;
   customerPhone?: string | null;
+  cashierName?: string;
   status: InvoiceStatus;
   total: number;
+  totalAmount?: number;
+  unit?: string | null;
   subtotal: number;
   notes?: string | null;
   createdAt: string;
@@ -716,6 +732,8 @@ export interface ReportResponseData {
   invoices: ReportInvoiceItem[];
   pagination: {
     total: number;
+  totalAmount?: number;
+  unit?: string | null;
     page: number;
     limit: number;
     totalPages: number;
