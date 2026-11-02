@@ -18,6 +18,16 @@ export interface PaymentInitiationResult {
   isSandbox?: boolean;
 }
 
+export interface PaymentVerificationResult {
+  status: string;
+  paid: boolean;
+  message?: string;
+  payment?: any;
+  subscription?: any;
+  newEndDate?: string;
+  paidAt?: string;
+}
+
 export const useSubscription = () => {
   return useQuery<SubscriptionDetails>({
     queryKey: ['subscription', 'me'],
@@ -48,7 +58,7 @@ export const useVerifySubscriptionPayment = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (reference: string) => {
-      const response = await apiClient.get<ApiResponse<{ status: string; paid: boolean; message?: string }>>(
+      const response = await apiClient.get<ApiResponse<PaymentVerificationResult>>(
         API_ENDPOINTS.SUBSCRIPTIONS.VERIFY_PAYMENT(reference)
       );
       return response.data.data;
@@ -66,7 +76,7 @@ export const useSimulateSubscriptionPayment = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (reference: string) => {
-      const response = await apiClient.post<ApiResponse<{ status: string; paid: boolean; message?: string }>>(
+      const response = await apiClient.post<ApiResponse<PaymentVerificationResult>>(
         API_ENDPOINTS.SUBSCRIPTIONS.SIMULATE_PAYMENT(reference)
       );
       return response.data.data;

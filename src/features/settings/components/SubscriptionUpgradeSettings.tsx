@@ -42,6 +42,23 @@ export function SubscriptionUpgradeSettings() {
   const hoursRemaining = sub?.hoursRemaining;
   const daysRemaining = sub?.daysRemaining;
 
+  // Memoized effective remaining counts to ensure we never display a dash "—" when effectiveEndDate is available
+  const effectiveDaysRemaining = React.useMemo(() => {
+    if (typeof daysRemaining === 'number') return daysRemaining;
+    if (typeof (subDetails as any)?.daysRemaining === 'number') return (subDetails as any).daysRemaining;
+    if (!effectiveEndDate) return null;
+    const diff = new Date(effectiveEndDate).getTime() - Date.now();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  }, [daysRemaining, (subDetails as any)?.daysRemaining, effectiveEndDate]);
+
+  const effectiveHoursRemaining = React.useMemo(() => {
+    if (typeof hoursRemaining === 'number') return hoursRemaining;
+    if (typeof (subDetails as any)?.hoursRemaining === 'number') return (subDetails as any).hoursRemaining;
+    if (!effectiveEndDate) return 24;
+    const diff = new Date(effectiveEndDate).getTime() - Date.now();
+    return Math.max(0, Math.floor(diff / (1000 * 60 * 60)));
+  }, [hoursRemaining, (subDetails as any)?.hoursRemaining, effectiveEndDate]);
+
   const formatDate = (dateStr?: string | null, includeTime = false) => {
     if (!dateStr) return '—';
     const d = new Date(dateStr);
@@ -121,7 +138,7 @@ export function SubscriptionUpgradeSettings() {
             <p className="text-xs text-amber-200/80 leading-relaxed">
               Welcome to BOLXolve Invoice! Your workspace was created under the{' '}
               <strong className="text-white">{subPlan}</strong> tier. You have{' '}
-              <strong className="text-amber-300 font-mono">{hoursRemaining ?? 24} hours remaining</strong> (until{' '}
+              <strong className="text-amber-300 font-mono">{effectiveHoursRemaining} hours remaining</strong> (until{' '}
               {formatDate(effectiveEndDate, true)}) to make your initial subscription payment from this page before your
               account is suspended.
             </p>
@@ -132,7 +149,7 @@ export function SubscriptionUpgradeSettings() {
           <AlertCircle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
             <h4 className="text-sm font-bold text-amber-300">
-              Subscription Expiring Soon ({daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} remaining)
+              Subscription Expiring Soon ({effectiveDaysRemaining} {effectiveDaysRemaining === 1 ? 'day' : 'days'} remaining)
             </h4>
             <p className="text-xs text-amber-200/80 leading-relaxed">
               Your <strong className="text-white">{subPlan}</strong> subscription is approaching its expiration on{' '}
@@ -171,11 +188,11 @@ export function SubscriptionUpgradeSettings() {
                 <Badge className="bg-rose-500/20 border-rose-500/40 text-rose-400 text-xs">SUSPENDED / EXPIRED</Badge>
               ) : isInitialGrace ? (
                 <Badge className="bg-amber-500/20 border-amber-500/40 text-amber-300 text-xs">
-                  24H SETUP GRACE ({hoursRemaining ?? 24}h left)
+                  24H SETUP GRACE ({effectiveHoursRemaining}h left)
                 </Badge>
               ) : isExpiringSoon ? (
                 <Badge className="bg-amber-500/20 border-amber-500/40 text-amber-300 text-xs">
-                  EXPIRING IN {daysRemaining}D
+                  EXPIRING IN {effectiveDaysRemaining}D
                 </Badge>
               ) : (
                 <Badge className="bg-emerald-500/15 border-emerald-500/30 text-emerald-400 text-xs">ACTIVE</Badge>
@@ -185,7 +202,7 @@ export function SubscriptionUpgradeSettings() {
         </CardHeader>
 
         <CardContent className="p-4 sm:p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Start Date */}
             <div className="p-4 rounded-xl border border-border/80 bg-slate-50/60 dark:bg-slate-900/50 space-y-1">
               <div className="flex items-center space-x-2 text-xs text-muted-foreground">
@@ -203,9 +220,8 @@ export function SubscriptionUpgradeSettings() {
                 <span>Date of Expiry</span>
               </div>
               <p
-                className={`text-sm font-bold font-mono ${
-                  isExpired ? 'text-rose-400' : isExpiringSoon || isInitialGrace ? 'text-amber-400' : 'text-foreground'
-                }`}
+                className={`text-sm font-bold font-mono ${isExpired ? 'text-rose-400' : isExpiringSoon || isInitialGrace ? 'text-amber-400' : 'text-foreground'
+                  }`}
               >
                 {formatDate(effectiveEndDate, Boolean(isInitialGrace))}
               </p>
@@ -213,24 +229,11 @@ export function SubscriptionUpgradeSettings() {
                 {isExpired
                   ? 'Expired — renewal required'
                   : isInitialGrace
-                  ? '24-hour setup grace deadline'
-                  : isExpiringSoon
-                  ? `Expires in ${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'}`
-                  : `${daysRemaining ?? '—'} days remaining`}
+                    ? `24-hour setup grace deadline (${effectiveHoursRemaining}h left)`
+                    : effectiveDaysRemaining !== null
+                      ? `${effectiveDaysRemaining} ${effectiveDaysRemaining === 1 ? 'day' : 'days'} remaining`
+                      : 'Active subscription'}
               </p>
-            </div>
-
-            {/* Staff Allocation */}
-            <div className="p-4 rounded-xl border border-border/80 bg-slate-50/60 dark:bg-slate-900/50 space-y-1">
-              <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
-                <span>Staff Allocation</span>
-              </div>
-              <p className="text-sm font-bold text-foreground font-mono">
-                {subDetails?.usage?.staffCount ?? (subDetails as any)?.activeStaffCount ?? 0} /{' '}
-                {sub?.maxStaffCount ?? 3} Members
-              </p>
-              <p className="text-[11px] text-muted-foreground">Allocated for {subPlan} tier</p>
             </div>
           </div>
         </CardContent>
@@ -269,20 +272,18 @@ export function SubscriptionUpgradeSettings() {
                     key={preset.months}
                     type="button"
                     onClick={() => setSelectedMonths(preset.months)}
-                    className={`px-2.5 py-1.5 rounded-lg font-medium transition-all flex items-center space-x-1.5 cursor-pointer ${
-                      selectedMonths === preset.months
-                        ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
+                    className={`px-2.5 py-1.5 rounded-lg font-medium transition-all flex items-center space-x-1.5 cursor-pointer ${selectedMonths === preset.months
+                      ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                      }`}
                   >
                     <span>{preset.label}</span>
                     {preset.badge && (
                       <span
-                        className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
-                          selectedMonths === preset.months
-                            ? 'bg-slate-950/20 text-slate-950'
-                            : 'bg-emerald-400/20 text-emerald-300'
-                        }`}
+                        className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${selectedMonths === preset.months
+                          ? 'bg-slate-950/20 text-slate-950'
+                          : 'bg-emerald-400/20 text-emerald-300'
+                          }`}
                       >
                         {preset.badge}
                       </span>
@@ -327,11 +328,10 @@ export function SubscriptionUpgradeSettings() {
               const isUpgrade = PLAN_RANKS.STARTER > currentRank;
               return (
                 <div
-                  className={`flex flex-col justify-between p-5 rounded-2xl border transition-all ${
-                    isCurrent
-                      ? 'border-emerald-500 bg-emerald-500/[0.06] shadow-md ring-2 ring-emerald-500/30'
-                      : 'border-border/80 bg-slate-900/30 opacity-80 hover:opacity-100'
-                  }`}
+                  className={`flex flex-col justify-between p-5 rounded-2xl border transition-all ${isCurrent
+                    ? 'border-emerald-500 bg-emerald-500/[0.06] shadow-md ring-2 ring-emerald-500/30'
+                    : 'border-border/80 bg-slate-900/30 opacity-80 hover:opacity-100'
+                    }`}
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -410,11 +410,10 @@ export function SubscriptionUpgradeSettings() {
               const isUpgrade = PLAN_RANKS.BUSINESS > currentRank;
               return (
                 <div
-                  className={`flex flex-col justify-between p-5 rounded-2xl border transition-all ${
-                    isCurrent
-                      ? 'border-emerald-500 bg-emerald-500/[0.06] shadow-md ring-2 ring-emerald-500/30'
-                      : 'border-border/80 bg-slate-900/30 opacity-80 hover:opacity-100'
-                  }`}
+                  className={`flex flex-col justify-between p-5 rounded-2xl border transition-all ${isCurrent
+                    ? 'border-emerald-500 bg-emerald-500/[0.06] shadow-md ring-2 ring-emerald-500/30'
+                    : 'border-border/80 bg-slate-900/30 opacity-80 hover:opacity-100'
+                    }`}
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -493,11 +492,10 @@ export function SubscriptionUpgradeSettings() {
               const isUpgrade = PLAN_RANKS.ENTERPRISE > currentRank;
               return (
                 <div
-                  className={`flex flex-col justify-between p-5 rounded-2xl border transition-all ${
-                    isCurrent
-                      ? 'border-emerald-500 bg-emerald-500/[0.06] shadow-md ring-2 ring-emerald-500/30'
-                      : 'border-border/80 bg-slate-900/30 opacity-80 hover:opacity-100'
-                  }`}
+                  className={`flex flex-col justify-between p-5 rounded-2xl border transition-all ${isCurrent
+                    ? 'border-emerald-500 bg-emerald-500/[0.06] shadow-md ring-2 ring-emerald-500/30'
+                    : 'border-border/80 bg-slate-900/30 opacity-80 hover:opacity-100'
+                    }`}
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -570,23 +568,6 @@ export function SubscriptionUpgradeSettings() {
             })()}
           </div>
 
-          {/* Footnote on Super Admin Upgrades */}
-          <div className="p-4 rounded-xl border border-border/80 bg-slate-50/50 dark:bg-slate-900/40 flex items-start space-x-3 text-xs text-muted-foreground">
-            <HelpCircle className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-            <p className="leading-relaxed">
-              Your organization is locked to the <strong>{subPlan}</strong> tier. To safeguard team permissions, branch
-              allocations, and custom domain routings, upgrades and downgrades are provisioned exclusively by platform
-              administrators. If you need to adjust your subscription level, please{' '}
-              <a
-                href="mailto:support@bolxolve.com"
-                className="text-emerald-500 hover:underline font-semibold inline-flex items-center space-x-0.5"
-              >
-                <span>contact our support desk</span>
-                <ArrowUpRight className="h-3 w-3" />
-              </a>
-              .
-            </p>
-          </div>
         </CardContent>
       </Card>
 

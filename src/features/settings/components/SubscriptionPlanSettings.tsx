@@ -60,6 +60,23 @@ export function SubscriptionPlanSettings() {
   const hoursRemaining = sub?.hoursRemaining;
   const daysRemaining = sub?.daysRemaining;
 
+  // Memoized effective remaining counts to ensure we never display a dash "—" when effectiveEndDate is available
+  const effectiveDaysRemaining = React.useMemo(() => {
+    if (typeof daysRemaining === 'number') return daysRemaining;
+    if (typeof (subDetails as any)?.daysRemaining === 'number') return (subDetails as any).daysRemaining;
+    if (!effectiveEndDate) return null;
+    const diff = new Date(effectiveEndDate).getTime() - Date.now();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  }, [daysRemaining, (subDetails as any)?.daysRemaining, effectiveEndDate]);
+
+  const effectiveHoursRemaining = React.useMemo(() => {
+    if (typeof hoursRemaining === 'number') return hoursRemaining;
+    if (typeof (subDetails as any)?.hoursRemaining === 'number') return (subDetails as any).hoursRemaining;
+    if (!effectiveEndDate) return 24;
+    const diff = new Date(effectiveEndDate).getTime() - Date.now();
+    return Math.max(0, Math.floor(diff / (1000 * 60 * 60)));
+  }, [hoursRemaining, (subDetails as any)?.hoursRemaining, effectiveEndDate]);
+
   const formatDate = (dateStr?: string | null, includeTime = false) => {
     if (!dateStr) return '—';
     const d = new Date(dateStr);
@@ -93,7 +110,7 @@ export function SubscriptionPlanSettings() {
             <h4 className="text-sm font-bold text-amber-300">24-Hour Setup Grace Window Active</h4>
             <p className="text-xs text-amber-200/80 leading-relaxed">
               Welcome! Your workspace was registered on the <strong className="text-white">{subPlan}</strong> tier. You
-              have <strong className="text-amber-300 font-mono">{hoursRemaining ?? 24} hours remaining</strong> (until{' '}
+              have <strong className="text-amber-300 font-mono">{effectiveHoursRemaining} hours remaining</strong> (until{' '}
               {formatDate(effectiveEndDate, true)}) to make your initial subscription payment from the Subscription tab before
               account suspension.
             </p>
@@ -104,7 +121,7 @@ export function SubscriptionPlanSettings() {
           <AlertCircle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
             <h4 className="text-sm font-bold text-amber-300">
-              Subscription Expiring Soon ({daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} remaining)
+              Subscription Expiring Soon ({effectiveDaysRemaining} {effectiveDaysRemaining === 1 ? 'day' : 'days'} remaining)
             </h4>
             <p className="text-xs text-amber-200/80 leading-relaxed">
               Your <strong className="text-white">{subPlan}</strong> subscription is approaching its expiration on{' '}
@@ -137,6 +154,15 @@ export function SubscriptionPlanSettings() {
           >
             {formatDate(effectiveEndDate, Boolean(isInitialGrace))}
           </p>
+          <p className="text-[10px] text-muted-foreground">
+            {isExpired
+              ? 'Expired'
+              : isInitialGrace
+                ? `${effectiveHoursRemaining}h grace remaining`
+                : effectiveDaysRemaining !== null
+                  ? `${effectiveDaysRemaining} ${effectiveDaysRemaining === 1 ? 'day' : 'days'} remaining`
+                  : 'Active'}
+          </p>
         </div>
 
         <div className="p-3.5 rounded-xl border border-border/80 bg-card space-y-1">
@@ -149,11 +175,11 @@ export function SubscriptionPlanSettings() {
               <Badge className="bg-rose-500/20 border-rose-500/40 text-rose-400 text-[10px]">EXPIRED</Badge>
             ) : isInitialGrace ? (
               <Badge className="bg-amber-500/20 border-amber-500/40 text-amber-300 text-[10px]">
-                24H GRACE ({hoursRemaining ?? 24}h left)
+                24H GRACE ({effectiveHoursRemaining}h left)
               </Badge>
             ) : isExpiringSoon ? (
               <Badge className="bg-amber-500/20 border-amber-500/40 text-amber-300 text-[10px]">
-                EXPIRING IN {daysRemaining}D
+                EXPIRING IN {effectiveDaysRemaining}D
               </Badge>
             ) : (
               <Badge className="bg-emerald-500/15 border-emerald-500/30 text-emerald-400 text-[10px]">ACTIVE</Badge>

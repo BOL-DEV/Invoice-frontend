@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Building2,
   Copy,
@@ -12,10 +13,12 @@ import {
   CheckCircle2,
   X,
   ExternalLink,
+  Calendar,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import {
   PaymentInitiationResult,
+  PaymentVerificationResult,
   useVerifySubscriptionPayment,
 } from '../../features/subscriptions/hooks/useSubscription';
 
@@ -32,10 +35,12 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
   paymentData,
   onSuccess,
 }) => {
+  const queryClient = useQueryClient();
   const [copiedAccount, setCopiedAccount] = useState(false);
   const [copiedAmount, setCopiedAmount] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(30 * 60); // seconds
   const [isPaid, setIsPaid] = useState(false);
+  const [confirmedData, setConfirmedData] = useState<PaymentVerificationResult | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   const verifyMutation = useVerifySubscriptionPayment();
@@ -66,6 +71,7 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
       try {
         const res = await verifyMutation.mutateAsync(paymentData.transactionReference);
         if (res?.paid) {
+          setConfirmedData(res);
           setIsPaid(true);
           clearInterval(pollInterval);
           if (onSuccess) onSuccess();
@@ -97,6 +103,7 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
     try {
       const res = await verifyMutation.mutateAsync(paymentData.transactionReference);
       if (res?.paid) {
+        setConfirmedData(res);
         setIsPaid(true);
         if (onSuccess) onSuccess();
       } else {
@@ -109,13 +116,25 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
     }
   };
 
+  const formatReceiptDate = (dateVal?: any, includeTime = false) => {
+    if (!dateVal) return '—';
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      ...(includeTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+    });
+  };
+
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
   const timeFormatted = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-[#0D131F] border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-hidden">
+      <div className="relative w-full max-w-lg bg-[#0D131F] border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-hidden">
 
         {/* Close Button */}
         <button
@@ -127,27 +146,103 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
 
         {isPaid ? (
           /* ========================================================= */
-          /* SUCCESS STATE                                             */
+          /* SUCCESS STATE / COMPREHENSIVE RECEIPT                     */
           /* ========================================================= */
-          <div className="py-6 text-center space-y-4">
-            <div className="h-16 w-16 mx-auto rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 animate-in zoom-in duration-300">
-              <CheckCircle2 className="h-10 w-10" />
+          <div className="py-2 space-y-5 animate-in zoom-in-95 duration-200">
+            {/* Header Icon & Title */}
+            <div className="text-center space-y-2">
+              <div className="relative inline-flex items-center justify-center">
+                <div className="h-14 w-14 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                  <CheckCircle2 className="h-8 w-8" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-white tracking-tight">Payment Confirmed & Verified!</h3>
+                <p className="text-xs text-slate-300 max-w-sm mx-auto">
+                  {confirmedData?.message || 'Your dynamic bank transfer was received and verified. Your subscription is active!'}
+                </p>
+              </div>
             </div>
-            <div className="space-y-1">
-              <h3 className="text-xl font-bold text-white">Payment Received!</h3>
-              <p className="text-xs text-slate-300">
-                Your subscription to the <strong className="text-emerald-400 font-semibold">{paymentData.plan}</strong> plan ({paymentData.months || (paymentData.billingCycle === 'ANNUAL' ? 12 : 1)} { (paymentData.months || (paymentData.billingCycle === 'ANNUAL' ? 12 : 1)) === 1 ? 'month' : 'months'}) has been activated.
-              </p>
+
+            {/* Receipt Summary Card */}
+            <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3 text-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+                <span className="text-slate-400">Payment Status</span>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-semibold text-[11px]">
+                  <Check className="h-3 w-3 mr-1" />
+                  Settled & Activated
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Plan Activated</span>
+                <span className="font-bold text-white font-mono uppercase">
+                  {confirmedData?.subscription?.plan || confirmedData?.payment?.plan || paymentData.plan} TIER
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Amount Paid</span>
+                <span className="font-extrabold text-emerald-400 text-sm font-mono">
+                  ₦{Number(confirmedData?.payment?.amount || paymentData.amount).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Duration</span>
+                <span className="font-medium text-slate-200">
+                  {confirmedData?.payment?.meta?.months || paymentData.months || (paymentData.billingCycle === 'ANNUAL' ? 12 : 1)} Month(s)
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Transaction Ref</span>
+                <span
+                  className="font-mono text-[11px] text-slate-300 truncate max-w-[210px]"
+                  title={confirmedData?.payment?.transactionReference || paymentData.transactionReference}
+                >
+                  {confirmedData?.payment?.transactionReference || paymentData.transactionReference}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Settled Account</span>
+                <span className="text-slate-300 font-mono text-[11px]">
+                  {paymentData.bankName} ({paymentData.accountNumber})
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
+                <span className="text-slate-400">New Expiration Date</span>
+                <span className="font-bold text-amber-300 font-mono">
+                  {formatReceiptDate(
+                    confirmedData?.newEndDate ||
+                    confirmedData?.subscription?.endDate ||
+                    new Date(Date.now() + (paymentData.months || 1) * 30 * 24 * 60 * 60 * 1000)
+                  )}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Confirmation Time</span>
+                <span className="text-slate-400 text-[11px]">
+                  {formatReceiptDate(confirmedData?.paidAt || new Date(), true)}
+                </span>
+              </div>
             </div>
-            <div className="pt-4">
+
+            {/* Action Buttons */}
+            <div className="pt-2">
               <Button
                 onClick={() => {
                   onClose();
-                  window.location.reload();
+                  if (onSuccess) onSuccess();
+                  queryClient.invalidateQueries({ queryKey: ['subscription'] });
+                  queryClient.invalidateQueries({ queryKey: ['business'] });
                 }}
-                className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl"
+                className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all"
               >
-                Go to Dashboard
+                Done & Go to Workspace
               </Button>
             </div>
           </div>
