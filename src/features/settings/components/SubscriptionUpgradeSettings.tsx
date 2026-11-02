@@ -15,20 +15,24 @@ import {
   ShieldCheck,
   Mail,
   ArrowUpRight,
+  History,
 } from 'lucide-react';
 import { useSubscription, useInitiateSubscriptionPayment } from '@/features/subscriptions/hooks/useSubscription';
 import { useModal } from '@/components/ui/modal-provider';
 import { getErrorDialog } from '@/lib/api-error';
 import { DynamicBankTransferModal } from '@/components/subscriptions/DynamicBankTransferModal';
+import { SubscriptionHistoryModal } from '@/components/subscriptions/SubscriptionHistoryModal';
 
 export function SubscriptionUpgradeSettings() {
   const modal = useModal();
   const { data: subDetails } = useSubscription();
   const sub = subDetails?.subscription;
   const subPlan = sub?.plan || (subDetails as any)?.plan || 'STARTER';
+  const payments = subDetails?.payments || [];
 
   const [selectedMonths, setSelectedMonths] = useState<number>(1);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [activePaymentData, setActivePaymentData] = useState<any>(null);
 
   const initiatePaymentMutation = useInitiateSubscriptionPayment();
@@ -180,7 +184,21 @@ export function SubscriptionUpgradeSettings() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsHistoryModalOpen(true)}
+                className="h-8 text-xs font-semibold border-border/80 bg-background/60 hover:bg-accent flex items-center space-x-1.5 rounded-lg"
+              >
+                <History className="h-3.5 w-3.5 text-emerald-500" />
+                <span>Billing History</span>
+                {payments.length > 0 && (
+                  <Badge variant="secondary" className="ml-0.5 px-1.5 py-0 text-[10px] h-4 font-mono">
+                    {payments.length}
+                  </Badge>
+                )}
+              </Button>
               <Badge className="bg-emerald-500 text-slate-950 font-mono font-bold text-xs px-3 py-1">
                 {subPlan} TIER
               </Badge>
@@ -254,7 +272,7 @@ export function SubscriptionUpgradeSettings() {
                   Renew Subscription or Manage Tier
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Pay via dynamic bank transfer for your assigned plan. Upgrades/downgrades are handled by Super Admin.
+                  Pay via dynamic bank transfer for your assigned plan. Upgrades/downgrades are handled by Support team.
                 </CardDescription>
               </div>
             </div>
@@ -579,6 +597,13 @@ export function SubscriptionUpgradeSettings() {
         onSuccess={() => {
           setIsPaymentModalOpen(false);
         }}
+      />
+
+      {/* Subscription & Billing Payment History Modal */}
+      <SubscriptionHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        payments={payments}
       />
     </div>
   );

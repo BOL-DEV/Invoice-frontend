@@ -254,6 +254,25 @@ export interface Subscription {
   daysRemaining?: number | null;
 }
 
+export interface SubscriptionPaymentRecord {
+  id: string;
+  businessId: string;
+  plan: PlanType;
+  billingCycle: 'MONTHLY' | 'ANNUAL';
+  amount: number | string;
+  transactionReference: string;
+  lencoAccountId?: string | null;
+  bankName?: string | null;
+  accountNumber?: string | null;
+  accountName?: string | null;
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED';
+  expiresAt?: string | null;
+  paidAt?: string | null;
+  meta?: any;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SubscriptionDetails {
   subscription: Subscription;
   usage: {
@@ -278,6 +297,7 @@ export interface SubscriptionDetails {
     multipleBranches: boolean;
     advancedReports: boolean;
   };
+  payments?: SubscriptionPaymentRecord[];
 }
 
 export interface TenantBranding {

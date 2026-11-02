@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   ShieldCheck,
@@ -17,11 +18,15 @@ import {
   Clock,
   AlertTriangle,
   AlertCircle,
+  History,
 } from 'lucide-react';
 import { useSubscription } from '@/features/subscriptions/hooks/useSubscription';
+import { SubscriptionHistoryModal } from '@/components/subscriptions/SubscriptionHistoryModal';
 
 export function SubscriptionPlanSettings() {
   const { data: subDetails, isLoading: isSubLoading } = useSubscription();
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const payments = subDetails?.payments || [];
 
   const sub = subDetails?.subscription;
   const subPlan = sub?.plan || (subDetails as any)?.plan || 'STARTER';
@@ -205,18 +210,34 @@ export function SubscriptionPlanSettings() {
               </div>
             </div>
 
-            {subDetails?.subscription && (
-              <div className="flex items-center space-x-2">
-                <Badge className="bg-emerald-500 text-white font-mono text-xs px-3 py-1">
-                  {subDetails.subscription.plan} PLAN
-                </Badge>
-                {subDetails.subscription.billingMode === 'COMPLIMENTARY' && (
-                  <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400 text-xs">
-                    COMPLIMENTARY ACCESS
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsHistoryModalOpen(true)}
+                className="h-8 text-xs font-semibold border-border/80 bg-background/60 hover:bg-accent flex items-center space-x-1.5 rounded-lg"
+              >
+                <History className="h-3.5 w-3.5 text-emerald-500" />
+                <span>Billing History</span>
+                {payments.length > 0 && (
+                  <Badge variant="secondary" className="ml-0.5 px-1.5 py-0 text-[10px] h-4 font-mono">
+                    {payments.length}
                   </Badge>
                 )}
-              </div>
-            )}
+              </Button>
+              {subDetails?.subscription && (
+                <>
+                  <Badge className="bg-emerald-500 text-white font-mono text-xs px-3 py-1">
+                    {subDetails.subscription.plan} PLAN
+                  </Badge>
+                  {subDetails.subscription.billingMode === 'COMPLIMENTARY' && (
+                    <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400 text-xs">
+                      COMPLIMENTARY ACCESS
+                    </Badge>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </CardHeader>
 
@@ -492,6 +513,13 @@ export function SubscriptionPlanSettings() {
           </CardContent>
         </Card>
       )}
+
+      {/* Subscription & Billing Payment History Modal */}
+      <SubscriptionHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        payments={payments}
+      />
     </div>
   );
 }
