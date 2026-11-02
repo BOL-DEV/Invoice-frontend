@@ -1,0 +1,390 @@
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { User } from '../../../types/api';
+import { useDashboardStats } from '../hooks/useDashboardStats';
+import { useBusinessSettings } from '../../business/hooks/useBusinessSettings';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../../components/ui/card';
+import { Badge } from '../../../components/ui/badge';
+import { motion } from 'framer-motion';
+import {
+  TrendingUp,
+  Clock,
+  UserCheck,
+  FileSpreadsheet,
+  RefreshCw,
+  Plus,
+  ArrowRight,
+  BarChart3,
+  CheckCircle2,
+} from 'lucide-react';
+import { Skeleton } from '../../../components/ui/skeleton';
+import { Button } from '../../../components/ui/button';
+
+interface SubAdminDashboardProps {
+  user: User;
+  branchId: string;
+}
+
+export function SubAdminDashboard({ user, branchId }: SubAdminDashboardProps) {
+  const { data: stats, isLoading: statsLoading, isError, error, refetch } = useDashboardStats(branchId);
+  const { data: businessSettings } = useBusinessSettings();
+
+  const businessName = businessSettings?.businessName || 'BOLXolve Invoice';
+  const rawLogo = businessSettings?.logo;
+  const hasCustomLogo = Boolean(
+    rawLogo &&
+    typeof rawLogo === 'string' &&
+    (rawLogo.startsWith('/') || rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('data:image/')) &&
+    !rawLogo.startsWith('{')
+  );
+  const logoSrc = hasCustomLogo ? (rawLogo as string) : '/platform-logo.svg';
+
+  const formatCurrency = (amount: number) => {
+    return `₦${Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const getSalesChartData = () => {
+    if (!stats?.salesTrend || stats.salesTrend.length === 0) return [];
+    const maxSales = Math.max(...stats.salesTrend.map((t) => t.sales), 1);
+    return stats.salesTrend.map((item) => ({
+      date: item.date,
+      sales: item.sales,
+      heightPercentage: (item.sales / maxSales) * 100,
+    }));
+  };
+
+  const chartData = getSalesChartData();
+  const totalTrendRevenue = chartData.reduce((acc, curr) => acc + curr.sales, 0);
+
+  return (
+    <div className="space-y-6 max-w-[1400px] mx-auto pb-10">
+      {/* Hero Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-border/60">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading">
+              Branch Operations Overview
+            </h1>
+            <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/25 text-[10px] font-bold px-2 py-0.5 rounded-full hidden sm:inline-flex">
+              BRANCH MANAGER
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Live sales performance, cashier activity, and pending approval workflows for your assigned branch.
+          </p>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="flex items-center space-x-2.5">
+          <Button
+            onClick={() => refetch()}
+            variant="outline"
+            size="sm"
+            className="h-10 rounded-xl text-xs border-border hover:bg-secondary flex items-center space-x-1.5"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${statsLoading ? 'animate-spin text-emerald-500' : ''}`} />
+            <span>Refresh</span>
+          </Button>
+
+          <Link href="/invoices/create">
+            <Button className="h-10 bg-gradient-to-r from-emerald-500 to-[#059669] hover:from-emerald-600 hover:to-[#047857] text-white font-semibold rounded-xl text-xs px-4 shadow-lg shadow-emerald-500/20 flex items-center space-x-1.5 cursor-pointer">
+              <Plus className="h-4 w-4" />
+              <span>New Invoice</span>
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* KPI Metrics Grid */}
+      {statsLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="border-border bg-card shadow-premium rounded-2xl p-5 space-y-3">
+              <div className="flex justify-between items-center">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-8 w-8 rounded-xl" />
+              </div>
+              <Skeleton className="h-7 w-36" />
+              <Skeleton className="h-3 w-48" />
+            </Card>
+          ))}
+        </div>
+      ) : isError ? (
+        <div className="p-6 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-500 text-center space-y-3">
+          <p className="font-semibold text-sm">Failed to fetch server statistics.</p>
+          <p className="text-xs text-muted-foreground">
+            {error instanceof Error ? error.message : 'Ensure your backend service is running and accessible.'}
+          </p>
+          <Button onClick={() => refetch()} variant="outline" className="border-rose-500/25 hover:bg-rose-500/5 text-rose-600 rounded-xl h-9 text-xs px-4">
+            Retry Connection
+          </Button>
+        </div>
+      ) : (
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: { staggerChildren: 0.05 }
+            }
+          }}
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          {/* Metric 1: Branch Revenue */}
+          <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
+            <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden relative group hover:border-emerald-500/40 transition-all duration-200">
+              <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-teal-400" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-6 pt-4">
+                <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Branch Revenue
+                </CardTitle>
+                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
+                  <TrendingUp className="h-4 w-4" />
+                </div>
+              </CardHeader>
+              <CardContent className="px-6 pb-5">
+                <div className="text-2xl font-bold font-mono tracking-tight text-foreground tabular-nums">
+                  {formatCurrency(stats?.totalSales || 0)}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center space-x-1">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-500 inline" />
+                  <span>Computed from finalized invoices</span>
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Metric 2: Pending Approvals */}
+          <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
+            <Link href="/approvals" className="block">
+              <Card className={`border-border bg-card shadow-premium rounded-2xl overflow-hidden relative group transition-all duration-200 hover:border-amber-500/50 ${(stats?.pendingApprovalsCount || 0) > 0 ? 'ring-1 ring-amber-500/30' : ''}`}>
+                <div className={`h-1 w-full ${(stats?.pendingApprovalsCount || 0) > 0 ? 'bg-amber-500' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-6 pt-4">
+                  <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Pending Approvals
+                  </CardTitle>
+                  <div className={`p-2 rounded-xl ${(stats?.pendingApprovalsCount || 0) > 0 ? 'bg-amber-500/15 text-amber-500 animate-pulse' : 'bg-secondary text-muted-foreground'}`}>
+                    <Clock className="h-4 w-4" />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-6 pb-5">
+                  <div className="text-2xl font-bold font-mono tracking-tight text-foreground tabular-nums">
+                    {stats?.pendingApprovalsCount || 0}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center space-x-1">
+                    {(stats?.pendingApprovalsCount || 0) > 0 ? (
+                      <span className="text-amber-500 font-semibold flex items-center space-x-1">
+                        <span>Action required</span>
+                        <ArrowRight className="h-3 w-3 inline" />
+                      </span>
+                    ) : (
+                      <span>All queues clear</span>
+                    )}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+          </motion.div>
+
+          {/* Metric 3: Total Invoices */}
+          <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
+            <Link href="/invoices" className="block">
+              <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden relative group hover:border-indigo-500/40 transition-all duration-200">
+                <div className="h-1 w-full bg-indigo-500" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-6 pt-4">
+                  <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Total Invoices
+                  </CardTitle>
+                  <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500">
+                    <FileSpreadsheet className="h-4 w-4" />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-6 pb-5">
+                  <div className="text-2xl font-bold font-mono tracking-tight text-foreground tabular-nums">
+                    {stats?.invoiceCounts?.total || 0}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                    <span className="text-emerald-500 font-medium">{stats?.invoiceCounts?.finalized || 0} finalized</span>
+                    <span className="mx-1">•</span>
+                    <span>{stats?.invoiceCounts?.draft || 0} drafts</span>
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+          </motion.div>
+
+          {/* Metric 4: Branch Staff / Cashiers */}
+          <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
+            <Link href="/users" className="block">
+              <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden relative group hover:border-blue-500/40 transition-all duration-200">
+                <div className="h-1 w-full bg-blue-500" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-6 pt-4">
+                  <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Staff / Cashiers
+                  </CardTitle>
+                  <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
+                    <UserCheck className="h-4 w-4" />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-6 pb-5">
+                  <div className="text-2xl font-bold font-mono tracking-tight text-foreground tabular-nums">
+                    {stats?.cashiersCount || 0}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1.5">Registered depot operators</p>
+                </CardContent>
+              </Card>
+            </Link>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Sales Trend Chart & Quick Shortcuts */}
+      {!statsLoading && !isError && (
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.2 }}
+          className="grid gap-6 lg:grid-cols-12"
+        >
+          {/* Chart (8 cols) */}
+          <Card className="border-border bg-card shadow-premium rounded-2xl overflow-hidden lg:col-span-8">
+            <CardHeader className="p-6 border-b border-border/80 flex flex-row items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <BarChart3 className="h-4 w-4 text-emerald-500" />
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Depot 30-Day Revenue Trend
+                  </CardTitle>
+                </div>
+                <CardDescription className="text-xs mt-1">
+                  Daily revenue generated from finalized invoices for this branch.
+                </CardDescription>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] uppercase font-mono text-muted-foreground">30D Aggregate</p>
+                <p className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 tabular-nums">
+                  {formatCurrency(totalTrendRevenue)}
+                </p>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-6">
+              {chartData.length === 0 ? (
+                <div className="h-64 flex flex-col items-center justify-center border border-dashed rounded-xl text-muted-foreground text-xs space-y-1">
+                  <BarChart3 className="h-8 w-8 text-muted-foreground/30" />
+                  <p>No sales transaction data recorded for this 30-day cycle.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="h-64 flex items-end space-x-1.5 sm:space-x-3 border-b border-border pb-2 pt-6">
+                    {chartData.map((day, idx) => (
+                      <div key={idx} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full mb-2 bg-[#0F172A] dark:bg-slate-800 border border-slate-700/60 text-white text-[10px] px-2.5 py-1.5 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-20 font-mono">
+                          <p className="text-slate-400">{day.date}</p>
+                          <p className="font-bold text-emerald-400">{formatCurrency(day.sales)}</p>
+                        </div>
+
+                        {/* Bar */}
+                        <div
+                          style={{ height: `${Math.max(day.heightPercentage, 4)}%` }}
+                          className="w-full bg-gradient-to-t from-emerald-600 to-emerald-400 hover:from-emerald-500 hover:to-emerald-300 rounded-t-md transition-all duration-200 cursor-pointer shadow-sm"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-between text-[11px] text-muted-foreground px-1 font-mono">
+                    <span>{chartData[0]?.date}</span>
+                    <span>{chartData[Math.floor(chartData.length / 2)]?.date}</span>
+                    <span>{chartData[chartData.length - 1]?.date}</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Quick Operational Shortcuts (4 cols) */}
+          <div className="lg:col-span-4 space-y-4">
+            <Card className="border-border bg-card shadow-premium rounded-2xl p-6 space-y-4">
+              <div className="space-y-1">
+                <h3 className="font-bold text-sm text-foreground">
+                  Quick Operations
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Direct access to billing and workflow operations.
+                </p>
+              </div>
+
+              <div className="space-y-2.5">
+                <Link href="/invoices/create" className="block">
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-border hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all group">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                        <Plus className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-foreground">Create New Invoice</p>
+                        <p className="text-[10px] text-muted-foreground">Add items, tax & print</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                </Link>
+
+                <Link href="/invoices" className="block">
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-border hover:border-indigo-500/40 hover:bg-indigo-500/5 transition-all group">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500">
+                        <FileSpreadsheet className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-foreground">Invoices Ledger</p>
+                        <p className="text-[10px] text-muted-foreground">Filter, print and search records</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                </Link>
+
+                <Link href="/approvals" className="block">
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-border hover:border-amber-500/40 hover:bg-amber-500/5 transition-all group">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
+                        <Clock className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-foreground">Reprint Approvals</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Review cashier reprint tickets
+                        </p>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                </Link>
+              </div>
+            </Card>
+
+            {/* Station Guidance / Security Card */}
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 text-white border border-slate-800 space-y-2 shadow-premium">
+              <div className="flex items-center space-x-2">
+                <Image src={logoSrc} alt={businessName} width={18} height={18} className="w-4 h-4 object-contain" />
+                <span className="text-xs font-bold">{businessName}</span>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Dual-tier security protocol is active. Reprints and ledger revisions require designated admin authorization.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+

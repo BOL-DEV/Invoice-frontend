@@ -48,6 +48,7 @@ export const API_ENDPOINTS = {
     UPDATE_PLAN: (businessId: string) => `/api/subscriptions/${businessId}/plan`,
     INITIATE_PAYMENT: '/api/subscriptions/payments/initiate',
     VERIFY_PAYMENT: (reference: string) => `/api/subscriptions/payments/verify/${encodeURIComponent(reference)}`,
+    SIMULATE_PAYMENT: (reference: string) => `/api/subscriptions/payments/simulate/${encodeURIComponent(reference)}`,
   },
   ACTIVITY: {
     BASE: '/api/activity',

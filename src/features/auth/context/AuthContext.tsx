@@ -10,6 +10,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isLoggingOut: boolean;
   login: (input: LoginInput) => Promise<void>;
   logout: () => Promise<void>;
   updateCurrentUser: (updated: User) => void;
@@ -32,6 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const initAuth = async () => {
     try {
@@ -49,20 +51,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
         localStorage.removeItem('user_details');
         if (typeof window !== 'undefined') {
-          document.cookie = "session_active=; path=/; max-age=0; SameSite=Lax";
+          document.cookie = 'session_active=; path=/; max-age=0; SameSite=Lax';
         }
       }
     } catch (error: unknown) {
       console.warn('Session refresh warning:', (error as Error)?.message);
       const status = (error as { response?: { status?: number } })?.response?.status;
-      
+
       // ONLY clear tokens and wipe session if server explicitly returned 401 / 403 (Token expired/revoked)
       if (status === 401 || status === 403) {
         tokenStore.clearTokens();
         localStorage.removeItem('user_details');
         setUser(null);
         if (typeof window !== 'undefined') {
-          document.cookie = "session_active=; path=/; max-age=0; SameSite=Lax";
+          document.cookie = 'session_active=; path=/; max-age=0; SameSite=Lax';
         }
       } else {
         // Network error / Server 500 / Offline: DO NOT WIPE USER ROLE!
@@ -87,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const result = await authService.login(input);
     setUser(result.user);
     localStorage.setItem('user_details', JSON.stringify(result.user));
-    
+
     // Set cookie duration: 7 days if rememberMe, 8 hours (28800s) by default
     const maxAge = input.rememberMe ? 604800 : 28800;
     if (typeof window !== 'undefined') {
@@ -96,13 +98,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    setIsLoading(true);
-    setUser(null);
-    localStorage.removeItem('user_details');
-    if (typeof window !== 'undefined') {
-      document.cookie = "session_active=; path=/; max-age=0; SameSite=Lax";
+    setIsLoggingOut(true);
+    try {
+      localStorage.removeItem('user_details');
+      if (typeof window !== 'undefined') {
+        document.cookie = 'session_active=; path=/; max-age=0; SameSite=Lax';
+      }
+      await authService.logout();
+    } catch (err) {
+      console.warn('Logout error ignored during session termination:', err);
+    } finally {
+      setUser(null);
+      setIsLoading(false);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
     }
-    await authService.logout();
   };
 
   const updateCurrentUser = (updated: User) => {
@@ -118,6 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated: !!user,
         isLoading,
+        isLoggingOut,
         login,
         logout,
         updateCurrentUser,

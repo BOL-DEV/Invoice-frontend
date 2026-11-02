@@ -966,27 +966,27 @@ export default function InvoicesPage() {
       {/* RESPONSIVE DETAILS & EXPORT MODAL                         */}
       {/* ========================================================= */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl w-[95vw] lg:max-h-[92vh] overflow-y-auto p-6 rounded-2xl">
-          <DialogHeader className="border-b border-border/80 pb-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <DialogContent className="w-[96vw] max-w-4xl lg:max-w-5xl max-h-[92dvh] overflow-y-auto overflow-x-hidden p-4 sm:p-6 rounded-2xl">
+          <DialogHeader className="border-b border-border/80 pb-3 sm:pb-4 pr-6 sm:pr-0">
+            <div className="flex flex-col gap-3">
               <div>
-                <div className="flex items-center space-x-2">
-                  <span className="font-mono text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                    {invoiceDetails?.invoiceNumber}
+                <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                  <span className="font-mono text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                    #{invoiceDetails?.invoiceNumber}
                   </span>
                   {invoiceDetails && getStatusBadge(invoiceDetails.status)}
                 </div>
-                <DialogTitle className="text-lg font-bold mt-1 text-foreground">
+                <DialogTitle className="text-base sm:text-lg font-bold mt-1 text-foreground leading-snug">
                   Invoice Details & Exports
                 </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
+                <DialogDescription className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2 sm:line-clamp-none">
                   Review calculated items, charges, customer data, and download vector documents.
                 </DialogDescription>
               </div>
 
               {/* Action Buttons in Header */}
               {invoiceDetails && (
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pt-1 sm:pt-0">
                   
                   {/* Edit Actions: Draft vs Finalized with 24hr window */}
                   {invoiceDetails.status === 'DRAFT' ? (
@@ -1260,36 +1260,36 @@ export default function InvoicesPage() {
             <div className="space-y-6 pt-4">
               
               {/* Metadata Summary Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-secondary/40 border border-border text-xs">
-                <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase font-mono">Customer</span>
-                  <span className="font-bold text-foreground">{invoiceDetails.customerName}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 p-3.5 sm:p-4 rounded-xl bg-secondary/40 border border-border text-xs">
+                <div className="sm:col-span-2 lg:col-span-1">
+                  <span className="text-muted-foreground block text-[10px] uppercase font-mono tracking-wider">Customer</span>
+                  <span className="font-bold text-foreground text-xs sm:text-sm break-words">{invoiceDetails.customerName}</span>
                   {invoiceDetails.customerPhone && (
-                    <span className="block text-muted-foreground font-mono text-[11px]">{invoiceDetails.customerPhone}</span>
+                    <span className="block text-muted-foreground font-mono text-[11px] mt-0.5">{invoiceDetails.customerPhone}</span>
                   )}
                 </div>
                 <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase font-mono">Date Issued</span>
-                  <span className="font-medium text-foreground">
-                    {new Date(invoiceDetails.createdAt).toLocaleString()}
+                  <span className="text-muted-foreground block text-[10px] uppercase font-mono tracking-wider">Date Issued</span>
+                  <span className="font-medium text-foreground text-xs sm:text-[13px] block">
+                    {new Date(invoiceDetails.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
                   </span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase font-mono">Cashier</span>
-                  <span className="font-medium text-foreground">
+                  <span className="text-muted-foreground block text-[10px] uppercase font-mono tracking-wider">Cashier</span>
+                  <span className="font-medium text-foreground text-xs sm:text-[13px] block truncate">
                     {invoiceDetails.creator ? `${invoiceDetails.creator.firstName} ${invoiceDetails.creator.lastName}` : 'System'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase font-mono">Grand Total</span>
-                  <span className="font-bold text-sm text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
+                  <span className="text-muted-foreground block text-[10px] uppercase font-mono tracking-wider">Grand Total</span>
+                  <span className="font-bold text-sm sm:text-base text-emerald-600 dark:text-emerald-400 font-mono tabular-nums block">
                     {formatCurrency(invoiceDetails.total)}
                   </span>
                 </div>
                 {invoiceDetails.branch && (
-                  <div>
-                    <span className="text-muted-foreground block text-[10px] uppercase font-mono">Branch / Location</span>
-                    <span className="font-semibold text-emerald-600 dark:text-emerald-400 text-xs flex items-center space-x-1">
+                  <div className="col-span-full pt-2 border-t border-border/40 sm:border-0 sm:pt-0">
+                    <span className="text-muted-foreground block text-[10px] uppercase font-mono tracking-wider">Branch / Location</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400 text-xs flex items-center space-x-1 mt-0.5">
                       <Store className="h-3.5 w-3.5 shrink-0" />
                       <span>{invoiceDetails.branch.name}</span>
                     </span>
@@ -1344,10 +1344,43 @@ export default function InvoicesPage() {
                 </div>
               )}
 
-              {/* Line Items Table */}
+              {/* Line Items Table & Mobile Cards */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Line Items Breakdown</h4>
-                <div className="border border-border rounded-xl overflow-hidden">
+                
+                {/* Mobile Item Cards */}
+                <div className="space-y-2 block sm:hidden">
+                  {invoiceDetails.items?.map((item, idx) => (
+                    <div key={item.id} className="p-3 bg-secondary/30 rounded-xl border border-border/80 space-y-2">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex items-start space-x-1.5 min-w-0">
+                          <span className="text-[10px] font-mono text-muted-foreground font-bold mt-0.5">#{idx + 1}</span>
+                          <span className="font-semibold text-foreground text-xs leading-snug break-words">{item.description}</span>
+                        </div>
+                        <span className="font-bold text-xs text-emerald-600 dark:text-emerald-400 font-mono tabular-nums shrink-0">
+                          {formatCurrency(item.totalPrice)}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1 pt-1.5 border-t border-border/50 text-[11px] font-mono text-muted-foreground">
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider block text-muted-foreground/80">Qty</span>
+                          <span className="font-semibold text-foreground">{Number(item.quantity).toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider block text-muted-foreground/80">Unit Rate</span>
+                          <span className="font-semibold text-foreground">{formatCurrency(item.unitPrice)}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[9px] uppercase tracking-wider block text-muted-foreground/80">Weight</span>
+                          <span className="font-semibold text-foreground">{item.weight ? `${Number(item.weight).toFixed(3)}T` : '-'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Responsive Table */}
+                <div className="hidden sm:block border border-border rounded-xl overflow-x-auto">
                   <Table>
                     <TableHeader className="bg-secondary/30">
                       <TableRow>
@@ -1375,18 +1408,18 @@ export default function InvoicesPage() {
 
               {/* Financial Totals */}
               <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 text-xs font-mono">
-                <div className="w-full sm:w-72 space-y-1.5 p-4 rounded-xl bg-secondary/30 border border-border">
-                  <div className="flex justify-between">
+                <div className="w-full sm:w-72 space-y-1.5 p-3.5 sm:p-4 rounded-xl bg-secondary/30 border border-border">
+                  <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Subtotal:</span>
                     <span className="tabular-nums font-semibold">{formatCurrency(invoiceDetails.subtotal)}</span>
                   </div>
                   {invoiceDetails.charges?.map((charge) => (
-                    <div key={charge.id} className="flex justify-between text-muted-foreground">
-                      <span>{charge.name}:</span>
-                      <span className="tabular-nums">{formatCurrency(charge.amount)}</span>
+                    <div key={charge.id} className="flex justify-between items-center text-muted-foreground">
+                      <span className="truncate pr-2">{charge.name}:</span>
+                      <span className="tabular-nums shrink-0">{formatCurrency(charge.amount)}</span>
                     </div>
                   ))}
-                  <div className="border-t border-border pt-2 flex justify-between font-bold text-sm text-emerald-600 dark:text-emerald-400">
+                  <div className="border-t border-border pt-2 flex justify-between items-center font-bold text-sm text-emerald-600 dark:text-emerald-400">
                     <span>Grand Total:</span>
                     <span className="tabular-nums">{formatCurrency(invoiceDetails.total)}</span>
                   </div>

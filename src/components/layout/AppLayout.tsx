@@ -2,6 +2,7 @@
 
 import { useIdleTimeout } from '../../features/auth/hooks/useIdleTimeout';
 import { SessionTimeoutModal } from '../shared/SessionTimeoutModal';
+import { LoadingScreen } from '../shared/LoadingScreen';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -102,7 +103,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, label, active, is
 
 export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const pathname = usePathname();
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout, isLoading, isLoggingOut } = useAuth();
   const { isWarningOpen, secondsRemaining, stayLoggedIn, logOutNow } = useIdleTimeout();
   const { theme, setTheme } = useTheme();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -405,17 +406,9 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
   // When auth is resolving or user is unauthenticated/logging out, render clean loading screen
   // This prevents child routes from rendering in an unauthorized state
-  if (isLoading || !user) {
+  if (isLoading || !user || isLoggingOut) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background text-foreground space-y-4">
-        <div className="h-12 w-12 rounded-2xl bg-white dark:bg-slate-900 border border-border p-1.5 flex items-center justify-center shadow-lg animate-pulse">
-          <Image src="/platform-logo.svg" alt="BOLXolve Platform" width={40} height={40} className="w-9 h-9 object-contain" priority />
-        </div>
-        <div className="flex items-center space-x-2 text-xs text-muted-foreground font-mono">
-          <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
-          <span>Authenticating session...</span>
-        </div>
-      </div>
+      <LoadingScreen message={isLoggingOut ? 'Logging out...' : 'Authenticating session...'} />
     );
   }
 
@@ -674,6 +667,67 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             )}
           </div>
         </header>
+
+        {/* Global Subscription Warning Banners for Admin */}
+        {user?.role === 'ADMIN' && !isSuperAdmin && subDetails?.subscription && (
+          (() => {
+            const sub = subDetails.subscription;
+            const isExpired = sub.isExpired;
+            const isInitialGrace = sub.isInitialGrace;
+            const isExpiringSoon = sub.isExpiringSoon;
+            const daysRemaining = sub.daysRemaining;
+            const hoursRemaining = sub.hoursRemaining;
+
+            if (!isExpired && !isInitialGrace && !isExpiringSoon) return null;
+
+            return (
+              <div className="px-3.5 sm:px-6 md:px-8 pt-3">
+                {isExpired ? (
+                  <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-between gap-3 text-xs text-rose-300 shadow-md">
+                    <div className="flex items-center space-x-2.5">
+                      <span className="font-bold">🚨 Subscription Expired:</span>
+                      <span>Invoice generation is suspended. Please renew your plan in Settings to restore full access.</span>
+                    </div>
+                    <Link
+                      href="/settings?tab=subscription"
+                      className="px-3 py-1.5 rounded-lg bg-rose-500 text-white font-bold text-xs shrink-0 hover:bg-rose-400 transition-colors"
+                    >
+                      Renew Now
+                    </Link>
+                  </div>
+                ) : isInitialGrace ? (
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-xs text-amber-300 shadow-md">
+                    <div className="flex items-center space-x-2.5">
+                      <span className="font-bold">⏰ Setup Grace Window:</span>
+                      <span>You have {hoursRemaining ?? 24} hours remaining to make your initial subscription payment.</span>
+                    </div>
+                    <Link
+                      href="/settings?tab=subscription"
+                      className="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs shrink-0 hover:bg-amber-400 transition-colors"
+                    >
+                      Make Payment
+                    </Link>
+                  </div>
+                ) : isExpiringSoon ? (
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-xs text-amber-300 shadow-md">
+                    <div className="flex items-center space-x-2.5">
+                      <span className="font-bold">⚠️ Subscription Expiring:</span>
+                      <span>
+                        Your {sub.plan} subscription expires in {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'}.
+                      </span>
+                    </div>
+                    <Link
+                      href="/settings?tab=subscription"
+                      className="px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-bold text-xs shrink-0 hover:bg-emerald-400 transition-colors"
+                    >
+                      Renew Subscription
+                    </Link>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })()
+        )}
 
         {/* Content body */}
         <main className="flex-1 p-3.5 sm:p-6 md:p-8 pb-32 sm:pb-12 md:pb-8">

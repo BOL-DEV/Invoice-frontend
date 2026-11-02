@@ -9,7 +9,7 @@
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --font-heading: var(--font-heading);
-  
+
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-light: var(--primary-light);
@@ -19,7 +19,7 @@
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-  
+
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -32,7 +32,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -47,33 +47,33 @@
   --card-foreground: #0F172A;
   --popover: #FFFFFF;
   --popover-foreground: #0F172A;
-  
+
   /* Primary Green Palette */
   --primary: #10B981;
   --primary-hover: #059669;
   --primary-light: #D1FAE5;
   --primary-foreground: #FFFFFF;
-  
+
   --secondary: #F1F5F9;
   --secondary-foreground: #0F172A;
   --muted: #F1F5F9;
   --muted-foreground: #64748B;
   --accent: #F1F5F9;
   --accent-foreground: #0F172A;
-  
+
   /* State Colors */
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
   --success: #22C55E;
   --warning: #F59E0B;
   --info: #3B82F6;
-  
+
   --border: #E2E8F0;
   --input: #E2E8F0;
   --ring: rgba(16, 185, 129, 0.4);
-  
+
   --radius: 0.75rem;
-  
+
   --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --font-heading: 'Outfit', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -86,19 +86,19 @@
   --card-foreground: #F8FAFC;
   --popover: #111827;
   --popover-foreground: #F8FAFC;
-  
+
   --primary: #10B981;
   --primary-hover: #059669;
   --primary-light: rgba(16, 185, 129, 0.15);
   --primary-foreground: #FFFFFF;
-  
+
   --secondary: #1E293B;
   --secondary-foreground: #F8FAFC;
   --muted: #1E293B;
   --muted-foreground: #94A3B8;
   --accent: #1E293B;
   --accent-foreground: #F8FAFC;
-  
+
   --border: #1E293B;
   --input: #1E293B;
   --ring: rgba(16, 185, 129, 0.5);
@@ -108,10 +108,17 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground font-sans antialiased selection:bg-primary-light selection:text-primary-hover;
   }
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-heading tracking-tight text-foreground font-bold;
   }
 }
@@ -132,7 +139,9 @@
 }
 
 /* Sleek inputs outline rules */
-input:focus, textarea:focus, select:focus {
+input:focus,
+textarea:focus,
+select:focus {
   outline: none;
   border-color: var(--primary) !important;
   box-shadow: 0 0 0 3px var(--ring) !important;
@@ -143,13 +152,33 @@ input:focus, textarea:focus, select:focus {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary);
+}
+
+
+/* Logo Breathing Animation */
+@keyframes logoBreathe {
+  0%, 100% {
+    transform: scale(0.92);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+.animate-logo-breathe {
+  animation: logoBreathe 2.2s ease-in-out infinite;
 }

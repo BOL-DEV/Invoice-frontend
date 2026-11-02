@@ -244,6 +244,33 @@ export interface Subscription {
   endDate: string | null;
   createdAt: string;
   updatedAt: string;
+  isInitialGrace?: boolean;
+  graceExpiresAt?: string | null;
+  effectiveEndDate?: string | null;
+  hasSuccessfulPayment?: boolean;
+  isExpired?: boolean;
+  isExpiringSoon?: boolean;
+  hoursRemaining?: number | null;
+  daysRemaining?: number | null;
+}
+
+export interface SubscriptionPaymentRecord {
+  id: string;
+  businessId: string;
+  plan: PlanType;
+  billingCycle: 'MONTHLY' | 'ANNUAL';
+  amount: number | string;
+  transactionReference: string;
+  lencoAccountId?: string | null;
+  bankName?: string | null;
+  accountNumber?: string | null;
+  accountName?: string | null;
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED';
+  expiresAt?: string | null;
+  paidAt?: string | null;
+  meta?: any;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SubscriptionDetails {
@@ -270,6 +297,7 @@ export interface SubscriptionDetails {
     multipleBranches: boolean;
     advancedReports: boolean;
   };
+  payments?: SubscriptionPaymentRecord[];
 }
 
 export interface TenantBranding {
@@ -342,6 +370,8 @@ export interface InvoiceItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  totalAmount?: number;
+  unit?: string | null;
   weight: number | null;
   createdAt: string;
   updatedAt: string;
@@ -386,6 +416,8 @@ export interface Invoice {
   status: InvoiceStatus;
   subtotal: number;
   total: number;
+  totalAmount?: number;
+  unit?: string | null;
   notes: string | null;
   isDeleted: boolean;
   createdAt: string;
@@ -474,6 +506,8 @@ export interface BranchStat {
 export interface DashboardStats {
   invoiceCounts: {
     total: number;
+  totalAmount?: number;
+  unit?: string | null;
     finalized: number;
     draft: number;
   };
@@ -534,6 +568,7 @@ export interface ExtractedDiscrepancy {
 export interface ExtractedInvoiceData {
   customerName?: string | null;
   customerPhone?: string | null;
+  cashierName?: string;
   items: ExtractedItem[];
   charges?: ExtractedCharge[];
   discrepancies?: ExtractedDiscrepancy[];
@@ -595,6 +630,8 @@ export interface TenantFullDetails {
     status: string;
     subtotal: number;
     total: number;
+  totalAmount?: number;
+  unit?: string | null;
     notes?: string | null;
     createdAt: string;
     creator: {
@@ -609,6 +646,8 @@ export interface TenantFullDetails {
       quantity: number;
       unitPrice: number;
       totalPrice: number;
+  totalAmount?: number;
+  unit?: string | null;
       weight: number | null;
     }>;
     charges?: Array<{
@@ -669,6 +708,8 @@ export interface ReportInvoiceLineItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  totalAmount?: number;
+  unit?: string | null;
 }
 
 export interface ReportInvoiceCharge {
@@ -682,8 +723,11 @@ export interface ReportInvoiceItem {
   invoiceNumber: string;
   customerName: string;
   customerPhone?: string | null;
+  cashierName?: string;
   status: InvoiceStatus;
   total: number;
+  totalAmount?: number;
+  unit?: string | null;
   subtotal: number;
   notes?: string | null;
   createdAt: string;
@@ -716,6 +760,8 @@ export interface ReportResponseData {
   invoices: ReportInvoiceItem[];
   pagination: {
     total: number;
+  totalAmount?: number;
+  unit?: string | null;
     page: number;
     limit: number;
     totalPages: number;
