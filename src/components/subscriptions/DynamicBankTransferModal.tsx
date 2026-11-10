@@ -83,6 +83,43 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
     return () => clearInterval(interval);
   }, [isOpen, paymentData]);
 
+  // Background check every 4 seconds for instant credit confirmation
+  useEffect(() => {
+    if (!isOpen || !paymentData?.transactionReference || isPaid || isFailed || isExpired) return;
+
+    let isPolling = true;
+
+    const pollInterval = setInterval(async () => {
+      if (!isPolling) return;
+      try {
+        const res = await verifyMutation.mutateAsync(paymentData.transactionReference);
+        if (!isPolling) return;
+
+        if (res?.paid) {
+          setConfirmedData(res);
+          setIsPaid(true);
+          clearInterval(pollInterval);
+          if (onSuccess) onSuccess();
+        } else if (res?.status === 'FAILED') {
+          setIsFailed(true);
+          setFailureReason(res.failureReason || res.message || 'Payment transfer was rejected or failed.');
+          clearInterval(pollInterval);
+        } else if (res?.status === 'EXPIRED') {
+          setIsExpired(true);
+          setFailureReason(res.failureReason || 'Virtual payment account expired.');
+          clearInterval(pollInterval);
+        }
+      } catch (err) {
+        // silent polling catch
+      }
+    }, 4000);
+
+    return () => {
+      isPolling = false;
+      clearInterval(pollInterval);
+    };
+  }, [isOpen, paymentData?.transactionReference, isPaid, isFailed, isExpired]);
+
   if (!isOpen || !paymentData) return null;
 
   const handleCopyAccount = () => {
@@ -441,12 +478,6 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
 
             </div>
 
-            {/* Instruction note */}
-            <div className="flex items-center space-x-2 text-[11px] text-slate-400 justify-center">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Make the transfer to the details above, then click below</span>
-            </div>
-
             {/* Feedback Message */}
             {feedbackMessage && (
               <div className="flex items-start space-x-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300">
@@ -455,8 +486,8 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
               </div>
             )}
 
-            {/* Manual Verification Button */}
-            <div className="pt-1">
+            {/* Action & Status */}
+            <div className="pt-1 space-y-2.5">
               <Button
                 onClick={handleManualCheck}
                 disabled={verifyMutation.isPending}
@@ -471,6 +502,11 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
                   <span>I Have Sent the Payment</span>
                 )}
               </Button>
+
+              <div className="flex items-center space-x-2 text-[11px] text-slate-400 justify-center">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Waiting for transfer confirmation...</span>
+              </div>
             </div>
           </div>
         )}
