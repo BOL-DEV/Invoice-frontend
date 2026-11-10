@@ -83,13 +83,18 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
     return () => clearInterval(interval);
   }, [isOpen, paymentData]);
 
-  // Background polling every 4.5 seconds for instant credit confirmation
+  // Background polling every 3.5 seconds for instant credit confirmation
   useEffect(() => {
-    if (!isOpen || !paymentData?.transactionReference || isPaid || isFailed || isExpired || timeLeft <= 0) return;
+    if (!isOpen || !paymentData?.transactionReference || isPaid || isFailed || isExpired) return;
+
+    let isPollingActive = true;
 
     const pollInterval = setInterval(async () => {
+      if (!isPollingActive) return;
       try {
         const res = await verifyMutation.mutateAsync(paymentData.transactionReference);
+        if (!isPollingActive) return;
+
         if (res?.paid) {
           setConfirmedData(res);
           setIsPaid(true);
@@ -107,10 +112,13 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
       } catch (err) {
         // silent polling catch
       }
-    }, 4500);
+    }, 3500);
 
-    return () => clearInterval(pollInterval);
-  }, [isOpen, paymentData, isPaid, isFailed, isExpired, timeLeft, verifyMutation, onSuccess]);
+    return () => {
+      isPollingActive = false;
+      clearInterval(pollInterval);
+    };
+  }, [isOpen, paymentData?.transactionReference, isPaid, isFailed, isExpired]);
 
   if (!isOpen || !paymentData) return null;
 
@@ -444,11 +452,16 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
               </div>
 
               {/* Account Name */}
-              <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800/70">
-                <span className="text-slate-400">Beneficiary Name</span>
-                <span className="font-medium text-slate-200 text-right truncate max-w-[200px]">
-                  {paymentData.accountName}
-                </span>
+              <div className="flex items-start justify-between text-xs pt-1 border-t border-slate-800/70">
+                <span className="text-slate-400 mt-0.5">Beneficiary Name</span>
+                <div className="text-right">
+                  <span className="font-semibold text-white block">
+                    {paymentData.accountName?.toUpperCase().includes('URE') ? paymentData.accountName : 'URE MFB CHECKOUT'}
+                  </span>
+                  <span className="text-[10px] text-emerald-400/90 font-mono">
+                    (Shows as URE MFB CHECKOUT in your bank app)
+                  </span>
+                </div>
               </div>
 
               {/* Exact Amount */}
