@@ -83,43 +83,6 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
     return () => clearInterval(interval);
   }, [isOpen, paymentData]);
 
-  // Background polling every 3.5 seconds for instant credit confirmation
-  useEffect(() => {
-    if (!isOpen || !paymentData?.transactionReference || isPaid || isFailed || isExpired) return;
-
-    let isPollingActive = true;
-
-    const pollInterval = setInterval(async () => {
-      if (!isPollingActive) return;
-      try {
-        const res = await verifyMutation.mutateAsync(paymentData.transactionReference);
-        if (!isPollingActive) return;
-
-        if (res?.paid) {
-          setConfirmedData(res);
-          setIsPaid(true);
-          clearInterval(pollInterval);
-          if (onSuccess) onSuccess();
-        } else if (res?.status === 'FAILED') {
-          setIsFailed(true);
-          setFailureReason(res.failureReason || res.message || 'Payment transfer was rejected or failed.');
-          clearInterval(pollInterval);
-        } else if (res?.status === 'EXPIRED') {
-          setIsExpired(true);
-          setFailureReason(res.failureReason || 'Virtual payment account expired.');
-          clearInterval(pollInterval);
-        }
-      } catch (err) {
-        // silent polling catch
-      }
-    }, 3500);
-
-    return () => {
-      isPollingActive = false;
-      clearInterval(pollInterval);
-    };
-  }, [isOpen, paymentData?.transactionReference, isPaid, isFailed, isExpired]);
-
   if (!isOpen || !paymentData) return null;
 
   const handleCopyAccount = () => {
@@ -393,7 +356,7 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
             <div className="space-y-1">
               <div className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
                 <ShieldCheck className="h-3.5 w-3.5" />
-                <span>Lenco Virtual Account Payment</span>
+                <span>Instant Bank Transfer</span>
               </div>
               <h3 className="text-lg font-bold text-white">
                 Bank Transfer for {paymentData.plan} Plan ({paymentData.months || (paymentData.billingCycle === 'ANNUAL' ? 12 : 1)} {(paymentData.months || (paymentData.billingCycle === 'ANNUAL' ? 12 : 1)) === 1 ? 'Month' : 'Months'})
@@ -452,16 +415,11 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
               </div>
 
               {/* Account Name */}
-              <div className="flex items-start justify-between text-xs pt-1 border-t border-slate-800/70">
-                <span className="text-slate-400 mt-0.5">Beneficiary Name</span>
-                <div className="text-right">
-                  <span className="font-semibold text-white block">
-                    {paymentData.accountName?.toUpperCase().includes('URE') ? paymentData.accountName : 'URE MFB CHECKOUT'}
-                  </span>
-                  <span className="text-[10px] text-emerald-400/90 font-mono">
-                    (Shows as URE MFB CHECKOUT in your bank app)
-                  </span>
-                </div>
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800/70">
+                <span className="text-slate-400">Beneficiary Name</span>
+                <span className="font-semibold text-white uppercase">
+                  {paymentData.accountName || 'URE MFB CHECKOUT'}
+                </span>
               </div>
 
               {/* Exact Amount */}
@@ -483,10 +441,10 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
 
             </div>
 
-            {/* Note & Automatic Detection */}
+            {/* Instruction note */}
             <div className="flex items-center space-x-2 text-[11px] text-slate-400 justify-center">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Listening for payment transfer in real-time...</span>
+              <span>Make the transfer to the details above, then click below</span>
             </div>
 
             {/* Feedback Message */}
@@ -498,7 +456,7 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
             )}
 
             {/* Manual Verification Button */}
-            <div className="space-y-2 pt-1">
+            <div className="pt-1">
               <Button
                 onClick={handleManualCheck}
                 disabled={verifyMutation.isPending}
@@ -507,15 +465,12 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
                 {verifyMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Verifying Transfer with Lenco...</span>
+                    <span>Verifying Transfer...</span>
                   </>
                 ) : (
                   <span>I Have Sent the Payment</span>
                 )}
               </Button>
-              <p className="text-[11px] text-center text-slate-400">
-                This account is created dynamically for this single invoice and will close once credited.
-              </p>
             </div>
           </div>
         )}
