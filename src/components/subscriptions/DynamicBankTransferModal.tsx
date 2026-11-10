@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Building2,
@@ -18,10 +18,12 @@ import {
   Calendar,
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { apiClient } from '../../services/api/axios';
+import { API_ENDPOINTS } from '../../services/api/endpoints';
+import { ApiResponse } from '../../types/api';
 import {
   PaymentInitiationResult,
   PaymentVerificationResult,
-  useVerifySubscriptionPayment,
 } from '../../features/subscriptions/hooks/useSubscription';
 
 interface DynamicBankTransferModalProps {
@@ -49,8 +51,7 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
   const [failureReason, setFailureReason] = useState<string | null>(null);
   const [confirmedData, setConfirmedData] = useState<PaymentVerificationResult | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-
-  const verifyMutation = useVerifySubscriptionPayment();
+  const isCheckingRef = useRef(false);
 
   // Reset state on modal open or when new payment is passed
   useEffect(() => {
@@ -61,6 +62,7 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
       setFailureReason(null);
       setConfirmedData(null);
       setFeedbackMessage(null);
+      isCheckingRef.current = false;
     }
   }, [isOpen, paymentData?.transactionReference]);
 
@@ -83,22 +85,28 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
     return () => clearInterval(interval);
   }, [isOpen, paymentData]);
 
-  // Background check every 4 seconds for instant credit confirmation
+  // Silent background check every 4 seconds for instant credit confirmation
   useEffect(() => {
     if (!isOpen || !paymentData?.transactionReference || isPaid || isFailed || isExpired) return;
 
     let isPolling = true;
 
     const pollInterval = setInterval(async () => {
-      if (!isPolling) return;
+      if (!isPolling || isCheckingRef.current) return;
+      isCheckingRef.current = true;
       try {
-        const res = await verifyMutation.mutateAsync(paymentData.transactionReference);
+        const response = await apiClient.get<ApiResponse<PaymentVerificationResult>>(
+          API_ENDPOINTS.SUBSCRIPTIONS.VERIFY_PAYMENT(paymentData.transactionReference)
+        );
+        const res = response.data?.data;
         if (!isPolling) return;
 
         if (res?.paid) {
           setConfirmedData(res);
           setIsPaid(true);
           clearInterval(pollInterval);
+          queryClient.invalidateQueries({ queryKey: ['subscription'] });
+          queryClient.invalidateQueries({ queryKey: ['business'] });
           if (onSuccess) onSuccess();
         } else if (res?.status === 'FAILED') {
           setIsFailed(true);
@@ -111,6 +119,8 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
         }
       } catch (err) {
         // silent polling catch
+      } finally {
+        isCheckingRef.current = false;
       }
     }, 4000);
 
@@ -118,7 +128,7 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
       isPolling = false;
       clearInterval(pollInterval);
     };
-  }, [isOpen, paymentData?.transactionReference, isPaid, isFailed, isExpired]);
+  }, [isOpen, paymentData?.transactionReference, isPaid, isFailed, isExpired, queryClient, onSuccess]);
 
   if (!isOpen || !paymentData) return null;
 
@@ -135,12 +145,19 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
   };
 
   const handleManualCheck = async () => {
+    if (isCheckingRef.current || isPaid) return; // Do nothing if check is already running
+    isCheckingRef.current = true;
     setFeedbackMessage(null);
     try {
-      const res = await verifyMutation.mutateAsync(paymentData.transactionReference);
+      const response = await apiClient.get<ApiResponse<PaymentVerificationResult>>(
+        API_ENDPOINTS.SUBSCRIPTIONS.VERIFY_PAYMENT(paymentData.transactionReference)
+      );
+      const res = response.data?.data;
       if (res?.paid) {
         setConfirmedData(res);
         setIsPaid(true);
+        queryClient.invalidateQueries({ queryKey: ['subscription'] });
+        queryClient.invalidateQueries({ queryKey: ['business'] });
         if (onSuccess) onSuccess();
       } else if (res?.status === 'FAILED') {
         setIsFailed(true);
@@ -155,6 +172,8 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
       }
     } catch (err: any) {
       setFeedbackMessage(err?.response?.data?.message || 'Unable to verify payment at this moment. Please try again.');
+    } finally {
+      isCheckingRef.current = false;
     }
   };
 
@@ -490,17 +509,9 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
             <div className="pt-1 space-y-2.5">
               <Button
                 onClick={handleManualCheck}
-                disabled={verifyMutation.isPending}
-                className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all shadow-lg shadow-emerald-500/10"
+                className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center transition-all shadow-lg shadow-emerald-500/10 cursor-pointer active:scale-[0.99]"
               >
-                {verifyMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Verifying Transfer...</span>
-                  </>
-                ) : (
-                  <span>I Have Sent the Payment</span>
-                )}
+                <span>I Have Sent the Payment</span>
               </Button>
 
               <div className="flex items-center space-x-2 text-[11px] text-slate-400 justify-center">
