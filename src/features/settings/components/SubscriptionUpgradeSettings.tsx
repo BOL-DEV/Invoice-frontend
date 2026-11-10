@@ -597,6 +597,10 @@ export function SubscriptionUpgradeSettings() {
         onSuccess={() => {
           setIsPaymentModalOpen(false);
         }}
+        onRetry={() => {
+          setIsPaymentModalOpen(false);
+          handleStartRenewal(selectedMonths);
+        }}
       />
 
       {/* Subscription & Billing Payment History Modal */}

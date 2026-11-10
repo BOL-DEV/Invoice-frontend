@@ -74,6 +74,13 @@ export const SubscriptionHistoryModal: React.FC<SubscriptionHistoryModalProps> =
             <span>Failed</span>
           </Badge>
         );
+      case 'EXPIRED':
+        return (
+          <Badge className="bg-amber-500/15 border-amber-500/30 text-amber-300 text-[11px] font-semibold flex items-center space-x-1">
+            <Clock className="h-3 w-3 mr-1" />
+            <span>Expired</span>
+          </Badge>
+        );
       default:
         return (
           <Badge className="bg-slate-700/40 border-slate-600/40 text-slate-300 text-[11px]">
@@ -130,6 +137,7 @@ export const SubscriptionHistoryModal: React.FC<SubscriptionHistoryModalProps> =
           ) : (
             payments.map((p) => {
               const months = (p.meta as any)?.months || (p.billingCycle === 'ANNUAL' ? 12 : 1);
+              const failureReason = (p.meta as any)?.failureReason;
               return (
                 <div
                   key={p.id}
@@ -153,6 +161,19 @@ export const SubscriptionHistoryModal: React.FC<SubscriptionHistoryModalProps> =
                       {getStatusBadge(p.status)}
                     </div>
                   </div>
+
+                  {/* Failure / Expiration Explanation Notice */}
+                  {failureReason && (p.status === 'FAILED' || p.status === 'EXPIRED') && (
+                    <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-start space-x-2">
+                      <AlertCircle className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <span className="font-semibold block text-[11px] text-rose-300">
+                          {p.status === 'EXPIRED' ? 'Session Expiration Reason:' : 'Failure / Rejection Reason:'}
+                        </span>
+                        <span className="text-[11px] text-rose-200 font-mono break-words">{failureReason}</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Details grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-800/60 text-xs">

@@ -22,6 +22,7 @@ export interface PaymentVerificationResult {
   status: string;
   paid: boolean;
   message?: string;
+  failureReason?: string;
   payment?: any;
   subscription?: any;
   newEndDate?: string;

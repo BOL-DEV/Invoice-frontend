@@ -8,10 +8,12 @@ import {
   Check,
   Clock,
   AlertCircle,
+  AlertTriangle,
   Loader2,
   ShieldCheck,
   CheckCircle2,
   X,
+  RefreshCw,
   ExternalLink,
   Calendar,
 } from 'lucide-react';
@@ -27,6 +29,7 @@ interface DynamicBankTransferModalProps {
   onClose: () => void;
   paymentData: PaymentInitiationResult | null;
   onSuccess?: () => void;
+  onRetry?: () => void;
 }
 
 export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> = ({
@@ -34,16 +37,32 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
   onClose,
   paymentData,
   onSuccess,
+  onRetry,
 }) => {
   const queryClient = useQueryClient();
   const [copiedAccount, setCopiedAccount] = useState(false);
   const [copiedAmount, setCopiedAmount] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(30 * 60); // seconds
   const [isPaid, setIsPaid] = useState(false);
+  const [isFailed, setIsFailed] = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
+  const [failureReason, setFailureReason] = useState<string | null>(null);
   const [confirmedData, setConfirmedData] = useState<PaymentVerificationResult | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   const verifyMutation = useVerifySubscriptionPayment();
+
+  // Reset state on modal open or when new payment is passed
+  useEffect(() => {
+    if (isOpen) {
+      setIsPaid(false);
+      setIsFailed(false);
+      setIsExpired(false);
+      setFailureReason(null);
+      setConfirmedData(null);
+      setFeedbackMessage(null);
+    }
+  }, [isOpen, paymentData?.transactionReference]);
 
   // Timer countdown
   useEffect(() => {
@@ -56,6 +75,7 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
       setTimeLeft(diff);
 
       if (diff <= 0) {
+        setIsExpired(true);
         clearInterval(interval);
       }
     }, 1000);
@@ -65,7 +85,7 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
 
   // Background polling every 4.5 seconds for instant credit confirmation
   useEffect(() => {
-    if (!isOpen || !paymentData?.transactionReference || isPaid) return;
+    if (!isOpen || !paymentData?.transactionReference || isPaid || isFailed || isExpired || timeLeft <= 0) return;
 
     const pollInterval = setInterval(async () => {
       try {
@@ -75,6 +95,14 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
           setIsPaid(true);
           clearInterval(pollInterval);
           if (onSuccess) onSuccess();
+        } else if (res?.status === 'FAILED') {
+          setIsFailed(true);
+          setFailureReason(res.failureReason || res.message || 'Payment transfer was rejected or failed.');
+          clearInterval(pollInterval);
+        } else if (res?.status === 'EXPIRED') {
+          setIsExpired(true);
+          setFailureReason(res.failureReason || 'Virtual payment account expired.');
+          clearInterval(pollInterval);
         }
       } catch (err) {
         // silent polling catch
@@ -82,7 +110,7 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
     }, 4500);
 
     return () => clearInterval(pollInterval);
-  }, [isOpen, paymentData, isPaid, verifyMutation, onSuccess]);
+  }, [isOpen, paymentData, isPaid, isFailed, isExpired, timeLeft, verifyMutation, onSuccess]);
 
   if (!isOpen || !paymentData) return null;
 
@@ -106,6 +134,12 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
         setConfirmedData(res);
         setIsPaid(true);
         if (onSuccess) onSuccess();
+      } else if (res?.status === 'FAILED') {
+        setIsFailed(true);
+        setFailureReason(res.failureReason || res.message || 'Payment transfer was rejected or failed.');
+      } else if (res?.status === 'EXPIRED') {
+        setIsExpired(true);
+        setFailureReason(res.failureReason || 'Virtual payment account expired.');
       } else {
         setFeedbackMessage(
           res?.message || 'Payment has not been detected yet. Bank network settlements may take 1-2 minutes.'
@@ -131,6 +165,7 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
   const timeFormatted = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  const hasExpired = timeLeft <= 0 || isExpired;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -246,9 +281,104 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
               </Button>
             </div>
           </div>
+        ) : hasExpired ? (
+          /* ========================================================= */
+          /* EXPIRED STATE                                             */
+          /* ========================================================= */
+          <div className="py-2 space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="text-center space-y-2">
+              <div className="h-14 w-14 mx-auto rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <Clock className="h-7 w-7" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-white tracking-tight">Transfer Session Expired</h3>
+                <p className="text-xs text-slate-300 max-w-sm mx-auto">
+                  {failureReason || 'This dynamic virtual transfer account was valid for 30 minutes and has now expired for your protection.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2 text-xs">
+              <div className="flex items-center space-x-2 text-amber-300 font-semibold">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>Do Not Transfer Funds to Expired Account</span>
+              </div>
+              <p className="text-slate-300 text-[11px] leading-relaxed">
+                Sending funds to an expired dynamic account can result in bank network delays or automated reversals. Please generate a fresh virtual account to complete your payment smoothly.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              {onRetry && (
+                <Button
+                  onClick={onRetry}
+                  className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/20 transition-all"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  <span>Generate Fresh Transfer Account</span>
+                </Button>
+              )}
+              <Button
+                onClick={onClose}
+                variant="outline"
+                className="w-full h-10 border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs rounded-xl"
+              >
+                Cancel & Close
+              </Button>
+            </div>
+          </div>
+        ) : isFailed ? (
+          /* ========================================================= */
+          /* FAILED / REJECTED STATE                                   */
+          /* ========================================================= */
+          <div className="py-2 space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="text-center space-y-2">
+              <div className="h-14 w-14 mx-auto rounded-full bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                <AlertCircle className="h-7 w-7" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-white tracking-tight">Payment Transfer Rejected</h3>
+                <p className="text-xs text-slate-300 max-w-sm mx-auto">
+                  The payment transfer could not be settled or was rejected by the banking network.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-2.5 text-xs">
+              <div className="flex items-center space-x-2 text-rose-400 font-semibold">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>Exact Failure Reason</span>
+              </div>
+              <div className="p-3 rounded-lg bg-slate-900/90 border border-rose-500/20 font-mono text-rose-300 text-xs break-words">
+                {failureReason || 'Transfer amount mismatch or transaction rejected by sending bank.'}
+              </div>
+              <p className="text-slate-400 text-[11px] leading-relaxed">
+                If money left your bank account, NIBSS and your bank will automatically reverse the full amount back to your sending account within normal settlement windows.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              {onRetry && (
+                <Button
+                  onClick={onRetry}
+                  className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/20 transition-all"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  <span>Generate Fresh Transfer Account</span>
+                </Button>
+              )}
+              <Button
+                onClick={onClose}
+                variant="outline"
+                className="w-full h-10 border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs rounded-xl"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
         ) : (
           /* ========================================================= */
-          /* TRANSFER INSTRUCTIONS STATE                               */
+          /* ACTIVE TRANSFER INSTRUCTIONS STATE                        */
           /* ========================================================= */
           <div className="space-y-5">
             {/* Header */}
@@ -381,4 +511,3 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
     </div>
   );
 };
-
