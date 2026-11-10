@@ -75,8 +75,8 @@ export function SubscriptionUpgradeSettings() {
   };
 
   const getPlanPrice = (plan: 'STARTER' | 'BUSINESS' | 'ENTERPRISE', months: number) => {
-    const monthlyRates = { STARTER: 6500, BUSINESS: 10500, ENTERPRISE: 20000 };
-    const annualRates = { STARTER: 65000, BUSINESS: 105000, ENTERPRISE: 200000 };
+    const monthlyRates = { STARTER: 500, BUSINESS: 700, ENTERPRISE: 1000 };
+    const annualRates = { STARTER: 5000, BUSINESS: 7000, ENTERPRISE: 10000 };
     if (months === 12) {
       return { total: annualRates[plan], ratePerMonth: Math.round(annualRates[plan] / 12), isDiscounted: true };
     }
