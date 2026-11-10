@@ -75,8 +75,8 @@ export function SubscriptionUpgradeSettings() {
   };
 
   const getPlanPrice = (plan: 'STARTER' | 'BUSINESS' | 'ENTERPRISE', months: number) => {
-    const monthlyRates = { STARTER: 500, BUSINESS: 700, ENTERPRISE: 1000 };
-    const annualRates = { STARTER: 5000, BUSINESS: 7000, ENTERPRISE: 10000 };
+    const monthlyRates = { STARTER: 6500, BUSINESS: 10500, ENTERPRISE: 20000 };
+    const annualRates = { STARTER: 65000, BUSINESS: 105000, ENTERPRISE: 200000 };
     if (months === 12) {
       return { total: annualRates[plan], ratePerMonth: Math.round(annualRates[plan] / 12), isDiscounted: true };
     }
@@ -106,10 +106,10 @@ export function SubscriptionUpgradeSettings() {
 
   const handleContactSupport = (action: 'upgrade' | 'downgrade', targetPlan: string) => {
     const subject = encodeURIComponent(
-      `Request to ${action === 'upgrade' ? 'Upgrade' : 'Downgrade'} to ${targetPlan} Plan`
+      `Request to Change / Upgrade Plan (${subPlan})`
     );
     const body = encodeURIComponent(
-      `Hello BOLXolve Support Team,\n\nWe are currently operating on the ${subPlan} plan and would like to ${action} our organization workspace to the ${targetPlan} tier.\n\nPlease contact us with the next steps and quota adjustments.\n\nThank you!`
+      `Hello BOLXolve Support Team,\n\nWe are currently operating on the ${subPlan} plan and would like to switch or customize our organization workspace tier.\n\nPlease contact us with the next steps.\n\nThank you!`
     );
     window.location.href = `mailto:support@bolxolve.com?subject=${subject}&body=${body}`;
   };
@@ -338,253 +338,111 @@ export function SubscriptionUpgradeSettings() {
         </CardHeader>
 
         <CardContent className="p-4 sm:p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* 1. Starter Tier */}
-            {(() => {
-              const pricing = getPlanPrice('STARTER', selectedMonths);
-              const isCurrent = subPlan === 'STARTER';
-              const isUpgrade = PLAN_RANKS.STARTER > currentRank;
-              return (
-                <div
-                  className={`flex flex-col justify-between p-5 rounded-2xl border transition-all ${isCurrent
-                    ? 'border-emerald-500 bg-emerald-500/[0.06] shadow-md ring-2 ring-emerald-500/30'
-                    : 'border-border/80 bg-slate-900/30 opacity-80 hover:opacity-100'
-                    }`}
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Starter</span>
-                        <h5 className="text-xl font-bold text-white mt-0.5">
-                          ₦{pricing.total.toLocaleString()}
-                          <span className="text-xs font-normal text-slate-400">
-                            {selectedMonths === 1 ? ' / mo' : ` for ${selectedMonths} mos`}
-                          </span>
-                        </h5>
-                        {pricing.isDiscounted && (
-                          <p className="text-[11px] text-emerald-400 font-medium mt-0.5">
-                            Effective: ₦{pricing.ratePerMonth.toLocaleString()}/mo (Save ₦13,000)
-                          </p>
-                        )}
-                      </div>
-                      {isCurrent ? (
-                        <Badge className="bg-emerald-500 text-slate-950 font-bold text-[10px] px-2 py-0.5">
-                          Your Active Plan
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-slate-700 text-slate-400 text-[10px]">
-                          {isUpgrade ? 'Upgrade Tier' : 'Downgrade Tier'}
-                        </Badge>
-                      )}
-                    </div>
+          {(() => {
+            const planKey = (subPlan as 'STARTER' | 'BUSINESS' | 'ENTERPRISE') || 'STARTER';
+            const pricing = getPlanPrice(planKey, selectedMonths);
 
-                    <ul className="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-800/80">
-                      <li className="flex items-center space-x-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                        <span>3 Users (1 Admin + 2 Cashiers)</span>
-                      </li>
-                      <li className="flex items-center space-x-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                        <span>10 AI Scans / Month</span>
-                      </li>
-                      <li className="flex items-center space-x-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                        <span>Thermal & A4 Printable Invoices</span>
-                      </li>
-                    </ul>
-                  </div>
+            const planDetailsMap: Record<
+              'STARTER' | 'BUSINESS' | 'ENTERPRISE',
+              {
+                name: string;
+                features: string[];
+                savings: string;
+              }
+            > = {
+              STARTER: {
+                name: 'Starter',
+                features: [
+                  '3 Users (1 Admin + 2 Cashiers)',
+                  '10 AI Scans / Month',
+                  'Thermal & A4 Printable Invoices',
+                ],
+                savings: '13,000',
+              },
+              BUSINESS: {
+                name: 'Business',
+                features: [
+                  '5 Users (1 Admin + 4 Cashiers)',
+                  '60 AI Scans / Month',
+                  'Custom Branded Domain + Excel Export',
+                  'Multi-Branch Inventory & Tracking',
+                ],
+                savings: '21,000',
+              },
+              ENTERPRISE: {
+                name: 'Enterprise',
+                features: [
+                  '11 Users (Owner + Sub-admins + 8 Cashiers)',
+                  '150 AI Scans / Month',
+                  'Multi-Branch Real-Time Control & Audits',
+                  'Custom Domain + Dedicated Priority Support',
+                ],
+                savings: '40,000',
+              },
+            };
 
-                  <div className="pt-5">
-                    {isCurrent ? (
-                      <Button
-                        size="sm"
-                        disabled={initiatePaymentMutation.isPending}
-                        onClick={() => handleStartRenewal(selectedMonths)}
-                        className="w-full text-xs h-10 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all cursor-pointer shadow-lg shadow-emerald-500/10"
-                      >
-                        Renew Starter ({selectedMonths} {selectedMonths === 1 ? 'Mo' : 'Mos'} • ₦
-                        {pricing.total.toLocaleString()})
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleContactSupport(isUpgrade ? 'upgrade' : 'downgrade', 'Starter')}
-                        className="w-full text-xs h-10 rounded-xl font-medium border-slate-700 text-slate-300 hover:bg-slate-800 transition-all flex items-center justify-center space-x-1.5"
-                      >
-                        <Mail className="h-3.5 w-3.5 text-slate-400" />
-                        <span>Contact Us to {isUpgrade ? 'Upgrade' : 'Downgrade'}</span>
-                      </Button>
+            const planDetails = planDetailsMap[planKey] || planDetailsMap.STARTER;
+
+            return (
+              <div className="max-w-lg mx-auto w-full p-6 sm:p-7 rounded-2xl border-2 border-emerald-500 bg-emerald-500/[0.06] shadow-xl ring-2 ring-emerald-500/20 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                      {planDetails.name} Tier
+                    </span>
+                    <h5 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
+                      ₦{pricing.total.toLocaleString()}
+                      <span className="text-xs font-normal text-slate-400 ml-1.5">
+                        {selectedMonths === 1 ? '/ month' : `for ${selectedMonths} months`}
+                      </span>
+                    </h5>
+                    {pricing.isDiscounted && (
+                      <p className="text-xs text-emerald-400 font-medium mt-1">
+                        Effective: ₦{pricing.ratePerMonth.toLocaleString()}/mo (Save ₦{planDetails.savings})
+                      </p>
                     )}
                   </div>
+                  <Badge className="bg-emerald-500 text-slate-950 font-bold text-xs px-3 py-1">
+                    Your Active Plan
+                  </Badge>
                 </div>
-              );
-            })()}
 
-            {/* 2. Business Tier */}
-            {(() => {
-              const pricing = getPlanPrice('BUSINESS', selectedMonths);
-              const isCurrent = subPlan === 'BUSINESS';
-              const isUpgrade = PLAN_RANKS.BUSINESS > currentRank;
-              return (
-                <div
-                  className={`flex flex-col justify-between p-5 rounded-2xl border transition-all ${isCurrent
-                    ? 'border-emerald-500 bg-emerald-500/[0.06] shadow-md ring-2 ring-emerald-500/30'
-                    : 'border-border/80 bg-slate-900/30 opacity-80 hover:opacity-100'
-                    }`}
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Business</span>
-                        <h5 className="text-xl font-bold text-white mt-0.5">
-                          ₦{pricing.total.toLocaleString()}
-                          <span className="text-xs font-normal text-slate-400">
-                            {selectedMonths === 1 ? ' / mo' : ` for ${selectedMonths} mos`}
-                          </span>
-                        </h5>
-                        {pricing.isDiscounted && (
-                          <p className="text-[11px] text-emerald-400 font-medium mt-0.5">
-                            Effective: ₦{pricing.ratePerMonth.toLocaleString()}/mo (Save ₦21,000)
-                          </p>
-                        )}
-                      </div>
-                      {isCurrent ? (
-                        <Badge className="bg-emerald-500 text-slate-950 font-bold text-[10px] px-2 py-0.5">
-                          Your Active Plan
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-slate-700 text-slate-400 text-[10px]">
-                          {isUpgrade ? 'Upgrade Tier' : 'Downgrade Tier'}
-                        </Badge>
-                      )}
-                    </div>
+                <ul className="text-xs sm:text-sm text-slate-300 space-y-3 pt-4 border-t border-slate-800/80">
+                  {planDetails.features.map((feat, idx) => (
+                    <li key={idx} className="flex items-center space-x-2.5">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>{feat}</span>
+                    </li>
+                  ))}
+                </ul>
 
-                    <ul className="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-800/80">
-                      <li className="flex items-center space-x-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                        <span>5 Users (1 Admin + 4 Cashiers)</span>
-                      </li>
-                      <li className="flex items-center space-x-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                        <span>60 AI Scans / Month</span>
-                      </li>
-                      <li className="flex items-center space-x-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                        <span>Custom Branded Domain + Excel Export</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="pt-5">
-                    {isCurrent ? (
-                      <Button
-                        size="sm"
-                        disabled={initiatePaymentMutation.isPending}
-                        onClick={() => handleStartRenewal(selectedMonths)}
-                        className="w-full text-xs h-10 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all cursor-pointer shadow-lg shadow-emerald-500/10"
-                      >
-                        Renew Business ({selectedMonths} {selectedMonths === 1 ? 'Mo' : 'Mos'} • ₦
-                        {pricing.total.toLocaleString()})
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleContactSupport(isUpgrade ? 'upgrade' : 'downgrade', 'Business')}
-                        className="w-full text-xs h-10 rounded-xl font-medium border-slate-700 text-slate-300 hover:bg-slate-800 transition-all flex items-center justify-center space-x-1.5"
-                      >
-                        <Mail className="h-3.5 w-3.5 text-slate-400" />
-                        <span>Contact Us to {isUpgrade ? 'Upgrade' : 'Downgrade'}</span>
-                      </Button>
-                    )}
-                  </div>
+                <div className="pt-2">
+                  <Button
+                    size="lg"
+                    disabled={initiatePaymentMutation.isPending}
+                    onClick={() => handleStartRenewal(selectedMonths)}
+                    className="w-full text-xs sm:text-sm h-12 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all cursor-pointer shadow-lg shadow-emerald-500/20"
+                  >
+                    Renew {planDetails.name} ({selectedMonths} {selectedMonths === 1 ? 'Month' : 'Months'} • ₦{pricing.total.toLocaleString()})
+                  </Button>
                 </div>
-              );
-            })()}
 
-            {/* 3. Enterprise Tier */}
-            {(() => {
-              const pricing = getPlanPrice('ENTERPRISE', selectedMonths);
-              const isCurrent = subPlan === 'ENTERPRISE';
-              const isUpgrade = PLAN_RANKS.ENTERPRISE > currentRank;
-              return (
-                <div
-                  className={`flex flex-col justify-between p-5 rounded-2xl border transition-all ${isCurrent
-                    ? 'border-emerald-500 bg-emerald-500/[0.06] shadow-md ring-2 ring-emerald-500/30'
-                    : 'border-border/80 bg-slate-900/30 opacity-80 hover:opacity-100'
-                    }`}
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Enterprise</span>
-                        <h5 className="text-xl font-bold text-white mt-0.5">
-                          ₦{pricing.total.toLocaleString()}
-                          <span className="text-xs font-normal text-slate-400">
-                            {selectedMonths === 1 ? ' / mo' : ` for ${selectedMonths} mos`}
-                          </span>
-                        </h5>
-                        {pricing.isDiscounted && (
-                          <p className="text-[11px] text-emerald-400 font-medium mt-0.5">
-                            Effective: ₦{pricing.ratePerMonth.toLocaleString()}/mo (Save ₦40,000)
-                          </p>
-                        )}
-                      </div>
-                      {isCurrent ? (
-                        <Badge className="bg-emerald-500 text-slate-950 font-bold text-[10px] px-2 py-0.5">
-                          Your Active Plan
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-slate-700 text-slate-400 text-[10px]">
-                          Upgrade Tier
-                        </Badge>
-                      )}
-                    </div>
-
-                    <ul className="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-800/80">
-                      <li className="flex items-center space-x-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                        <span>11 Users (Owner + Sub-admins + 8 Cashiers)</span>
-                      </li>
-                      <li className="flex items-center space-x-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                        <span>150 AI Scans / Month</span>
-                      </li>
-                      <li className="flex items-center space-x-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                        <span>Multi-Branch Real-Time Control & Audits</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="pt-5">
-                    {isCurrent ? (
-                      <Button
-                        size="sm"
-                        disabled={initiatePaymentMutation.isPending}
-                        onClick={() => handleStartRenewal(selectedMonths)}
-                        className="w-full text-xs h-10 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all cursor-pointer shadow-lg shadow-emerald-500/10"
-                      >
-                        Renew Enterprise ({selectedMonths} {selectedMonths === 1 ? 'Mo' : 'Mos'} • ₦
-                        {pricing.total.toLocaleString()})
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleContactSupport('upgrade', 'Enterprise')}
-                        className="w-full text-xs h-10 rounded-xl font-medium border-slate-700 text-slate-300 hover:bg-slate-800 transition-all flex items-center justify-center space-x-1.5"
-                      >
-                        <Mail className="h-3.5 w-3.5 text-slate-400" />
-                        <span>Contact Us to Upgrade</span>
-                      </Button>
-                    )}
-                  </div>
+                <div className="text-center pt-2 border-t border-slate-800/60">
+                  <p className="text-xs text-slate-400">
+                    Want to switch to another plan?{' '}
+                    <button
+                      type="button"
+                      onClick={() => handleContactSupport('upgrade', planDetails.name)}
+                      className="text-emerald-400 hover:underline font-medium inline-flex items-center space-x-1 cursor-pointer"
+                    >
+                      <span>Contact our support team</span>
+                      <ArrowUpRight className="h-3 w-3 inline" />
+                    </button>
+                  </p>
                 </div>
-              );
-            })()}
-          </div>
+              </div>
+            );
+          })()}
 
         </CardContent>
       </Card>
