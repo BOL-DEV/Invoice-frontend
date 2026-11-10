@@ -175,6 +175,21 @@ export const SubscriptionHistoryModal: React.FC<SubscriptionHistoryModalProps> =
                     </div>
                   )}
 
+                  {/* Duplicate Payment Warning Notice */}
+                  {(p.meta as any)?.hasDuplicatePayment && (
+                    <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-xs text-amber-300 flex items-start space-x-2">
+                      <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <span className="font-semibold block text-[11px] text-amber-300">
+                          Duplicate Payment Recorded:
+                        </span>
+                        <span className="text-[11px] text-amber-200">
+                          A duplicate bank transfer was detected for this invoice. Please contact support for an automatic subscription extension or refund.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Details grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-800/60 text-xs">
                     {/* Reference */}
