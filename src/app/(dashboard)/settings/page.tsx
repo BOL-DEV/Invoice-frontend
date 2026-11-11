@@ -174,8 +174,6 @@ export default function SettingsPage() {
       {activeTab === 'business' && (isSuperAdmin ? <GlobalPricingSettings /> : <CompanyBusinessSettings />)}
       {activeTab === 'subscription' && !isSuperAdmin && <SubscriptionPlanSettings />}
       {activeTab === 'upgrade' && !isSuperAdmin && !isComplimentary && <SubscriptionUpgradeSettings />}
-      {activeTab === 'subscription' && !isSuperAdmin && <SubscriptionPlanSettings />}
-      {activeTab === 'upgrade' && !isSuperAdmin && !isComplimentary && <SubscriptionUpgradeSettings />}
     </div>
   );
 }

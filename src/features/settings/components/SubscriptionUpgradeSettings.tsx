@@ -46,6 +46,16 @@ export function SubscriptionUpgradeSettings() {
   const hoursRemaining = sub?.hoursRemaining;
   const daysRemaining = sub?.daysRemaining;
 
+  const activePendingPayment = React.useMemo(() => {
+    return payments.find(
+      (p) =>
+        p.status === 'PENDING' &&
+        p.accountNumber &&
+        p.expiresAt &&
+        new Date(p.expiresAt).getTime() > Date.now()
+    );
+  }, [payments]);
+
   // Memoized effective remaining counts to ensure we never display a dash "—" when effectiveEndDate is available
   const effectiveDaysRemaining = React.useMemo(() => {
     if (typeof daysRemaining === 'number') return daysRemaining;
@@ -173,6 +183,49 @@ export function SubscriptionUpgradeSettings() {
           </div>
         </div>
       ) : null}
+
+      {/* Active Pending Transfer Banner */}
+      {activePendingPayment && (
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md shadow-emerald-500/5 animate-in fade-in">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0">
+              <Clock className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="text-xs sm:text-sm font-bold text-foreground">
+                Active Transfer Account Generated
+              </h4>
+              <p className="text-[11px] text-muted-foreground">
+                You have a pending transfer of <strong>₦{Number(activePendingPayment.amount).toLocaleString()}</strong> to{' '}
+                <strong className="text-foreground">{activePendingPayment.bankName || 'URE MFB'}</strong> (Acct: {activePendingPayment.accountNumber}).
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => {
+              setActivePaymentData({
+                paymentId: activePendingPayment.id,
+                transactionReference: activePendingPayment.transactionReference,
+                amount: Number(activePendingPayment.amount),
+                currency: 'NGN',
+                plan: activePendingPayment.plan,
+                billingCycle: activePendingPayment.billingCycle,
+                months: (activePendingPayment.meta as any)?.months || 1,
+                bankName: activePendingPayment.bankName,
+                accountNumber: activePendingPayment.accountNumber,
+                accountName: activePendingPayment.accountName,
+                expiresAt: activePendingPayment.expiresAt,
+                isSandbox: (process.env.NEXT_PUBLIC_API_URL || '').includes('localhost'),
+              });
+              setIsPaymentModalOpen(true);
+            }}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shrink-0 cursor-pointer h-9 px-4"
+          >
+            Resume Payment
+          </Button>
+        </div>
+      )}
 
       {/* ========================================================= */}
       {/* 2. SUBSCRIPTION TIMELINE & STATUS METRICS CARD            */}
