@@ -46,6 +46,13 @@ export function SubscriptionPlanSettings() {
     sub?.hasCustomDomain ??
     (subDetails as any)?.hasCustomDomain ??
     false;
+
+  const registeredDomains = (subDetails?.domains || []).filter(
+    (d) => d.domain && !d.domain.endsWith('.localhost')
+  );
+  const activeCustomDomain = registeredDomains.find((d) => d.isPrimary) || registeredDomains[0];
+  const hasAttachedCustomDomain = Boolean(activeCustomDomain);
+
   const multipleBranchesEnabled =
     subDetails?.capabilities?.multipleBranches ??
     sub?.hasMultipleBranches ??
@@ -344,8 +351,10 @@ export function SubscriptionPlanSettings() {
                 <div className="p-3.5 rounded-xl border border-border/80 flex items-start space-x-3">
                   <div
                     className={`p-2 rounded-lg shrink-0 ${
-                      customDomainCapability
+                      hasAttachedCustomDomain
                         ? 'bg-emerald-500/10 text-emerald-500'
+                        : customDomainCapability
+                        ? 'bg-amber-500/10 text-amber-500'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
                     }`}
                   >
@@ -354,8 +363,10 @@ export function SubscriptionPlanSettings() {
                   <div>
                     <p className="font-semibold text-foreground">Custom Branded Domain</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {customDomainCapability
-                        ? 'Active — Use your custom business domain (e.g. pos.yourbrand.com)'
+                      {hasAttachedCustomDomain
+                        ? `Active — ${activeCustomDomain?.domain}`
+                        : customDomainCapability
+                        ? 'Supported on Plan — No domain attached yet (Unconfigured)'
                         : 'Available on Business & Enterprise tiers'}
                     </p>
                   </div>

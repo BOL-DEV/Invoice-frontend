@@ -136,27 +136,42 @@ export const SubscriptionHistoryModal: React.FC<SubscriptionHistoryModalProps> =
             </div>
           ) : (
             payments.map((p) => {
-              const months = (p.meta as any)?.months || (p.billingCycle === 'ANNUAL' ? 12 : 1);
-              const failureReason = (p.meta as any)?.failureReason;
+              let parsedMeta: any = p.meta;
+              if (typeof parsedMeta === 'string') {
+                try {
+                  parsedMeta = JSON.parse(parsedMeta);
+                } catch {
+                  parsedMeta = {};
+                }
+              }
+
+              const months = parsedMeta?.months || (p.billingCycle === 'ANNUAL' ? 12 : 1);
+              const rawFailure = parsedMeta?.failureReason || parsedMeta?.reason;
+              const failureReason = typeof rawFailure === 'object' && rawFailure !== null
+                ? (rawFailure.message || rawFailure.error || rawFailure.code || JSON.stringify(rawFailure))
+                : (rawFailure ? String(rawFailure) : null);
+              const hasDuplicatePayment = Boolean(parsedMeta?.hasDuplicatePayment);
+              const displayAmount = p.amount ? Number(p.amount).toLocaleString('en-US') : '0';
+
               return (
                 <div
-                  key={p.id}
+                  key={p.id || p.transactionReference || Math.random().toString()}
                   className="p-4 rounded-xl bg-slate-900/80 border border-slate-800/90 hover:border-slate-700/80 transition-all space-y-3"
                 >
                   {/* Top line: Plan & Amount */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center space-x-2.5">
                       <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono text-xs font-bold">
-                        {p.plan} TIER
+                        {p.plan || 'ACTIVE'} TIER
                       </Badge>
                       <span className="text-xs text-slate-300 font-medium">
-                        {months} {months === 1 ? 'Month' : 'Months'} ({p.billingCycle})
+                        {months} {months === 1 ? 'Month' : 'Months'} ({p.billingCycle || 'MONTHLY'})
                       </span>
                     </div>
 
                     <div className="flex items-center space-x-3">
                       <span className="text-base font-bold font-mono text-white">
-                        ₦{Number(p.amount).toLocaleString()}
+                        ₦{displayAmount}
                       </span>
                       {getStatusBadge(p.status)}
                     </div>
@@ -176,7 +191,7 @@ export const SubscriptionHistoryModal: React.FC<SubscriptionHistoryModalProps> =
                   )}
 
                   {/* Duplicate Payment Warning Notice */}
-                  {(p.meta as any)?.hasDuplicatePayment && (
+                  {hasDuplicatePayment && (
                     <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-xs text-amber-300 flex items-start space-x-2">
                       <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
                       <div className="space-y-0.5">
@@ -195,20 +210,22 @@ export const SubscriptionHistoryModal: React.FC<SubscriptionHistoryModalProps> =
                     {/* Reference */}
                     <div className="flex items-center space-x-2 text-slate-400">
                       <span className="text-slate-400">Ref:</span>
-                      <span className="font-mono text-slate-300 text-[11px] truncate max-w-[170px]" title={p.transactionReference}>
-                        {p.transactionReference}
+                      <span className="font-mono text-slate-300 text-[11px] truncate max-w-[170px]" title={p.transactionReference || ''}>
+                        {p.transactionReference || '—'}
                       </span>
-                      <button
-                        onClick={() => handleCopy(p.transactionReference)}
-                        className="text-slate-400 hover:text-emerald-400 p-0.5"
-                        title="Copy reference"
-                      >
-                        {copiedRef === p.transactionReference ? (
-                          <Check className="h-3.5 w-3.5 text-emerald-400" />
-                        ) : (
-                          <Copy className="h-3.5 w-3.5" />
-                        )}
-                      </button>
+                      {p.transactionReference && (
+                        <button
+                          onClick={() => handleCopy(p.transactionReference)}
+                          className="text-slate-400 hover:text-emerald-400 p-0.5"
+                          title="Copy reference"
+                        >
+                          {copiedRef === p.transactionReference ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      )}
                     </div>
 
                     {/* Bank & Account */}
