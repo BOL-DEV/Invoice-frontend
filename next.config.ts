@@ -16,6 +16,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // Disable 'x-powered-by: Next.js' to eliminate framework fingerprinting
   poweredByHeader: false,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
