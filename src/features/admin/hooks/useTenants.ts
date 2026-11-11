@@ -89,6 +89,8 @@ export const useUpdateTenantPlan = () => {
         hasCustomDomain?: boolean;
         hasMultipleBranches?: boolean;
         hasAdvancedReports?: boolean;
+        customMonthlyPrice?: number | null;
+        customAnnualPrice?: number | null;
       };
     }) => {
       const response = await apiClient.put<ApiResponse<any>>(

@@ -75,13 +75,23 @@ export function SubscriptionUpgradeSettings() {
   };
 
   const getPlanPrice = (plan: 'STARTER' | 'BUSINESS' | 'ENTERPRISE', months: number) => {
-    const monthlyRates = { STARTER: 6500, BUSINESS: 10500, ENTERPRISE: 20000 };
-    const annualRates = { STARTER: 65000, BUSINESS: 105000, ENTERPRISE: 200000 };
-    if (months === 12) {
-      return { total: annualRates[plan], ratePerMonth: Math.round(annualRates[plan] / 12), isDiscounted: true };
+    // Dynamic pricing from backend (supports global Super Admin rates and custom business pricing)
+    const effectivePricing = (subDetails as any)?.pricing;
+    const availablePlans = (subDetails as any)?.availablePlans;
+
+    let monthly = availablePlans?.[plan]?.monthlyPrice || (plan === 'ENTERPRISE' ? 20000 : plan === 'BUSINESS' ? 10500 : 6500);
+    let annual = availablePlans?.[plan]?.annualPrice || (plan === 'ENTERPRISE' ? 200000 : plan === 'BUSINESS' ? 105000 : 65000);
+
+    if (subPlan === plan && effectivePricing?.isCustom) {
+      if (effectivePricing.monthlyPrice) monthly = effectivePricing.monthlyPrice;
+      if (effectivePricing.annualPrice) annual = effectivePricing.annualPrice;
     }
-    const total = monthlyRates[plan] * months;
-    return { total, ratePerMonth: monthlyRates[plan], isDiscounted: false };
+
+    if (months === 12) {
+      return { total: annual, ratePerMonth: Math.round(annual / 12), isDiscounted: true };
+    }
+    const total = monthly * months;
+    return { total, ratePerMonth: monthly, isDiscounted: false };
   };
 
   const handleStartRenewal = async (months: number = selectedMonths) => {

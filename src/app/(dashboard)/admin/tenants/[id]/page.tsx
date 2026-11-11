@@ -559,6 +559,8 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
   const [editCustomDomain, setEditCustomDomain] = useState(false);
   const [editMultipleBranches, setEditMultipleBranches] = useState(false);
   const [editAdvancedReports, setEditAdvancedReports] = useState(false);
+  const [editCustomMonthlyPrice, setEditCustomMonthlyPrice] = useState<number | ''>('');
+  const [editCustomAnnualPrice, setEditCustomAnnualPrice] = useState<number | ''>('');
   const [configError, setConfigError] = useState<string | null>(null);
 
   const openConfigModal = () => {
@@ -566,6 +568,8 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
     setEditPlan(tenantData.subscription.plan || 'STARTER');
     setEditBillingMode(tenantData.subscription.billingMode || 'SUBSCRIPTION');
     setEditStaffQuota(tenantData.subscription.maxStaffCount || 3);
+    setEditCustomMonthlyPrice((tenantData.subscription as any)?.customMonthlyPrice ?? '');
+    setEditCustomAnnualPrice((tenantData.subscription as any)?.customAnnualPrice ?? '');
     const subPlan = tenantData.subscription.plan || 'STARTER';
     const subLimit = tenantData.subscription.aiScansLimit;
     setEditAiScansLimit(
@@ -614,6 +618,8 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
           hasCustomDomain: editCustomDomain,
           hasMultipleBranches: editMultipleBranches,
           hasAdvancedReports: editAdvancedReports,
+          customMonthlyPrice: editCustomMonthlyPrice === '' ? null : Number(editCustomMonthlyPrice),
+          customAnnualPrice: editCustomAnnualPrice === '' ? null : Number(editCustomAnnualPrice),
         },
       });
       setIsConfigOpen(false);
@@ -2547,6 +2553,46 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
               <p className="text-[11px] text-muted-foreground leading-relaxed">
                 Super Admins can freely customize this limit for any business on Starter, Business, or Enterprise. Defaults: Starter (10), Business (60), Enterprise (150). Extra AI Vision scans pack: ₦5,000 for 100 scans.
               </p>
+            </div>
+
+            {/* Custom Subscription Pricing Override for this Business */}
+            <div className="space-y-3 p-4 rounded-2xl bg-secondary/20 border border-border">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-bold text-foreground flex items-center space-x-1.5">
+                  <DollarSign className="h-4 w-4 text-emerald-500" />
+                  <span>Custom Subscription Pricing (Per-Business Override)</span>
+                </Label>
+                <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-500 font-semibold">
+                  Optional Override
+                </Badge>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Super Admins can set negotiated custom rates for this specific business. Leave blank to charge standard tier pricing.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Custom Monthly Rate (₦)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="Standard Plan Rate"
+                    value={editCustomMonthlyPrice}
+                    onChange={(e) => setEditCustomMonthlyPrice(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value) || 0))}
+                    className="h-10 rounded-xl text-sm font-mono px-3 bg-background border-border"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Custom Annual Rate (₦)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="Standard Plan Rate"
+                    value={editCustomAnnualPrice}
+                    onChange={(e) => setEditCustomAnnualPrice(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value) || 0))}
+                    className="h-10 rounded-xl text-sm font-mono px-3 bg-background border-border"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Feature Toggles & Add-ons */}
