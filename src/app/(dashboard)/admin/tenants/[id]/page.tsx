@@ -612,7 +612,7 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
           maxStaffCount: Number(editStaffQuota),
           aiScansLimit: Number(editAiScansLimit),
           hasCustomDomain: editCustomDomain,
-          hasMultipleBranches: editPlan === 'ENTERPRISE' ? editMultipleBranches : false,
+          hasMultipleBranches: editMultipleBranches,
           hasAdvancedReports: editAdvancedReports,
         },
       });
@@ -2577,26 +2577,24 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
                   />
                 </label>
 
-                {/* Multiple Depot Branches - Only visible if ENTERPRISE tier */}
-                {editPlan === 'ENTERPRISE' && (
-                  <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors animate-in fade-in duration-200">
-                    <div className="pr-4">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-semibold text-foreground block">Multiple Depot Branches</span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                          Included (2 Branches)
-                        </span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">Enable multi-location depot operations and decentralized stock management. Bundle offer: ₦10,000/mo for 1 branch + 4 cashiers.</span>
+                {/* Multiple Depot Branches */}
+                <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
+                  <div className="pr-4">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-semibold text-foreground block">Multiple Depot Branches</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        {editPlan === 'ENTERPRISE' ? 'Included Default' : '+₦10,000/mo Add-on'}
+                      </span>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={editMultipleBranches}
-                      onChange={(e) => setEditMultipleBranches(e.target.checked)}
-                      className="h-5 w-5 rounded-md border-border text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
-                    />
-                  </label>
-                )}
+                    <span className="text-xs text-muted-foreground">Enable multi-location depot operations and decentralized stock management. Bundle offer: ₦10,000/mo for 1 branch + 4 cashiers.</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={editMultipleBranches}
+                    onChange={(e) => setEditMultipleBranches(e.target.checked)}
+                    className="h-5 w-5 rounded-md border-border text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
+                  />
+                </label>
 
                 {/* AI Reports & Scanner */}
                 <label className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors">
