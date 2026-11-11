@@ -49,6 +49,8 @@ export const API_ENDPOINTS = {
     INITIATE_PAYMENT: '/api/subscriptions/payments/initiate',
     VERIFY_PAYMENT: (reference: string) => `/api/subscriptions/payments/verify/${encodeURIComponent(reference)}`,
     SIMULATE_PAYMENT: (reference: string) => `/api/subscriptions/payments/simulate/${encodeURIComponent(reference)}`,
+    GLOBAL_PRICING: '/api/subscriptions/pricing/global',
+    UPDATE_GLOBAL_PRICING: '/api/subscriptions/admin/pricing',
   },
   ACTIVITY: {
     BASE: '/api/activity',

@@ -253,3 +253,58 @@ export const useSetPrimaryTenantDomain = () => {
     },
   });
 };
+
+export const useAddTenantBranch = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      businessId,
+      name,
+      code,
+      address,
+      phone,
+      email,
+      isMain,
+    }: {
+      businessId: string;
+      name: string;
+      code?: string | null;
+      address: string;
+      phone?: string | null;
+      email?: string | null;
+      isMain?: boolean;
+    }) => {
+      const response = await apiClient.post<ApiResponse<any>>(
+        '/api/branches',
+        { businessId, name, code, address, phone, email, isMain }
+      );
+      return response.data.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenant-details', variables.businessId] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] });
+    },
+  });
+};
+
+export const useDeleteTenantBranch = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      businessId,
+      branchId,
+    }: {
+      businessId: string;
+      branchId: string;
+    }) => {
+      const response = await apiClient.delete<ApiResponse<any>>(
+        `/api/branches/${branchId}?businessId=${businessId}`
+      );
+      return response.data.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenant-details', variables.businessId] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] });
+    },
+  });
+};

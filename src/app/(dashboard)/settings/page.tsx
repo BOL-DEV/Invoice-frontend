@@ -11,6 +11,7 @@ import {
   CompanyBusinessSettings,
   SubscriptionPlanSettings,
   SubscriptionUpgradeSettings,
+  GlobalPricingSettings,
 } from '@/features/settings/components';
 
 export default function SettingsPage() {
@@ -87,7 +88,7 @@ export default function SettingsPage() {
             Settings & Security
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Manage your personal profile, account credentials, company profile, and subscription quotas.
+            Manage your personal profile, account credentials, {isSuperAdmin ? 'and global subscription rates.' : 'company profile, and subscription quotas.'}
           </p>
         </div>
       </div>
@@ -124,8 +125,17 @@ export default function SettingsPage() {
               : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
           }`}
         >
-          <Building2 className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">Company</span>
+          {isSuperAdmin ? (
+            <>
+              <CreditCard className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Global Pricing</span>
+            </>
+          ) : (
+            <>
+              <Building2 className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Company</span>
+            </>
+          )}
         </button>
 
         {!isSuperAdmin && (
@@ -161,7 +171,9 @@ export default function SettingsPage() {
 
       {/* Tab Panels */}
       {activeTab === 'profile' && user && <UserProfileSettings user={user} />}
-      {activeTab === 'business' && <CompanyBusinessSettings />}
+      {activeTab === 'business' && (isSuperAdmin ? <GlobalPricingSettings /> : <CompanyBusinessSettings />)}
+      {activeTab === 'subscription' && !isSuperAdmin && <SubscriptionPlanSettings />}
+      {activeTab === 'upgrade' && !isSuperAdmin && !isComplimentary && <SubscriptionUpgradeSettings />}
       {activeTab === 'subscription' && !isSuperAdmin && <SubscriptionPlanSettings />}
       {activeTab === 'upgrade' && !isSuperAdmin && !isComplimentary && <SubscriptionUpgradeSettings />}
     </div>

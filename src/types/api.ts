@@ -607,10 +607,24 @@ export interface TenantFullDetails {
   business: BusinessSettings;
   subscription: Subscription | null;
   domains: BusinessDomain[];
+  branches?: Array<{
+    id: string;
+    name: string;
+    code: string | null;
+    address: string;
+    phone: string | null;
+    email: string | null;
+    isMain: boolean;
+    isActive: boolean;
+    createdAt: string;
+    userCount?: number;
+    invoiceCount?: number;
+  }>;
   stats: {
     userCount: number;
     invoiceCount: number;
     customerCount: number;
+    branchCount?: number;
     totalInvoiceVolume: number;
   };
   users: Array<{

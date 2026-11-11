@@ -15,6 +15,8 @@ import {
   useAddTenantDomain,
   useRemoveTenantDomain,
   useSetPrimaryTenantDomain,
+  useAddTenantBranch,
+  useDeleteTenantBranch,
 } from '../../../../../features/admin/hooks/useTenants';
 import { usePermission } from '../../../../../features/auth/hooks/usePermission';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../../../../components/ui/card';
@@ -74,6 +76,7 @@ import {
   PenTool,
   Download,
   Code2,
+  Store,
 } from 'lucide-react';
 
 export default function TenantDetailPage() {
@@ -156,9 +159,84 @@ export default function TenantDetailPage() {
   const adminToggleSuspendMutation = useAdminToggleUserSuspend();
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<'users' | 'invoices' | 'settings' | 'template' | 'logs'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'branches' | 'invoices' | 'settings' | 'template' | 'logs'>('users');
   const [userSearch, setUserSearch] = useState('');
   const [invoiceSearch, setInvoiceSearch] = useState('');
+
+  const addBranchMutation = useAddTenantBranch();
+  const deleteBranchMutation = useDeleteTenantBranch();
+
+  // Branch Management State
+  const [isAddBranchOpen, setIsAddBranchOpen] = useState(false);
+  const [newBranchName, setNewBranchName] = useState('');
+  const [newBranchCode, setNewBranchCode] = useState('');
+  const [newBranchAddress, setNewBranchAddress] = useState('');
+  const [newBranchPhone, setNewBranchPhone] = useState('');
+  const [newBranchEmail, setNewBranchEmail] = useState('');
+  const [newBranchIsMain, setNewBranchIsMain] = useState(false);
+  const [branchModalError, setBranchModalError] = useState<string | null>(null);
+
+  const handleAddBranchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBranchModalError(null);
+    if (!newBranchName.trim()) {
+      setBranchModalError('Branch name is required.');
+      return;
+    }
+    if (!newBranchAddress.trim()) {
+      setBranchModalError('Branch physical address is required.');
+      return;
+    }
+
+    try {
+      await addBranchMutation.mutateAsync({
+        businessId: tenantId,
+        name: newBranchName.trim(),
+        code: newBranchCode.trim() || undefined,
+        address: newBranchAddress.trim(),
+        phone: newBranchPhone.trim() || undefined,
+        email: newBranchEmail.trim() || undefined,
+        isMain: newBranchIsMain,
+      });
+      setIsAddBranchOpen(false);
+      setNewBranchName('');
+      setNewBranchCode('');
+      setNewBranchAddress('');
+      setNewBranchPhone('');
+      setNewBranchEmail('');
+      setNewBranchIsMain(false);
+      refetch();
+      await modal.alert(
+        'Branch Added Successfully',
+        `New depot branch has been created for ${tenantData?.business?.businessName || 'this business'}.`
+      );
+    } catch (err: any) {
+      setBranchModalError(err.response?.data?.message || err.message || 'Failed to create branch.');
+    }
+  };
+
+  const handleDeleteBranch = async (branchId: string, branchName: string, isMain: boolean) => {
+    if (isMain && (tenantData?.branches?.length || 0) > 1) {
+      await modal.alert('Cannot Delete Main Branch', 'This is the primary depot branch. Please assign another branch as primary first.');
+      return;
+    }
+
+    const confirmed = await modal.confirm(
+      'Delete Branch Location',
+      `Are you sure you want to delete branch "${branchName}"? Any historical data attached will remain, but cashiers assigned to this branch will need reassigning.`,
+      'Delete Branch',
+      'Cancel'
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteBranchMutation.mutateAsync({ businessId: tenantId, branchId });
+      refetch();
+      await modal.alert('Branch Deleted', `Branch "${branchName}" has been removed.`);
+    } catch (err: any) {
+      await modal.alert('Delete Failed', err.response?.data?.message || err.message || 'Failed to delete branch.');
+    }
+  };
 
   // Invoice Template Management State
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('modern');
@@ -937,7 +1015,7 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
       {/* ========================================================= */}
       {/* KEY METRICS & PLATFORM HEALTH                             */}
       {/* ========================================================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {/* Metric 1: Invoiced Volume */}
         <Card className="rounded-2xl border-border bg-card shadow-sm p-5">
           <div className="flex items-center justify-between">
@@ -1044,6 +1122,27 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
           <h3 className="text-2xl font-bold font-heading text-foreground mt-2">{stats.customerCount}</h3>
           <p className="text-[11px] text-muted-foreground mt-1">Attached to billing profile</p>
         </Card>
+
+        {/* Metric 6: Depot Branches */}
+        <Card className="rounded-2xl border-border bg-card shadow-sm p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground font-semibold">Depot Branches</p>
+            <div className="h-8 w-8 rounded-xl bg-teal-500/10 text-teal-500 flex items-center justify-center">
+              <Store className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline space-x-2 mt-2">
+            <h3 className="text-2xl font-bold font-heading text-foreground">
+              {tenantData.branches?.length || 0}
+            </h3>
+            <span className="text-[10px] text-muted-foreground truncate">
+              {subscription?.hasMultipleBranches ? 'Multi-Branch' : 'Single Depot'}
+            </span>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Physical stores & locations
+          </p>
+        </Card>
       </div>
 
       {/* ========================================================= */}
@@ -1061,6 +1160,17 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
           >
             <Users className="h-4 w-4" />
             <span>Staff & Cashiers ({tenantStaffUsers.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('branches')}
+            className={`px-4 py-2 rounded-xl font-semibold flex items-center space-x-2 transition-all ${activeTab === 'branches'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
+              }`}
+          >
+            <Store className="h-4 w-4" />
+            <span>Depot Branches ({tenantData.branches?.length || 0})</span>
           </button>
 
           <button
@@ -1263,6 +1373,130 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
                   itemsPerPage={staffPageSize}
                   itemName="staff accounts"
                 />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* TAB: DEPOT BRANCHES */}
+        {activeTab === 'branches' && (
+          <Card className="rounded-2xl border-border bg-card shadow-sm overflow-hidden">
+            <CardHeader className="bg-secondary/20 border-b border-border py-4 px-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                  <CardTitle className="text-base font-bold text-foreground">
+                    Depot Branches & Store Locations
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">
+                    Manage multi-branch locations, warehouses, and cashier desks for this business.
+                  </CardDescription>
+                </div>
+                <Button
+                  onClick={() => {
+                    setIsAddBranchOpen(true);
+                    setBranchModalError(null);
+                  }}
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold cursor-pointer"
+                >
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Add Branch for this Business
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-secondary/30 border-b border-border text-[10px] uppercase font-bold text-muted-foreground">
+                    <tr>
+                      <th className="py-3 px-6">Branch Name & Code</th>
+                      <th className="py-3 px-4">Address & Contact</th>
+                      <th className="py-3 px-4 text-center">Staff Count</th>
+                      <th className="py-3 px-4 text-center">Invoices</th>
+                      <th className="py-3 px-6 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {(!tenantData.branches || tenantData.branches.length === 0) ? (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                          <Store className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                          <p className="font-semibold text-foreground">No branches registered yet</p>
+                          <p className="text-[11px] mt-1">Click &quot;Add Branch for this Business&quot; to set up their first branch location.</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      tenantData.branches.map((b) => (
+                        <tr key={b.id} className="hover:bg-secondary/20 transition-colors">
+                          <td className="py-3 px-6">
+                            <div className="flex items-center space-x-3">
+                              <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${
+                                b.isMain
+                                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                                  : 'bg-secondary text-muted-foreground'
+                              }`}>
+                                <Store className="h-4 w-4" />
+                              </div>
+                              <div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-bold text-foreground">{b.name}</span>
+                                  {b.isMain && (
+                                    <Badge variant="outline" className="text-[9px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30 py-0 px-1.5 font-bold">
+                                      Main / Head Depot
+                                    </Badge>
+                                  )}
+                                  {b.code && (
+                                    <Badge variant="outline" className="text-[9px] font-mono py-0 px-1.5">
+                                      {b.code}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-muted-foreground font-mono">
+                                  ID: {b.id.slice(0, 8)}...
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-muted-foreground">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center space-x-1.5 text-foreground/90 font-medium">
+                                <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                <span>{b.address}</span>
+                              </div>
+                              {(b.phone || b.email) && (
+                                <div className="flex items-center space-x-3 text-[11px] text-muted-foreground">
+                                  {b.phone && <span>{b.phone}</span>}
+                                  {b.email && <span>{b.email}</span>}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <Badge variant="outline" className="text-[11px] font-mono font-semibold">
+                              {b.userCount ?? 0} staff
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4 text-center font-mono font-semibold text-foreground">
+                            {b.invoiceCount ?? 0}
+                          </td>
+                          <td className="py-3 px-6 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={b.isMain && (tenantData.branches?.length || 0) > 1}
+                              onClick={() => handleDeleteBranch(b.id, b.name, b.isMain)}
+                              className="text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 h-8 px-2.5 rounded-lg disabled:opacity-40 cursor-pointer"
+                              title={b.isMain && (tenantData.branches?.length || 0) > 1 ? "Cannot delete primary branch while other branches exist" : "Delete branch"}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-1" />
+                              Delete
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </CardContent>
           </Card>
@@ -2778,6 +3012,131 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
                 className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold h-11 px-7 shadow-md shadow-emerald-500/20"
               >
                 {addDomainMutation.isPending ? 'Registering...' : 'Register Domain'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================= */}
+      {/* ADD BRANCH MODAL (SUPER ADMIN)                           */}
+      {/* ========================================================= */}
+      <Dialog open={isAddBranchOpen} onOpenChange={setIsAddBranchOpen}>
+        <DialogContent className="max-w-md p-6 bg-card border border-border rounded-2xl shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+              <Store className="h-4 w-4 text-emerald-500" />
+              Add Depot Branch
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Create an extra store or dispatch location for {tenantData?.business?.businessName}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleAddBranchSubmit} className="space-y-4 pt-2">
+            {branchModalError && (
+              <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
+                {branchModalError}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Branch Name *</Label>
+              <Input
+                placeholder="e.g. Victoria Island Outlet, Depot B"
+                value={newBranchName}
+                onChange={(e) => setNewBranchName(e.target.value)}
+                required
+                className="text-xs"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">Branch Code (Optional)</Label>
+                <Input
+                  placeholder="e.g. VI-01"
+                  value={newBranchCode}
+                  onChange={(e) => setNewBranchCode(e.target.value.toUpperCase())}
+                  maxLength={10}
+                  className="text-xs uppercase font-mono"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">Contact Phone</Label>
+                <Input
+                  placeholder="e.g. 08012345678"
+                  value={newBranchPhone}
+                  onChange={(e) => setNewBranchPhone(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Physical Address *</Label>
+              <Input
+                placeholder="Full address of the branch or warehouse"
+                value={newBranchAddress}
+                onChange={(e) => setNewBranchAddress(e.target.value)}
+                required
+                className="text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Branch Email (Optional)</Label>
+              <Input
+                type="email"
+                placeholder="branch@business.com"
+                value={newBranchEmail}
+                onChange={(e) => setNewBranchEmail(e.target.value)}
+                className="text-xs"
+              />
+            </div>
+
+            <div className="flex items-center space-x-2 pt-1">
+              <input
+                type="checkbox"
+                id="isMainBranchCheck"
+                checked={newBranchIsMain}
+                onChange={(e) => setNewBranchIsMain(e.target.checked)}
+                className="rounded border-border text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+              />
+              <label htmlFor="isMainBranchCheck" className="text-xs font-medium text-foreground cursor-pointer">
+                Set as Primary / Main Branch
+              </label>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-secondary/50 border border-border/70 text-[11px] text-muted-foreground leading-relaxed">
+              💡 Adding a branch will automatically enable multi-branch capabilities for this business if they are currently on a single-depot configuration.
+            </div>
+
+            <DialogFooter className="pt-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAddBranchOpen(false)}
+                className="text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={addBranchMutation.isPending}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold cursor-pointer"
+              >
+                {addBranchMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    Creating Branch...
+                  </>
+                ) : (
+                  'Create Branch'
+                )}
               </Button>
             </DialogFooter>
           </form>
