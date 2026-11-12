@@ -61,6 +61,7 @@ export const useUpdateProfile = () => {
     mutationFn: async (payload: {
       firstName?: string;
       lastName?: string;
+      signature?: string | null;
       currentPassword?: string;
       newPassword?: string;
     }) => {

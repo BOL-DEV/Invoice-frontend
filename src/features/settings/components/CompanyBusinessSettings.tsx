@@ -33,7 +33,10 @@ import { API_ENDPOINTS } from '../../../services/api/endpoints';
 export function CompanyBusinessSettings() {
   const modal = useModal();
   const logoFileInputRef = useRef<HTMLInputElement>(null);
+  const stampFileInputRef = useRef<HTMLInputElement>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [stampPreview, setStampPreview] = useState<string | null>(null);
+  const [stampRemoved, setStampRemoved] = useState(false);
   const [isDownloadingSamplePdf, setIsDownloadingSamplePdf] = useState(false);
 
   const { data: settings, isLoading: isSettingsLoading, isError: isSettingsError, refetch: refetchSettings } = useBusinessSettings();
@@ -89,6 +92,32 @@ export function CompanyBusinessSettings() {
     }
   };
 
+  const handleStampUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      modal.alert('File Too Large', 'Please upload a stamp image smaller than 2MB.', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setStampPreview(base64);
+      setStampRemoved(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveStamp = () => {
+    setStampPreview(null);
+    setStampRemoved(true);
+    if (stampFileInputRef.current) {
+      stampFileInputRef.current.value = '';
+    }
+  };
+
   const handleDownloadSamplePdf = async () => {
     setIsDownloadingSamplePdf(true);
     try {
@@ -134,6 +163,12 @@ export function CompanyBusinessSettings() {
 
       if (logoPreview) {
         payload.logo = logoPreview;
+      }
+
+      if (stampPreview) {
+        payload.stamp = stampPreview;
+      } else if (stampRemoved) {
+        payload.stamp = null;
       }
 
       await updateSettingsMutation.mutateAsync(payload);
@@ -243,6 +278,73 @@ export function CompanyBusinessSettings() {
                   variant="ghost"
                   size="sm"
                   onClick={handleRemoveLogo}
+                  className="h-8 rounded-xl text-xs text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 cursor-pointer"
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  Remove
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Official Company Stamp Section */}
+          <div className="p-4 rounded-2xl bg-secondary/30 border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-4">
+              <div className="relative h-16 w-16 rounded-2xl bg-white dark:bg-slate-900 border border-dashed border-emerald-500/40 p-2 flex items-center justify-center shrink-0 shadow-sm overflow-hidden group">
+                {(stampPreview || (settings?.stamp && !stampRemoved)) ? (
+                  <Image
+                    src={stampPreview || (settings.stamp as string)}
+                    alt="Official Company Stamp"
+                    width={56}
+                    height={56}
+                    className="w-full h-full object-contain rotate-[-6deg]"
+                  />
+                ) : (
+                  <div className="h-full w-full rounded-xl border border-dashed border-muted-foreground/30 text-muted-foreground text-[10px] flex items-center justify-center text-center font-mono p-1">
+                    No Stamp
+                  </div>
+                )}
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <span>Official Business Stamp</span>
+                  <Badge variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-600 bg-emerald-500/5">
+                    Printable
+                  </Badge>
+                </h4>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Official seal attached across all issued invoices and receipts.
+                </p>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono mt-0.5 block">
+                  Recommended: Circular/oval transparent PNG stamp (max 2MB)
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 self-end sm:self-center shrink-0">
+              <input
+                type="file"
+                ref={stampFileInputRef}
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleStampUpload}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => stampFileInputRef.current?.click()}
+                className="h-8 rounded-xl text-xs font-semibold border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
+              >
+                <Upload className="h-3.5 w-3.5 mr-1.5" />
+                Upload Stamp
+              </Button>
+              {(stampPreview || (settings?.stamp && !stampRemoved)) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRemoveStamp}
                   className="h-8 rounded-xl text-xs text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 cursor-pointer"
                 >
                   <Trash2 className="h-3.5 w-3.5 mr-1" />

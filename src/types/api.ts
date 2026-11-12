@@ -143,6 +143,7 @@ export interface User {
   role: Role;
   firstName: string;
   lastName: string;
+  signature?: string | null;
   isSuspended?: boolean;
   isDeleted: boolean;
   createdAt: string;
@@ -189,6 +190,7 @@ export interface BusinessSettings {
   email: string;
   logo: string | null;
   logoUrl?: string | null;
+  stamp?: string | null;
   tin?: string;
   cacOrRegNumber?: string;
   receiptPrefix: string;
@@ -429,6 +431,8 @@ export interface Invoice {
     email: string;
     firstName: string;
     lastName: string;
+    signature?: string | null;
+    role?: Role;
   };
   branchId?: string | null;
   branch?: {

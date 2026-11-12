@@ -49,6 +49,7 @@ import {
   Lock,
   Sparkles,
   RotateCcw,
+  FileText,
 } from 'lucide-react';
 
 interface InvoiceFormProps {
@@ -101,6 +102,14 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   const [showCalculator, setShowCalculator] = useState(false);
   const [showWeightCalculator, setShowWeightCalculator] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showNoteField, setShowNoteField] = useState(false);
+
+  // Auto-expand note field if existing invoice/draft has notes
+  useEffect(() => {
+    if (notes && notes.trim().length > 0) {
+      setShowNoteField(true);
+    }
+  }, [notes]);
 
 
   // Dynamic custom charge state
@@ -908,8 +917,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
               </Table>
             </div>
 
-            {/* Mobile Stacked Items Layout (visible on mobile only) */}
-            <div className="md:hidden p-4 space-y-4 bg-slate-50/50 dark:bg-slate-900/10 border-t border-border">
+            {/* Mobile Compact Ledger Table Layout (visible on mobile only) */}
+            <div className="md:hidden p-3 space-y-2.5 bg-slate-50/50 dark:bg-slate-900/10 border-t border-border">
               <AnimatePresence initial={false}>
                 {rows.map((item, idx) => {
                   const isActive = focusState?.type === 'item' && focusState.rowIndex === idx;
@@ -920,33 +929,17 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -5 }}
                       transition={{ duration: 0.15 }}
-                      className={`p-4 rounded-xl border transition-all duration-155 space-y-3 relative ${
+                      className={`p-2.5 rounded-xl border transition-all duration-150 space-y-2 relative ${
                         isActive
-                          ? 'border-primary ring-2 ring-primary/20 bg-card'
-                          : 'border-border bg-card shadow-sm'
+                          ? 'border-primary ring-2 ring-primary/20 bg-card shadow-sm'
+                          : 'border-border bg-card'
                       }`}
                     >
-                      {/* Card Header: Position & Delete */}
-                      <div className="flex justify-between items-center border-b border-border/60 pb-2">
-                        <span className="font-mono text-xs font-bold text-muted-foreground select-none">
-                          Item #{item.position}
+                      {/* Line 1: S/N Badge + Description + Delete Button */}
+                      <div className="flex items-center gap-2">
+                        <span className="shrink-0 w-6 h-6 rounded-md bg-secondary/80 text-[11px] font-mono font-bold flex items-center justify-center text-muted-foreground select-none">
+                          {item.position}
                         </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteRow(idx)}
-                          disabled={rows.length === 1}
-                          className="h-8 w-8 rounded-full text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      {/* Description */}
-                      <div className="space-y-1">
-                        <Label htmlFor={`row-mob-${idx}-description`} className="text-[10px] font-bold text-muted-foreground uppercase">
-                          Description
-                        </Label>
                         <Input
                           id={`row-mob-${idx}-description`}
                           type="text"
@@ -954,52 +947,113 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                           onChange={(e) => updateRow(idx, { description: e.target.value })}
                           onKeyDown={(e) => handleKeyDown(e, idx, 'description')}
                           onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'description' })}
-                          placeholder="e.g. 16mm Iron Rods"
-                          className="bg-background text-sm font-medium h-9 rounded-xl border border-border"
+                          placeholder="Item description (e.g. 16mm Rods)..."
+                          className="bg-background text-xs font-medium h-8 rounded-lg border border-border flex-1"
                         />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteRow(idx)}
+                          disabled={rows.length === 1}
+                          className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
 
-                      {/* Quantity & Unit Price in 2-Column Grid */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label htmlFor={`row-mob-${idx}-quantity`} className="text-[10px] font-bold text-muted-foreground uppercase">
-                            Quantity
-                          </Label>
+                      {/* Line 2: Qty input + Rate input = Line Total */}
+                      <div className="flex items-center gap-2 pl-8">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Qty:</span>
                           <QuantityInput
                             id={`row-mob-${idx}-quantity`}
                             value={item.quantity}
                             onChange={(val) => updateRow(idx, { quantity: val })}
                             onKeyDown={(e) => handleKeyDown(e, idx, 'quantity')}
                             onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'quantity' })}
-                            className="bg-background text-sm h-9 rounded-xl border border-border"
+                            className="bg-background text-xs h-7 rounded-lg border border-border w-16 text-center"
                           />
                         </div>
-                        <div className="space-y-1">
-                          <Label htmlFor={`row-mob-${idx}-unitPrice`} className="text-[10px] font-bold text-muted-foreground uppercase">
-                            Unit Price
-                          </Label>
+                        <div className="flex items-center gap-1 flex-1">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Rate:</span>
                           <MoneyInput
                             id={`row-mob-${idx}-unitPrice`}
                             value={item.unitPrice}
                             onChange={(val) => updateRow(idx, { unitPrice: val })}
                             onKeyDown={(e) => handleKeyDown(e, idx, 'unitPrice')}
                             onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'unitPrice' })}
-                            className="bg-background text-sm h-9 rounded-xl border border-border"
+                            className="bg-background text-xs h-7 rounded-lg border border-border flex-1"
                           />
                         </div>
-                      </div>
-
-                      {/* Line Amount */}
-                      <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-lg border border-border/40 text-xs font-mono">
-                        <span className="text-muted-foreground font-sans uppercase text-[9px] font-bold">Line Total:</span>
-                        <span className="font-bold text-[#0F172A] dark:text-[#F8FAFC]">
-                          ₦{item.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                        </span>
+                        <div className="text-right shrink-0">
+                          <span className="font-mono text-xs font-bold text-foreground">
+                            ₦{item.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
                       </div>
                     </motion.div>
                   );
                 })}
               </AnimatePresence>
+
+              {/* Mobile Add Row Quick Button */}
+              <div className="pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addRow}
+                  className="w-full text-xs font-semibold h-8 space-x-1.5 border-dashed border-primary/40 text-primary hover:bg-primary/5 rounded-xl"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add Another Item</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Optional Invoice Notes / Remarks Field (Both Desktop & Mobile) */}
+            <div className="border-t border-border p-4 bg-slate-50/40 dark:bg-slate-900/20">
+              {!showNoteField && !notes ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowNoteField(true)}
+                  className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1.5 px-2 h-7 rounded-lg"
+                >
+                  <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>+ Add Note / Remarks (Optional)</span>
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                      <FileText className="h-3.5 w-3.5 text-emerald-500" />
+                      <span>Invoice Note / Remarks</span>
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setNotes('');
+                        setShowNoteField(false);
+                      }}
+                      className="text-[11px] text-muted-foreground hover:text-rose-500 h-6 px-1.5"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Type any instructions, remarks, or notes to appear on this invoice..."
+                    className="text-xs bg-background resize-none rounded-xl border border-border focus:border-emerald-500/60"
+                    rows={2}
+                  />
+                </div>
+              )}
             </div>
           </Card>
         </div>
