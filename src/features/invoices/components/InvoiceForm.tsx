@@ -52,7 +52,6 @@ import {
   FileText,
   PenTool,
   CheckCircle2,
-  Upload,
 } from 'lucide-react';
 
 interface InvoiceFormProps {
@@ -110,11 +109,9 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   const [showNoteField, setShowNoteField] = useState(false);
   const [showSignatureField, setShowSignatureField] = useState(false);
   const [isEditingSignature, setIsEditingSignature] = useState(false);
-  const [sigMode, setSigMode] = useState<'draw' | 'upload'>('draw');
   const [isDrawingCustomerSig, setIsDrawingCustomerSig] = useState(false);
   const [hasDrawnCustomerSig, setHasDrawnCustomerSig] = useState(false);
   const customerCanvasRef = useRef<HTMLCanvasElement>(null);
-  const customerSigFileRef = useRef<HTMLInputElement>(null);
 
   // Auto-expand note and signature fields if existing invoice/draft has content
   useEffect(() => {
@@ -262,45 +259,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     setCustomerSignature(null);
     setShowSignatureField(false);
     setIsEditingSignature(false);
-  };
-
-  const handleCustomerSigFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      modal.alert('Invalid File', 'Please select an image file (PNG, JPG, or SVG)', 'error');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        const img = new Image();
-        img.onload = () => {
-          const targetW = 400;
-          const targetH = 120;
-          const normCanvas = document.createElement('canvas');
-          normCanvas.width = targetW;
-          normCanvas.height = targetH;
-          const normCtx = normCanvas.getContext('2d');
-          if (!normCtx) {
-            setCustomerSignature(result);
-            setIsEditingSignature(false);
-            return;
-          }
-          const scale = Math.min((targetW - 16) / img.width, (targetH - 16) / img.height, 1);
-          const drawW = img.width * scale;
-          const drawH = img.height * scale;
-          normCtx.imageSmoothingEnabled = true;
-          normCtx.imageSmoothingQuality = 'high';
-          normCtx.drawImage(img, (targetW - drawW) / 2, (targetH - drawH) / 2, drawW, drawH);
-          setCustomerSignature(normCanvas.toDataURL('image/png'));
-          setIsEditingSignature(false);
-        };
-        img.src = result;
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
 
@@ -1322,118 +1280,69 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                   ) : (
                     <div className="space-y-2 p-3.5 rounded-2xl bg-white dark:bg-slate-950 border border-border">
                       <div className="flex items-center justify-between text-xs pb-1">
-                        <div className="flex gap-1.5 bg-slate-100 dark:bg-slate-900 p-0.5 rounded-lg">
-                          <button
-                            type="button"
-                            onClick={() => setSigMode('draw')}
-                            className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${
-                              sigMode === 'draw'
-                                ? 'bg-white dark:bg-slate-800 text-foreground shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground'
-                            }`}
-                          >
-                            Draw on Screen
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSigMode('upload')}
-                            className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${
-                              sigMode === 'upload'
-                                ? 'bg-white dark:bg-slate-800 text-foreground shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground'
-                            }`}
-                          >
-                            Upload File
-                          </button>
-                        </div>
-                        {sigMode === 'draw' && (
-                          <button
-                            type="button"
-                            onClick={clearCustomerCanvas}
-                            className="text-muted-foreground hover:text-rose-500 text-[11px] font-semibold transition-colors flex items-center gap-1"
-                          >
-                            <RotateCcw className="h-3 w-3" />
-                            Clear
-                          </button>
-                        )}
+                        <span className="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
+                          <span>Sign on screen</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={clearCustomerCanvas}
+                          className="text-muted-foreground hover:text-rose-500 text-[11px] font-semibold transition-colors flex items-center gap-1"
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                          Clear
+                        </button>
                       </div>
 
-                      {sigMode === 'draw' ? (
-                        <div>
-                          <div className="relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-emerald-500/30 overflow-hidden touch-none flex justify-center py-2">
-                            <canvas
-                              ref={customerCanvasRef}
-                              width={500}
-                              height={130}
-                              onMouseDown={startDrawingCustomerSig}
-                              onMouseMove={drawCustomerSig}
-                              onMouseUp={stopDrawingCustomerSig}
-                              onMouseLeave={stopDrawingCustomerSig}
-                              onTouchStart={startDrawingCustomerSig}
-                              onTouchMove={drawCustomerSig}
-                              onTouchEnd={stopDrawingCustomerSig}
-                              className="cursor-crosshair bg-white dark:bg-slate-950 rounded-lg shadow-sm w-full max-w-[500px] h-[130px]"
-                            />
-                            <div className="absolute bottom-5 inset-x-8 border-b border-dashed border-slate-300 dark:border-slate-700 pointer-events-none flex justify-between px-2">
-                              <span className="text-[9px] text-slate-400 select-none">Sign above line</span>
-                              <span className="text-[9px] text-slate-400 select-none">Touch or mouse</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between mt-2">
-                            <p className="text-[10px] text-muted-foreground">
-                              {hasDrawnCustomerSig
-                                ? 'Multiple strokes supported. Click "Done" when finished.'
-                                : 'Customer signs with touch, stylus, or mouse. Auto-crops & fits cleanly.'}
-                            </p>
-                            <div className="flex items-center gap-2">
-                              {customerSignature && (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setIsEditingSignature(false)}
-                                  className="text-xs h-7 px-2 text-muted-foreground"
-                                >
-                                  Cancel
-                                </Button>
-                              )}
-                              <Button
-                                type="button"
-                                size="sm"
-                                disabled={!hasDrawnCustomerSig}
-                                onClick={() => captureAndFitSignature()}
-                                className="text-xs h-7 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm disabled:opacity-40"
-                              >
-                                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                                Done
-                              </Button>
-                            </div>
-                          </div>
+                      <div className="relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-emerald-500/30 overflow-hidden touch-none flex justify-center py-2">
+                        <canvas
+                          ref={customerCanvasRef}
+                          width={500}
+                          height={130}
+                          onMouseDown={startDrawingCustomerSig}
+                          onMouseMove={drawCustomerSig}
+                          onMouseUp={stopDrawingCustomerSig}
+                          onMouseLeave={stopDrawingCustomerSig}
+                          onTouchStart={startDrawingCustomerSig}
+                          onTouchMove={drawCustomerSig}
+                          onTouchEnd={stopDrawingCustomerSig}
+                          className="cursor-crosshair bg-white dark:bg-slate-950 rounded-lg shadow-sm w-full max-w-[500px] h-[130px]"
+                        />
+                        <div className="absolute bottom-5 inset-x-8 border-b border-dashed border-slate-300 dark:border-slate-700 pointer-events-none flex justify-between px-2">
+                          <span className="text-[9px] text-slate-400 select-none">Sign above line</span>
+                          <span className="text-[9px] text-slate-400 select-none">Touch or mouse</span>
                         </div>
-                      ) : (
-                        <div className="py-4 text-center">
-                          <input
-                            ref={customerSigFileRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleCustomerSigFileUpload}
-                            className="hidden"
-                          />
+                      </div>
+
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-[10px] text-muted-foreground">
+                          {hasDrawnCustomerSig
+                            ? 'Multiple strokes supported. Click "Done" when finished.'
+                            : 'Customer signs with touch, stylus, or mouse. Auto-crops & fits cleanly.'}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          {customerSignature && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setIsEditingSignature(false)}
+                              className="text-xs h-7 px-2 text-muted-foreground"
+                            >
+                              Cancel
+                            </Button>
+                          )}
                           <Button
                             type="button"
-                            variant="outline"
                             size="sm"
-                            onClick={() => customerSigFileRef.current?.click()}
-                            className="text-xs h-8 gap-2"
+                            disabled={!hasDrawnCustomerSig}
+                            onClick={() => captureAndFitSignature()}
+                            className="text-xs h-7 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm disabled:opacity-40"
                           >
-                            <Upload className="h-3.5 w-3.5" />
-                            Choose Signature Image
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                            Done
                           </Button>
-                          <p className="text-[10px] text-muted-foreground mt-2">
-                            PNG, JPG, or SVG. Automatically fitted to signature box.
-                          </p>
                         </div>
-                      )}
+                      </div>
                     </div>
                   )}
                 </div>
