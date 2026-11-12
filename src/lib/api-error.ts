@@ -106,6 +106,21 @@ export function normalizeApiError(error: unknown): NormalizedError {
       case 401: {
         const isLoginRequest = reqUrl.includes('/auth/login') || reqUrl.includes('/login');
         const lowerMsg = (serverMessage || '').toLowerCase();
+        const isTenantUnauthorized =
+          lowerMsg.includes('not authorized') ||
+          lowerMsg.includes('different organization') ||
+          lowerMsg.includes('portal');
+
+        if (isTenantUnauthorized) {
+          return {
+            title: 'Unauthorized Access',
+            message: serverMessage || 'You are not authorized to use this portal.',
+            code: serverCode,
+            isNetworkError: false,
+            dev: devContext,
+          };
+        }
+
         const isCredentialFailure =
           isLoginRequest ||
           lowerMsg.includes('password') ||
@@ -133,9 +148,15 @@ export function normalizeApiError(error: unknown): NormalizedError {
       }
 
       case 403: {
-        const isSuspended = typeof serverMessage === 'string' && serverMessage.toLowerCase().includes('suspended');
+        const lowerMsg = (serverMessage || '').toLowerCase();
+        const isSuspended = lowerMsg.includes('suspended');
+        const isTenantUnauthorized =
+          lowerMsg.includes('not authorized') ||
+          lowerMsg.includes('different organization') ||
+          lowerMsg.includes('portal');
+
         return {
-          title: isSuspended ? 'Access Suspended' : 'Access Restricted',
+          title: isSuspended ? 'Access Suspended' : isTenantUnauthorized ? 'Unauthorized Access' : 'Access Restricted',
           message: serverMessage || 'You do not have permission to perform this action. Please contact an administrator.',
           code: serverCode,
           isNetworkError: false,
