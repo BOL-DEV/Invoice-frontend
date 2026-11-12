@@ -109,6 +109,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   const [showImportModal, setShowImportModal] = useState(false);
   const [showNoteField, setShowNoteField] = useState(false);
   const [showSignatureField, setShowSignatureField] = useState(false);
+  const [isEditingSignature, setIsEditingSignature] = useState(false);
   const [sigMode, setSigMode] = useState<'draw' | 'upload'>('draw');
   const [isDrawingCustomerSig, setIsDrawingCustomerSig] = useState(false);
   const [hasDrawnCustomerSig, setHasDrawnCustomerSig] = useState(false);
@@ -125,6 +126,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   useEffect(() => {
     if (customerSignature && customerSignature.trim().length > 0) {
       setShowSignatureField(true);
+      setIsEditingSignature(false);
     }
   }, [customerSignature]);
 
@@ -149,7 +151,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     const { x, y } = getCanvasCoordinates(e);
     ctx.beginPath();
     ctx.moveTo(x, y);
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2.8;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = '#0f172a';
@@ -170,11 +172,11 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   };
 
   // Normalizes drawn signature: crops transparent whitespace bounds and uniformly scales to fit perfectly
-  const captureAndFitSignature = () => {
+  const captureAndFitSignature = (): string | null => {
     const canvas = customerCanvasRef.current;
-    if (!canvas || !hasDrawnCustomerSig) return;
+    if (!canvas || !hasDrawnCustomerSig) return null;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) return null;
 
     try {
       const { width, height } = canvas;
@@ -197,23 +199,25 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
         }
       }
 
-      if (!hasInk) return;
+      if (!hasInk) return null;
 
-      const pad = 12;
+      const pad = 14;
       const cropX = Math.max(0, minX - pad);
       const cropY = Math.max(0, minY - pad);
       const cropW = Math.min(width - cropX, (maxX - minX) + pad * 2);
       const cropH = Math.min(height - cropY, (maxY - minY) + pad * 2);
 
-      const targetW = 380;
-      const targetH = 110;
+      const targetW = 400;
+      const targetH = 120;
       const normCanvas = document.createElement('canvas');
       normCanvas.width = targetW;
       normCanvas.height = targetH;
       const normCtx = normCanvas.getContext('2d');
       if (!normCtx) {
-        setCustomerSignature(canvas.toDataURL('image/png'));
-        return;
+        const raw = canvas.toDataURL('image/png');
+        setCustomerSignature(raw);
+        setIsEditingSignature(false);
+        return raw;
       }
 
       const scale = Math.min((targetW - 20) / cropW, (targetH - 20) / cropH);
@@ -226,16 +230,22 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       normCtx.imageSmoothingQuality = 'high';
       normCtx.drawImage(canvas, cropX, cropY, cropW, cropH, offsetX, offsetY, drawW, drawH);
 
-      setCustomerSignature(normCanvas.toDataURL('image/png'));
+      const fittedDataUrl = normCanvas.toDataURL('image/png');
+      setCustomerSignature(fittedDataUrl);
+      setIsEditingSignature(false);
+      return fittedDataUrl;
     } catch {
-      setCustomerSignature(canvas.toDataURL('image/png'));
+      const raw = canvas.toDataURL('image/png');
+      setCustomerSignature(raw);
+      setIsEditingSignature(false);
+      return raw;
     }
   };
 
   const stopDrawingCustomerSig = () => {
     if (!isDrawingCustomerSig) return;
     setIsDrawingCustomerSig(false);
-    captureAndFitSignature();
+    // Allow continuous multi-stroke signing without unmounting the canvas
   };
 
   const clearCustomerCanvas = () => {
@@ -245,7 +255,13 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
     setHasDrawnCustomerSig(false);
+  };
+
+  const removeCustomerSignature = () => {
+    clearCustomerCanvas();
     setCustomerSignature(null);
+    setShowSignatureField(false);
+    setIsEditingSignature(false);
   };
 
   const handleCustomerSigFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -261,14 +277,15 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       if (result) {
         const img = new Image();
         img.onload = () => {
-          const targetW = 380;
-          const targetH = 110;
+          const targetW = 400;
+          const targetH = 120;
           const normCanvas = document.createElement('canvas');
           normCanvas.width = targetW;
           normCanvas.height = targetH;
           const normCtx = normCanvas.getContext('2d');
           if (!normCtx) {
             setCustomerSignature(result);
+            setIsEditingSignature(false);
             return;
           }
           const scale = Math.min((targetW - 16) / img.width, (targetH - 16) / img.height, 1);
@@ -278,6 +295,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
           normCtx.imageSmoothingQuality = 'high';
           normCtx.drawImage(img, (targetW - drawW) / 2, (targetH - drawH) / 2, drawW, drawH);
           setCustomerSignature(normCanvas.toDataURL('image/png'));
+          setIsEditingSignature(false);
         };
         img.src = result;
       }
@@ -606,10 +624,17 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     isSubmitting.current = true;
     setStatus(targetStatus);
 
+    let currentCustomerSig = customerSignature;
+    if (isEditingSignature && hasDrawnCustomerSig) {
+      const captured = captureAndFitSignature();
+      if (captured) currentCustomerSig = captured;
+    }
+
     // Short timeout to let status state set
     setTimeout(async () => {
       const payload = {
         ...getFormPayload(),
+        customerSignature: currentCustomerSig || null,
         status: targetStatus,
       };
       try {
@@ -1241,7 +1266,10 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowSignatureField(true)}
+                  onClick={() => {
+                    setShowSignatureField(true);
+                    setIsEditingSignature(true);
+                  }}
                   className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1.5 px-2 h-7 rounded-lg"
                 >
                   <PenTool className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1259,17 +1287,14 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        clearCustomerCanvas();
-                        setShowSignatureField(false);
-                      }}
+                      onClick={removeCustomerSignature}
                       className="text-[11px] text-muted-foreground hover:text-rose-500 h-6 px-1.5"
                     >
                       Remove
                     </Button>
                   </div>
 
-                  {customerSignature ? (
+                  {customerSignature && !isEditingSignature ? (
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-950 border border-emerald-500/30">
                       <div className="h-14 w-44 border border-dashed border-border rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center overflow-hidden p-1">
                         <img src={customerSignature} alt="Customer Signature" className="max-h-full max-w-full object-contain" />
@@ -1285,8 +1310,11 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={clearCustomerCanvas}
-                        className="text-xs h-7 px-2"
+                        onClick={() => {
+                          setIsEditingSignature(true);
+                          setHasDrawnCustomerSig(false);
+                        }}
+                        className="text-xs h-7 px-2.5"
                       >
                         Re-sign
                       </Button>
@@ -1332,11 +1360,11 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
                       {sigMode === 'draw' ? (
                         <div>
-                          <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-emerald-500/30 overflow-hidden touch-none flex justify-center py-2">
+                          <div className="relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-emerald-500/30 overflow-hidden touch-none flex justify-center py-2">
                             <canvas
                               ref={customerCanvasRef}
-                              width={420}
-                              height={110}
+                              width={500}
+                              height={130}
                               onMouseDown={startDrawingCustomerSig}
                               onMouseMove={drawCustomerSig}
                               onMouseUp={stopDrawingCustomerSig}
@@ -1344,17 +1372,43 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                               onTouchStart={startDrawingCustomerSig}
                               onTouchMove={drawCustomerSig}
                               onTouchEnd={stopDrawingCustomerSig}
-                              className="cursor-crosshair bg-white dark:bg-slate-950 rounded-lg shadow-sm w-full max-w-[420px] h-[110px]"
+                              className="cursor-crosshair bg-white dark:bg-slate-950 rounded-lg shadow-sm w-full max-w-[500px] h-[130px]"
                             />
+                            <div className="absolute bottom-5 inset-x-8 border-b border-dashed border-slate-300 dark:border-slate-700 pointer-events-none flex justify-between px-2">
+                              <span className="text-[9px] text-slate-400 select-none">Sign above line</span>
+                              <span className="text-[9px] text-slate-400 select-none">Touch or mouse</span>
+                            </div>
                           </div>
-                          <p className="text-[10px] text-muted-foreground mt-1.5 flex justify-between">
-                            <span>Customer signs with touch, stylus, or mouse. Auto-crops & fits cleanly.</span>
-                            {hasDrawnCustomerSig && (
-                              <span className="text-emerald-600 font-semibold flex items-center gap-1">
-                                <CheckCircle2 className="h-3 w-3" /> Ready
-                              </span>
-                            )}
-                          </p>
+                          <div className="flex items-center justify-between mt-2">
+                            <p className="text-[10px] text-muted-foreground">
+                              {hasDrawnCustomerSig
+                                ? 'Multiple strokes supported. Click "Done" when finished.'
+                                : 'Customer signs with touch, stylus, or mouse. Auto-crops & fits cleanly.'}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              {customerSignature && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setIsEditingSignature(false)}
+                                  className="text-xs h-7 px-2 text-muted-foreground"
+                                >
+                                  Cancel
+                                </Button>
+                              )}
+                              <Button
+                                type="button"
+                                size="sm"
+                                disabled={!hasDrawnCustomerSig}
+                                onClick={() => captureAndFitSignature()}
+                                className="text-xs h-7 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm disabled:opacity-40"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                Done
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       ) : (
                         <div className="py-4 text-center">
