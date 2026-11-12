@@ -215,15 +215,6 @@ export default function UsersPage() {
       return;
     }
 
-    if (hasMultiBranch && branches.length === 0 && !isSubAdmin) {
-      modal.alert(
-        'No Branches Available',
-        'A cashier can only be created under a branch. Please create a branch and its head manager first before adding cashiers.',
-        'warning'
-      );
-      return;
-    }
-
     setFormErrorMsg(null);
     setShowCashierPassword(false);
     cashierForm.reset({
@@ -274,7 +265,7 @@ export default function UsersPage() {
 
     const effectiveBranchId = isSubAdmin ? userBranchId : data.branchId;
 
-    if (hasMultiBranch && !effectiveBranchId) {
+    if (hasMultiBranch && branches.length > 0 && !effectiveBranchId) {
       setFormErrorMsg('A cashier can only be registered under a specific branch. Please select a branch.');
       return;
     }
@@ -282,7 +273,7 @@ export default function UsersPage() {
     try {
       await createCashierMutation.mutateAsync({
         ...data,
-        branchId: hasMultiBranch ? (effectiveBranchId || '') : '',
+        branchId: effectiveBranchId && effectiveBranchId.trim().length > 0 ? effectiveBranchId : null,
         role: 'APPRENTICE',
       });
 
@@ -290,7 +281,7 @@ export default function UsersPage() {
       cashierForm.reset();
       modal.alert(
         'Cashier Registered',
-        hasMultiBranch
+        hasMultiBranch && effectiveBranchId
           ? `Cashier ${data.firstName} ${data.lastName} registered successfully under the assigned branch.`
           : `Cashier ${data.firstName} ${data.lastName} registered successfully.`,
         'success'
@@ -1188,17 +1179,23 @@ export default function UsersPage() {
                 </div>
               )}
 
-              {/* MANDATORY BRANCH SELECTION ONLY FOR MULTI-BRANCH BUSINESSES */}
+              {/* BRANCH SELECTION ONLY FOR MULTI-BRANCH BUSINESSES */}
               {hasMultiBranch && (
                 <div className="space-y-1.5">
                   <Label htmlFor="branchId" className="text-xs font-semibold text-muted-foreground">
-                    Assigned Branch Location <span className="text-rose-500 font-bold">* (Mandatory)</span>
+                    Assigned Branch Location {branches.length > 0 && <span className="text-rose-500 font-bold">* (Mandatory)</span>}
                   </Label>
                   {isSubAdmin ? (
                     <div className="h-10 px-3 bg-secondary/60 border border-border rounded-xl flex items-center space-x-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                       <Store className="h-4 w-4 shrink-0 text-emerald-500" />
                       <span>{branches.find((b) => b.id === userBranchId)?.name || 'Assigned Branch'}</span>
                       <Badge variant="outline" className="ml-auto text-[10px]">Auto-Locked</Badge>
+                    </div>
+                  ) : branches.length === 0 ? (
+                    <div className="h-10 px-3 bg-secondary/60 border border-border rounded-xl flex items-center space-x-2 text-xs font-medium text-foreground">
+                      <Store className="h-4 w-4 shrink-0 text-emerald-500" />
+                      <span>Headquarters / Main Store (Default)</span>
+                      <Badge variant="outline" className="ml-auto text-[10px] text-emerald-500 border-emerald-500/20">Main Business</Badge>
                     </div>
                   ) : (
                     <div className="relative">

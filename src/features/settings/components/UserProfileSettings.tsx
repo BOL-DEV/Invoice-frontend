@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { User as AuthUser } from '../../../types/api';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import { useUpdateProfile } from '../../users/hooks/useUsers';
 import { updateProfileSchema, UpdateProfileInput } from '../../users/schemas';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '../../../components/ui/card';
@@ -32,6 +33,7 @@ interface UserProfileSettingsProps {
 }
 
 export function UserProfileSettings({ user, onUserUpdated }: UserProfileSettingsProps) {
+  const { updateCurrentUser } = useAuth();
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -57,6 +59,18 @@ export function UserProfileSettings({ user, onUserUpdated }: UserProfileSettings
     },
   });
 
+  useEffect(() => {
+    if (user) {
+      resetProfile({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+    }
+  }, [user?.firstName, user?.lastName, resetProfile]);
+
   const onProfileSubmit = async (data: UpdateProfileInput) => {
     setProfileSuccess(null);
     setProfileError(null);
@@ -67,27 +81,28 @@ export function UserProfileSettings({ user, onUserUpdated }: UserProfileSettings
       currentPassword?: string;
       newPassword?: string;
     } = {
-      firstName: data.firstName,
-      lastName: data.lastName,
+      firstName: data.firstName.trim(),
+      lastName: data.lastName.trim(),
     };
 
-    if (isChangingPassword && data.newPassword) {
+    if (isChangingPassword && data.newPassword && data.newPassword.trim().length > 0) {
       payload.currentPassword = data.currentPassword;
       payload.newPassword = data.newPassword;
     }
 
     try {
       const res = await updateProfileMutation.mutateAsync(payload);
-      setProfileSuccess('Profile details and credentials updated successfully.');
+      setProfileSuccess('Profile details updated successfully.');
       setIsChangingPassword(false);
       resetProfile({
-        firstName: data.firstName,
-        lastName: data.lastName,
+        firstName: res.firstName || data.firstName,
+        lastName: res.lastName || data.lastName,
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
       });
-      if (res && onUserUpdated) {
+      updateCurrentUser(res);
+      if (onUserUpdated) {
         onUserUpdated(res);
       }
     } catch (err: any) {
@@ -113,7 +128,17 @@ export function UserProfileSettings({ user, onUserUpdated }: UserProfileSettings
         </div>
       </CardHeader>
 
-      <form onSubmit={handleProfileSubmit(onProfileSubmit)}>
+      <form
+        onSubmit={handleProfileSubmit(
+          onProfileSubmit,
+          (errors) => {
+            const firstError = Object.values(errors)[0];
+            if (firstError?.message) {
+              setProfileError(String(firstError.message));
+            }
+          }
+        )}
+      >
         <CardContent className="p-4 sm:p-6 space-y-5">
           {/* Status feedback alerts */}
           {profileError && (

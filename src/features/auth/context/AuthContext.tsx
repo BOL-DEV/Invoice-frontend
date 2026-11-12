@@ -1,10 +1,11 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '../../../types/api';
+import { User, ApiResponse } from '../../../types/api';
 import { LoginInput } from '../schemas';
 import { authService } from '../../../services/auth.service';
-import { tokenStore } from '../../../services/api/axios';
+import { tokenStore, apiClient } from '../../../services/api/axios';
+import { API_ENDPOINTS } from '../../../services/api/endpoints';
 
 interface AuthContextType {
   user: User | null;
@@ -41,9 +42,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (refreshToken) {
         const refreshResult = await authService.refresh(refreshToken);
         if (refreshResult.accessToken) {
-          const savedUser = localStorage.getItem('user_details');
-          if (savedUser) {
-            setUser(JSON.parse(savedUser));
+          try {
+            const meRes = await apiClient.get<ApiResponse<User>>(API_ENDPOINTS.USERS.ME);
+            if (meRes.data.data) {
+              updateCurrentUser(meRes.data.data);
+            } else {
+              const savedUser = localStorage.getItem('user_details');
+              if (savedUser) setUser(JSON.parse(savedUser));
+            }
+          } catch {
+            const savedUser = localStorage.getItem('user_details');
+            if (savedUser) {
+              setUser(JSON.parse(savedUser));
+            }
           }
         }
       } else {

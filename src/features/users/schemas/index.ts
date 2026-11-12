@@ -22,36 +22,39 @@ export const createBranchWithHeadSchema = z.object({
 
 export type CreateBranchWithHeadFormInput = z.infer<typeof createBranchWithHeadSchema>;
 
-export const updateProfileSchema = z.object({
-  firstName: z.string().trim().min(1, 'First name is required'),
-  lastName: z.string().trim().min(1, 'Last name is required'),
-  currentPassword: z.string().optional(),
-  newPassword: z.string().optional(),
-  confirmPassword: z.string().optional(),
-}).refine((data) => {
-  if (data.newPassword && data.newPassword.length < 6) {
-    return false;
-  }
-  return true;
-}, {
-  message: 'New password must be at least 6 characters',
-  path: ['newPassword'],
-}).refine((data) => {
-  if (data.newPassword && !data.currentPassword) {
-    return false;
-  }
-  return true;
-}, {
-  message: 'Current password is required to set new password',
-  path: ['currentPassword'],
-}).refine((data) => {
-  if (data.newPassword && data.newPassword !== data.confirmPassword) {
-    return false;
-  }
-  return true;
-}, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-});
+export const updateProfileSchema = z
+  .object({
+    firstName: z.string().trim().min(1, 'First name is required'),
+    lastName: z.string().trim().min(1, 'Last name is required'),
+    currentPassword: z.string().optional().or(z.literal('')),
+    newPassword: z.string().optional().or(z.literal('')),
+    confirmPassword: z.string().optional().or(z.literal('')),
+  })
+  .superRefine((data, ctx) => {
+    const hasNewPassword = Boolean(data.newPassword && data.newPassword.trim().length > 0);
+    if (hasNewPassword) {
+      if (data.newPassword!.length < 6) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'New password must be at least 6 characters',
+          path: ['newPassword'],
+        });
+      }
+      if (!data.currentPassword || data.currentPassword.trim().length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Current password is required to change password',
+          path: ['currentPassword'],
+        });
+      }
+      if (data.newPassword !== data.confirmPassword) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Passwords do not match',
+          path: ['confirmPassword'],
+        });
+      }
+    }
+  });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
