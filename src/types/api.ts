@@ -421,6 +421,7 @@ export interface Invoice {
   totalAmount?: number;
   unit?: string | null;
   notes: string | null;
+  customerSignature?: string | null;
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;

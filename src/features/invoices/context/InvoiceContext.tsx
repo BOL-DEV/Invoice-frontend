@@ -17,6 +17,7 @@ interface InvoiceContextType {
   customerPhone: string;
   status: InvoiceStatus;
   notes: string;
+  customerSignature: string | null;
   items: InvoiceItemInput[];
   charges: InvoiceChargeInput[];
   subtotal: number;
@@ -33,6 +34,7 @@ interface InvoiceContextType {
   setCustomerPhone: (phone: string) => void;
   setStatus: (status: InvoiceStatus) => void;
   setNotes: (notes: string) => void;
+  setCustomerSignature: (sig: string | null) => void;
   
   // Line Items
   setItems: React.Dispatch<React.SetStateAction<InvoiceItemInput[]>>;
@@ -73,6 +75,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [customerPhone, setCustomerPhoneState] = useState('');
   const [status, setStatusState] = useState<InvoiceStatus>('DRAFT');
   const [notes, setNotesState] = useState('');
+  const [customerSignature, setCustomerSignatureState] = useState<string | null>(null);
   
   // Start with three empty rows as per workflow specification
   const [items, setItems] = useState<InvoiceItemInput[]>([
@@ -133,6 +136,11 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const setNotes = useCallback((val: string) => {
     setNotesState(val);
+    setIsDirty(true);
+  }, []);
+
+  const setCustomerSignature = useCallback((val: string | null) => {
+    setCustomerSignatureState(val);
     setIsDirty(true);
   }, []);
 
@@ -247,6 +255,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setCustomerPhoneState('');
     setStatusState('DRAFT');
     setNotesState('');
+    setCustomerSignatureState(null);
     setItems([
       createEmptyItem(1),
       createEmptyItem(2),
@@ -263,6 +272,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setCustomerPhoneState(invoice.customerPhone || '');
     setStatusState(invoice.status);
     setNotesState(invoice.notes || '');
+    setCustomerSignatureState(invoice.customerSignature || null);
     setItems(
       invoice.items.map((item) => ({
         position: item.position,
@@ -296,12 +306,13 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       customerPhone: customerPhone || null,
       status,
       notes: notes || null,
+      customerSignature: customerSignature || null,
       subtotal,
       total,
       items: filledItems,
       charges,
     };
-  }, [customerName, customerPhone, status, notes, subtotal, total, items, charges]);
+  }, [customerName, customerPhone, status, notes, customerSignature, subtotal, total, items, charges]);
 
   return (
     <InvoiceContext.Provider
@@ -310,6 +321,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         customerPhone,
         status,
         notes,
+        customerSignature,
         items,
         charges,
         subtotal,
@@ -322,6 +334,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setCustomerPhone,
         setStatus,
         setNotes,
+        setCustomerSignature,
         setItems,
         addItemRow,
         updateItemRow,

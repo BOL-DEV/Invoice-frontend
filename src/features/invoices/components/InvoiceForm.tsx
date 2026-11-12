@@ -50,6 +50,9 @@ import {
   Sparkles,
   RotateCcw,
   FileText,
+  PenTool,
+  CheckCircle2,
+  Upload,
 } from 'lucide-react';
 
 interface InvoiceFormProps {
@@ -70,6 +73,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     customerPhone,
     status,
     notes,
+    customerSignature,
     items,
     charges,
     subtotal,
@@ -78,6 +82,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     setCustomerPhone,
     setStatus,
     setNotes,
+    setCustomerSignature,
     setItems,
     setCharges,
     resetInvoice,
@@ -103,13 +108,182 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   const [showWeightCalculator, setShowWeightCalculator] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showNoteField, setShowNoteField] = useState(false);
+  const [showSignatureField, setShowSignatureField] = useState(false);
+  const [sigMode, setSigMode] = useState<'draw' | 'upload'>('draw');
+  const [isDrawingCustomerSig, setIsDrawingCustomerSig] = useState(false);
+  const [hasDrawnCustomerSig, setHasDrawnCustomerSig] = useState(false);
+  const customerCanvasRef = useRef<HTMLCanvasElement>(null);
+  const customerSigFileRef = useRef<HTMLInputElement>(null);
 
-  // Auto-expand note field if existing invoice/draft has notes
+  // Auto-expand note and signature fields if existing invoice/draft has content
   useEffect(() => {
     if (notes && notes.trim().length > 0) {
       setShowNoteField(true);
     }
   }, [notes]);
+
+  useEffect(() => {
+    if (customerSignature && customerSignature.trim().length > 0) {
+      setShowSignatureField(true);
+    }
+  }, [customerSignature]);
+
+  const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = customerCanvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    return {
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height),
+    };
+  };
+
+  const startDrawingCustomerSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const canvas = customerCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const { x, y } = getCanvasCoordinates(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#0f172a';
+    setIsDrawingCustomerSig(true);
+  };
+
+  const drawCustomerSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawingCustomerSig) return;
+    e.preventDefault();
+    const canvas = customerCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const { x, y } = getCanvasCoordinates(e);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    setHasDrawnCustomerSig(true);
+  };
+
+  // Normalizes drawn signature: crops transparent whitespace bounds and uniformly scales to fit perfectly
+  const captureAndFitSignature = () => {
+    const canvas = customerCanvasRef.current;
+    if (!canvas || !hasDrawnCustomerSig) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    try {
+      const { width, height } = canvas;
+      const imgData = ctx.getImageData(0, 0, width, height);
+      const data = imgData.data;
+
+      let minX = width, minY = height, maxX = 0, maxY = 0;
+      let hasInk = false;
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const alpha = data[(y * width + x) * 4 + 3];
+          if (alpha > 15) {
+            hasInk = true;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+
+      if (!hasInk) return;
+
+      const pad = 12;
+      const cropX = Math.max(0, minX - pad);
+      const cropY = Math.max(0, minY - pad);
+      const cropW = Math.min(width - cropX, (maxX - minX) + pad * 2);
+      const cropH = Math.min(height - cropY, (maxY - minY) + pad * 2);
+
+      const targetW = 380;
+      const targetH = 110;
+      const normCanvas = document.createElement('canvas');
+      normCanvas.width = targetW;
+      normCanvas.height = targetH;
+      const normCtx = normCanvas.getContext('2d');
+      if (!normCtx) {
+        setCustomerSignature(canvas.toDataURL('image/png'));
+        return;
+      }
+
+      const scale = Math.min((targetW - 20) / cropW, (targetH - 20) / cropH);
+      const drawW = cropW * scale;
+      const drawH = cropH * scale;
+      const offsetX = (targetW - drawW) / 2;
+      const offsetY = (targetH - drawH) / 2;
+
+      normCtx.imageSmoothingEnabled = true;
+      normCtx.imageSmoothingQuality = 'high';
+      normCtx.drawImage(canvas, cropX, cropY, cropW, cropH, offsetX, offsetY, drawW, drawH);
+
+      setCustomerSignature(normCanvas.toDataURL('image/png'));
+    } catch {
+      setCustomerSignature(canvas.toDataURL('image/png'));
+    }
+  };
+
+  const stopDrawingCustomerSig = () => {
+    if (!isDrawingCustomerSig) return;
+    setIsDrawingCustomerSig(false);
+    captureAndFitSignature();
+  };
+
+  const clearCustomerCanvas = () => {
+    const canvas = customerCanvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    setHasDrawnCustomerSig(false);
+    setCustomerSignature(null);
+  };
+
+  const handleCustomerSigFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      modal.alert('Invalid File', 'Please select an image file (PNG, JPG, or SVG)', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        const img = new Image();
+        img.onload = () => {
+          const targetW = 380;
+          const targetH = 110;
+          const normCanvas = document.createElement('canvas');
+          normCanvas.width = targetW;
+          normCanvas.height = targetH;
+          const normCtx = normCanvas.getContext('2d');
+          if (!normCtx) {
+            setCustomerSignature(result);
+            return;
+          }
+          const scale = Math.min((targetW - 16) / img.width, (targetH - 16) / img.height, 1);
+          const drawW = img.width * scale;
+          const drawH = img.height * scale;
+          normCtx.imageSmoothingEnabled = true;
+          normCtx.imageSmoothingQuality = 'high';
+          normCtx.drawImage(img, (targetW - drawW) / 2, (targetH - drawH) / 2, drawW, drawH);
+          setCustomerSignature(normCanvas.toDataURL('image/png'));
+        };
+        img.src = result;
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
 
   // Dynamic custom charge state
@@ -267,6 +441,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
             if (parsed.customerName) setCustomerName(parsed.customerName);
             if (parsed.customerPhone) setCustomerPhone(parsed.customerPhone);
             if (parsed.notes) setNotes(parsed.notes);
+            if (parsed.customerSignature) setCustomerSignature(parsed.customerSignature);
             if (Array.isArray(parsed.items) && parsed.items.length > 0) {
               setItems(parsed.items);
             }
@@ -282,7 +457,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       }
       resetInvoice();
     }
-  }, [mode, existingInvoice, loadInvoice, resetInvoice, setCustomerName, setCustomerPhone, setNotes, setItems, setCharges]);
+  }, [mode, existingInvoice, loadInvoice, resetInvoice, setCustomerName, setCustomerPhone, setNotes, setCustomerSignature, setItems, setCharges]);
 
   // Persist working draft in localStorage whenever changes occur
   useEffect(() => {
@@ -292,6 +467,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       customerName.trim().length > 0 ||
       customerPhone.trim().length > 0 ||
       notes.trim().length > 0 ||
+      !!customerSignature ||
       charges.length > 0 ||
       items.some(
         (it) => it.description.trim() !== '' || Number(it.quantity) > 0 || Number(it.unitPrice) > 0
@@ -305,6 +481,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
             customerName,
             customerPhone,
             notes,
+            customerSignature,
             items,
             charges,
             updatedAt: Date.now(),
@@ -318,7 +495,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
         localStorage.removeItem('invoice_creation_draft');
       } catch {}
     }
-  }, [mode, customerName, customerPhone, notes, items, charges]);
+  }, [mode, customerName, customerPhone, notes, customerSignature, items, charges]);
 
   // Prevent accidental tab closure or refresh when working on an unsaved invoice
   useEffect(() => {
@@ -351,6 +528,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       customerName.trim().length > 0 ||
       customerPhone.trim().length > 0 ||
       notes.trim().length > 0 ||
+      !!customerSignature ||
       charges.length > 0 ||
       items.some(
         (it) => it.description.trim() !== '' || Number(it.quantity) > 0 || Number(it.unitPrice) > 0
@@ -1052,6 +1230,158 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                     className="text-xs bg-background resize-none rounded-xl border border-border focus:border-emerald-500/60"
                     rows={2}
                   />
+                </div>
+              )}
+            </div>
+
+            {/* Optional Customer Signature Field */}
+            <div className="border-t border-border p-4 bg-slate-50/40 dark:bg-slate-900/20">
+              {!showSignatureField && !customerSignature ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowSignatureField(true)}
+                  className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1.5 px-2 h-7 rounded-lg"
+                >
+                  <PenTool className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>+ Add Customer Signature (Optional)</span>
+                </Button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                      <PenTool className="h-3.5 w-3.5 text-emerald-500" />
+                      <span>Customer Signature</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">(Auto-fitted to printable area)</span>
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        clearCustomerCanvas();
+                        setShowSignatureField(false);
+                      }}
+                      className="text-[11px] text-muted-foreground hover:text-rose-500 h-6 px-1.5"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+
+                  {customerSignature ? (
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-950 border border-emerald-500/30">
+                      <div className="h-14 w-44 border border-dashed border-border rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center overflow-hidden p-1">
+                        <img src={customerSignature} alt="Customer Signature" className="max-h-full max-w-full object-contain" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          <span>Signature Captured & Fitted</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">Will appear above "Customer's Signature" on invoice pages.</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={clearCustomerCanvas}
+                        className="text-xs h-7 px-2"
+                      >
+                        Re-sign
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 p-3.5 rounded-2xl bg-white dark:bg-slate-950 border border-border">
+                      <div className="flex items-center justify-between text-xs pb-1">
+                        <div className="flex gap-1.5 bg-slate-100 dark:bg-slate-900 p-0.5 rounded-lg">
+                          <button
+                            type="button"
+                            onClick={() => setSigMode('draw')}
+                            className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${
+                              sigMode === 'draw'
+                                ? 'bg-white dark:bg-slate-800 text-foreground shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            Draw on Screen
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSigMode('upload')}
+                            className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${
+                              sigMode === 'upload'
+                                ? 'bg-white dark:bg-slate-800 text-foreground shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            Upload File
+                          </button>
+                        </div>
+                        {sigMode === 'draw' && (
+                          <button
+                            type="button"
+                            onClick={clearCustomerCanvas}
+                            className="text-muted-foreground hover:text-rose-500 text-[11px] font-semibold transition-colors flex items-center gap-1"
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                            Clear
+                          </button>
+                        )}
+                      </div>
+
+                      {sigMode === 'draw' ? (
+                        <div>
+                          <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-emerald-500/30 overflow-hidden touch-none flex justify-center py-2">
+                            <canvas
+                              ref={customerCanvasRef}
+                              width={420}
+                              height={110}
+                              onMouseDown={startDrawingCustomerSig}
+                              onMouseMove={drawCustomerSig}
+                              onMouseUp={stopDrawingCustomerSig}
+                              onMouseLeave={stopDrawingCustomerSig}
+                              onTouchStart={startDrawingCustomerSig}
+                              onTouchMove={drawCustomerSig}
+                              onTouchEnd={stopDrawingCustomerSig}
+                              className="cursor-crosshair bg-white dark:bg-slate-950 rounded-lg shadow-sm w-full max-w-[420px] h-[110px]"
+                            />
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-1.5 flex justify-between">
+                            <span>Customer signs with touch, stylus, or mouse. Auto-crops & fits cleanly.</span>
+                            {hasDrawnCustomerSig && (
+                              <span className="text-emerald-600 font-semibold flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3" /> Ready
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="py-4 text-center">
+                          <input
+                            ref={customerSigFileRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleCustomerSigFileUpload}
+                            className="hidden"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => customerSigFileRef.current?.click()}
+                            className="text-xs h-8 gap-2"
+                          >
+                            <Upload className="h-3.5 w-3.5" />
+                            Choose Signature Image
+                          </Button>
+                          <p className="text-[10px] text-muted-foreground mt-2">
+                            PNG, JPG, or SVG. Automatically fitted to signature box.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
