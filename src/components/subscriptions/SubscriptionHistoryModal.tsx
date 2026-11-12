@@ -130,7 +130,7 @@ export const SubscriptionHistoryModal: React.FC<SubscriptionHistoryModalProps> =
               <div className="space-y-1">
                 <h4 className="text-sm font-semibold text-slate-300">No payment history found</h4>
                 <p className="text-xs text-slate-400 max-w-xs mx-auto">
-                  When you initiate and complete subscription transfers via Lenco, settled records will be logged here.
+                  When you initiate and complete subscription transfers, settled records will be logged here.
                 </p>
               </div>
             </div>
