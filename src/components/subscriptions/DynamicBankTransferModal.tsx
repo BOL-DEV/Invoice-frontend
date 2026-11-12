@@ -16,6 +16,7 @@ import {
   RefreshCw,
   ExternalLink,
   Calendar,
+  FlaskConical,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { apiClient } from '../../services/api/axios';
@@ -48,6 +49,7 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
   const [isPaid, setIsPaid] = useState(false);
   const [isFailed, setIsFailed] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
   const [failureReason, setFailureReason] = useState<string | null>(null);
   const [confirmedData, setConfirmedData] = useState<PaymentVerificationResult | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
@@ -174,6 +176,31 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
       setFeedbackMessage(err?.response?.data?.message || 'Unable to verify payment at this moment. Please try again.');
     } finally {
       isCheckingRef.current = false;
+    }
+  };
+
+  const handleSimulatePayment = async () => {
+    if (isSimulating || isPaid) return;
+    setIsSimulating(true);
+    setFeedbackMessage(null);
+    try {
+      const response = await apiClient.post<ApiResponse<PaymentVerificationResult>>(
+        API_ENDPOINTS.SUBSCRIPTIONS.SIMULATE_PAYMENT(paymentData.transactionReference)
+      );
+      const res = response.data?.data;
+      if (res?.paid) {
+        setConfirmedData(res);
+        setIsPaid(true);
+        queryClient.invalidateQueries({ queryKey: ['subscription'] });
+        queryClient.invalidateQueries({ queryKey: ['business'] });
+        if (onSuccess) onSuccess();
+      } else {
+        setFeedbackMessage(res?.message || 'Simulation processed. Checking status...');
+      }
+    } catch (err: any) {
+      setFeedbackMessage(err?.response?.data?.message || 'Failed to simulate payment. Please try again.');
+    } finally {
+      setIsSimulating(false);
     }
   };
 
@@ -507,6 +534,18 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
 
             {/* Action & Status */}
             <div className="pt-1 space-y-2.5">
+              {paymentData.isSandbox && (
+                <Button
+                  type="button"
+                  onClick={handleSimulatePayment}
+                  disabled={isSimulating}
+                  className="w-full h-10 border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-semibold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
+                >
+                  <FlaskConical className="h-3.5 w-3.5" />
+                  <span>{isSimulating ? 'Simulating Payment via Squad...' : 'Simulate Payment (Sandbox Test)'}</span>
+                </Button>
+              )}
+
               <Button
                 onClick={handleManualCheck}
                 className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center transition-all shadow-lg shadow-emerald-500/10 cursor-pointer active:scale-[0.99]"
