@@ -534,24 +534,24 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
 
             {/* Action & Status */}
             <div className="pt-1 space-y-2.5">
-              {paymentData.isSandbox && (
+              {paymentData.isSandbox ? (
                 <Button
                   type="button"
                   onClick={handleSimulatePayment}
                   disabled={isSimulating}
-                  className="w-full h-10 border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-semibold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
+                  className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all shadow-lg shadow-emerald-500/10 cursor-pointer active:scale-[0.99]"
                 >
-                  <FlaskConical className="h-3.5 w-3.5" />
+                  <FlaskConical className="h-4 w-4" />
                   <span>{isSimulating ? 'Simulating Payment via Squad...' : 'Simulate Payment (Sandbox Test)'}</span>
                 </Button>
+              ) : (
+                <Button
+                  onClick={handleManualCheck}
+                  className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center transition-all shadow-lg shadow-emerald-500/10 cursor-pointer active:scale-[0.99]"
+                >
+                  <span>I Have Sent the Payment</span>
+                </Button>
               )}
-
-              <Button
-                onClick={handleManualCheck}
-                className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center transition-all shadow-lg shadow-emerald-500/10 cursor-pointer active:scale-[0.99]"
-              >
-                <span>I Have Sent the Payment</span>
-              </Button>
 
               <div className="flex items-center space-x-2 text-[11px] text-slate-400 justify-center">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
