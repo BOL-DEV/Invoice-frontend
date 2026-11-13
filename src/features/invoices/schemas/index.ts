@@ -20,6 +20,7 @@ export const invoiceFormSchema = z.object({
   customerPhone: z.string().optional().nullable(),
   status: z.enum(['DRAFT', 'FINALIZED', 'PRINTED', 'ARCHIVED'] as const).default('DRAFT'),
   notes: z.string().optional().nullable(),
+  customerSignature: z.string().optional().nullable(),
   subtotal: z.number().nonnegative("Subtotal must be non-negative"),
   total: z.number().nonnegative("Grand total must be non-negative"),
   items: z.array(itemSchema).min(1, "Invoice must contain at least one item"),

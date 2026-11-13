@@ -49,6 +49,9 @@ import {
   Lock,
   Sparkles,
   RotateCcw,
+  FileText,
+  PenTool,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface InvoiceFormProps {
@@ -69,6 +72,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     customerPhone,
     status,
     notes,
+    customerSignature,
     items,
     charges,
     subtotal,
@@ -77,6 +81,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     setCustomerPhone,
     setStatus,
     setNotes,
+    setCustomerSignature,
     setItems,
     setCharges,
     resetInvoice,
@@ -101,6 +106,160 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   const [showCalculator, setShowCalculator] = useState(false);
   const [showWeightCalculator, setShowWeightCalculator] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showNoteField, setShowNoteField] = useState(false);
+  const [showSignatureField, setShowSignatureField] = useState(false);
+  const [isEditingSignature, setIsEditingSignature] = useState(false);
+  const [isDrawingCustomerSig, setIsDrawingCustomerSig] = useState(false);
+  const [hasDrawnCustomerSig, setHasDrawnCustomerSig] = useState(false);
+  const customerCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Auto-expand note and signature fields if existing invoice/draft has content
+  useEffect(() => {
+    if (notes && notes.trim().length > 0) {
+      setShowNoteField(true);
+    }
+  }, [notes]);
+
+  useEffect(() => {
+    if (customerSignature && customerSignature.trim().length > 0) {
+      setShowSignatureField(true);
+      setIsEditingSignature(false);
+    }
+  }, [customerSignature]);
+
+  const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = customerCanvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    return {
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height),
+    };
+  };
+
+  const startDrawingCustomerSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const canvas = customerCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const { x, y } = getCanvasCoordinates(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineWidth = 2.8;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#0f172a';
+    setIsDrawingCustomerSig(true);
+  };
+
+  const drawCustomerSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawingCustomerSig) return;
+    e.preventDefault();
+    const canvas = customerCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const { x, y } = getCanvasCoordinates(e);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    setHasDrawnCustomerSig(true);
+  };
+
+  // Normalizes drawn signature: crops transparent whitespace bounds and uniformly scales to fit perfectly
+  const captureAndFitSignature = (): string | null => {
+    const canvas = customerCanvasRef.current;
+    if (!canvas || !hasDrawnCustomerSig) return null;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    try {
+      const { width, height } = canvas;
+      const imgData = ctx.getImageData(0, 0, width, height);
+      const data = imgData.data;
+
+      let minX = width, minY = height, maxX = 0, maxY = 0;
+      let hasInk = false;
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const alpha = data[(y * width + x) * 4 + 3];
+          if (alpha > 15) {
+            hasInk = true;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+
+      if (!hasInk) return null;
+
+      const pad = 14;
+      const cropX = Math.max(0, minX - pad);
+      const cropY = Math.max(0, minY - pad);
+      const cropW = Math.min(width - cropX, (maxX - minX) + pad * 2);
+      const cropH = Math.min(height - cropY, (maxY - minY) + pad * 2);
+
+      const targetW = 400;
+      const targetH = 120;
+      const normCanvas = document.createElement('canvas');
+      normCanvas.width = targetW;
+      normCanvas.height = targetH;
+      const normCtx = normCanvas.getContext('2d');
+      if (!normCtx) {
+        const raw = canvas.toDataURL('image/png');
+        setCustomerSignature(raw);
+        setIsEditingSignature(false);
+        return raw;
+      }
+
+      const scale = Math.min((targetW - 20) / cropW, (targetH - 20) / cropH);
+      const drawW = cropW * scale;
+      const drawH = cropH * scale;
+      const offsetX = (targetW - drawW) / 2;
+      const offsetY = (targetH - drawH) / 2;
+
+      normCtx.imageSmoothingEnabled = true;
+      normCtx.imageSmoothingQuality = 'high';
+      normCtx.drawImage(canvas, cropX, cropY, cropW, cropH, offsetX, offsetY, drawW, drawH);
+
+      const fittedDataUrl = normCanvas.toDataURL('image/png');
+      setCustomerSignature(fittedDataUrl);
+      setIsEditingSignature(false);
+      return fittedDataUrl;
+    } catch {
+      const raw = canvas.toDataURL('image/png');
+      setCustomerSignature(raw);
+      setIsEditingSignature(false);
+      return raw;
+    }
+  };
+
+  const stopDrawingCustomerSig = () => {
+    if (!isDrawingCustomerSig) return;
+    setIsDrawingCustomerSig(false);
+    // Allow continuous multi-stroke signing without unmounting the canvas
+  };
+
+  const clearCustomerCanvas = () => {
+    const canvas = customerCanvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    setHasDrawnCustomerSig(false);
+  };
+
+  const removeCustomerSignature = () => {
+    clearCustomerCanvas();
+    setCustomerSignature(null);
+    setShowSignatureField(false);
+    setIsEditingSignature(false);
+  };
 
 
   // Dynamic custom charge state
@@ -258,6 +417,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
             if (parsed.customerName) setCustomerName(parsed.customerName);
             if (parsed.customerPhone) setCustomerPhone(parsed.customerPhone);
             if (parsed.notes) setNotes(parsed.notes);
+            if (parsed.customerSignature) setCustomerSignature(parsed.customerSignature);
             if (Array.isArray(parsed.items) && parsed.items.length > 0) {
               setItems(parsed.items);
             }
@@ -273,7 +433,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       }
       resetInvoice();
     }
-  }, [mode, existingInvoice, loadInvoice, resetInvoice, setCustomerName, setCustomerPhone, setNotes, setItems, setCharges]);
+  }, [mode, existingInvoice, loadInvoice, resetInvoice, setCustomerName, setCustomerPhone, setNotes, setCustomerSignature, setItems, setCharges]);
 
   // Persist working draft in localStorage whenever changes occur
   useEffect(() => {
@@ -283,6 +443,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       customerName.trim().length > 0 ||
       customerPhone.trim().length > 0 ||
       notes.trim().length > 0 ||
+      !!customerSignature ||
       charges.length > 0 ||
       items.some(
         (it) => it.description.trim() !== '' || Number(it.quantity) > 0 || Number(it.unitPrice) > 0
@@ -296,6 +457,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
             customerName,
             customerPhone,
             notes,
+            customerSignature,
             items,
             charges,
             updatedAt: Date.now(),
@@ -309,7 +471,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
         localStorage.removeItem('invoice_creation_draft');
       } catch {}
     }
-  }, [mode, customerName, customerPhone, notes, items, charges]);
+  }, [mode, customerName, customerPhone, notes, customerSignature, items, charges]);
 
   // Prevent accidental tab closure or refresh when working on an unsaved invoice
   useEffect(() => {
@@ -342,6 +504,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       customerName.trim().length > 0 ||
       customerPhone.trim().length > 0 ||
       notes.trim().length > 0 ||
+      !!customerSignature ||
       charges.length > 0 ||
       items.some(
         (it) => it.description.trim() !== '' || Number(it.quantity) > 0 || Number(it.unitPrice) > 0
@@ -419,10 +582,17 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     isSubmitting.current = true;
     setStatus(targetStatus);
 
+    let currentCustomerSig = customerSignature;
+    if (isEditingSignature && hasDrawnCustomerSig) {
+      const captured = captureAndFitSignature();
+      if (captured) currentCustomerSig = captured;
+    }
+
     // Short timeout to let status state set
     setTimeout(async () => {
       const payload = {
         ...getFormPayload(),
+        customerSignature: currentCustomerSig || null,
         status: targetStatus,
       };
       try {
@@ -908,8 +1078,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
               </Table>
             </div>
 
-            {/* Mobile Stacked Items Layout (visible on mobile only) */}
-            <div className="md:hidden p-4 space-y-4 bg-slate-50/50 dark:bg-slate-900/10 border-t border-border">
+            {/* Mobile Compact Ledger Table Layout (visible on mobile only) */}
+            <div className="md:hidden p-3 space-y-2.5 bg-slate-50/50 dark:bg-slate-900/10 border-t border-border">
               <AnimatePresence initial={false}>
                 {rows.map((item, idx) => {
                   const isActive = focusState?.type === 'item' && focusState.rowIndex === idx;
@@ -920,33 +1090,17 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -5 }}
                       transition={{ duration: 0.15 }}
-                      className={`p-4 rounded-xl border transition-all duration-155 space-y-3 relative ${
+                      className={`p-2.5 rounded-xl border transition-all duration-150 space-y-2 relative ${
                         isActive
-                          ? 'border-primary ring-2 ring-primary/20 bg-card'
-                          : 'border-border bg-card shadow-sm'
+                          ? 'border-primary ring-2 ring-primary/20 bg-card shadow-sm'
+                          : 'border-border bg-card'
                       }`}
                     >
-                      {/* Card Header: Position & Delete */}
-                      <div className="flex justify-between items-center border-b border-border/60 pb-2">
-                        <span className="font-mono text-xs font-bold text-muted-foreground select-none">
-                          Item #{item.position}
+                      {/* Line 1: S/N Badge + Description + Delete Button */}
+                      <div className="flex items-center gap-2">
+                        <span className="shrink-0 w-6 h-6 rounded-md bg-secondary/80 text-[11px] font-mono font-bold flex items-center justify-center text-muted-foreground select-none">
+                          {item.position}
                         </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteRow(idx)}
-                          disabled={rows.length === 1}
-                          className="h-8 w-8 rounded-full text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      {/* Description */}
-                      <div className="space-y-1">
-                        <Label htmlFor={`row-mob-${idx}-description`} className="text-[10px] font-bold text-muted-foreground uppercase">
-                          Description
-                        </Label>
                         <Input
                           id={`row-mob-${idx}-description`}
                           type="text"
@@ -954,52 +1108,245 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                           onChange={(e) => updateRow(idx, { description: e.target.value })}
                           onKeyDown={(e) => handleKeyDown(e, idx, 'description')}
                           onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'description' })}
-                          placeholder="e.g. 16mm Iron Rods"
-                          className="bg-background text-sm font-medium h-9 rounded-xl border border-border"
+                          placeholder="Item description (e.g. 16mm Rods)..."
+                          className="bg-background text-xs font-medium h-8 rounded-lg border border-border flex-1"
                         />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteRow(idx)}
+                          disabled={rows.length === 1}
+                          className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
 
-                      {/* Quantity & Unit Price in 2-Column Grid */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label htmlFor={`row-mob-${idx}-quantity`} className="text-[10px] font-bold text-muted-foreground uppercase">
-                            Quantity
-                          </Label>
+                      {/* Line 2: Qty input + Rate input = Line Total */}
+                      <div className="flex items-center gap-2 pl-8">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Qty:</span>
                           <QuantityInput
                             id={`row-mob-${idx}-quantity`}
                             value={item.quantity}
                             onChange={(val) => updateRow(idx, { quantity: val })}
                             onKeyDown={(e) => handleKeyDown(e, idx, 'quantity')}
                             onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'quantity' })}
-                            className="bg-background text-sm h-9 rounded-xl border border-border"
+                            className="bg-background text-xs h-7 rounded-lg border border-border w-16 text-center"
                           />
                         </div>
-                        <div className="space-y-1">
-                          <Label htmlFor={`row-mob-${idx}-unitPrice`} className="text-[10px] font-bold text-muted-foreground uppercase">
-                            Unit Price
-                          </Label>
+                        <div className="flex items-center gap-1 flex-1">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Rate:</span>
                           <MoneyInput
                             id={`row-mob-${idx}-unitPrice`}
                             value={item.unitPrice}
                             onChange={(val) => updateRow(idx, { unitPrice: val })}
                             onKeyDown={(e) => handleKeyDown(e, idx, 'unitPrice')}
                             onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'unitPrice' })}
-                            className="bg-background text-sm h-9 rounded-xl border border-border"
+                            className="bg-background text-xs h-7 rounded-lg border border-border flex-1"
                           />
                         </div>
-                      </div>
-
-                      {/* Line Amount */}
-                      <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-lg border border-border/40 text-xs font-mono">
-                        <span className="text-muted-foreground font-sans uppercase text-[9px] font-bold">Line Total:</span>
-                        <span className="font-bold text-[#0F172A] dark:text-[#F8FAFC]">
-                          ₦{item.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                        </span>
+                        <div className="text-right shrink-0">
+                          <span className="font-mono text-xs font-bold text-foreground">
+                            ₦{item.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
                       </div>
                     </motion.div>
                   );
                 })}
               </AnimatePresence>
+
+              {/* Mobile Add Row Quick Button */}
+              <div className="pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addRow}
+                  className="w-full text-xs font-semibold h-8 space-x-1.5 border-dashed border-primary/40 text-primary hover:bg-primary/5 rounded-xl"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add Another Item</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Optional Invoice Notes / Remarks Field (Both Desktop & Mobile) */}
+            <div className="border-t border-border p-4 bg-slate-50/40 dark:bg-slate-900/20">
+              {!showNoteField && !notes ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowNoteField(true)}
+                  className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1.5 px-2 h-7 rounded-lg"
+                >
+                  <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>+ Add Note / Remarks (Optional)</span>
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                      <FileText className="h-3.5 w-3.5 text-emerald-500" />
+                      <span>Invoice Note / Remarks</span>
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setNotes('');
+                        setShowNoteField(false);
+                      }}
+                      className="text-[11px] text-muted-foreground hover:text-rose-500 h-6 px-1.5"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Type any instructions, remarks, or notes to appear on this invoice..."
+                    className="text-xs bg-background resize-none rounded-xl border border-border focus:border-emerald-500/60"
+                    rows={2}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Optional Customer Signature Field */}
+            <div className="border-t border-border p-4 bg-slate-50/40 dark:bg-slate-900/20">
+              {!showSignatureField && !customerSignature ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowSignatureField(true);
+                    setIsEditingSignature(true);
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1.5 px-2 h-7 rounded-lg"
+                >
+                  <PenTool className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>+ Add Customer Signature (Optional)</span>
+                </Button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                      <PenTool className="h-3.5 w-3.5 text-emerald-500" />
+                      <span>Customer Signature</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">(Auto-fitted to printable area)</span>
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={removeCustomerSignature}
+                      className="text-[11px] text-muted-foreground hover:text-rose-500 h-6 px-1.5"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+
+                  {customerSignature && !isEditingSignature ? (
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-950 border border-emerald-500/30">
+                      <div className="h-14 w-44 border border-dashed border-border rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center overflow-hidden p-1">
+                        <img src={customerSignature} alt="Customer Signature" className="max-h-full max-w-full object-contain" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          <span>Signature Captured & Fitted</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">Will appear above "Customer's Signature" on invoice pages.</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setIsEditingSignature(true);
+                          setHasDrawnCustomerSig(false);
+                        }}
+                        className="text-xs h-7 px-2.5"
+                      >
+                        Re-sign
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 p-3.5 rounded-2xl bg-white dark:bg-slate-950 border border-border">
+                      <div className="flex items-center justify-between text-xs pb-1">
+                        <span className="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
+                          <span>Sign on screen</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={clearCustomerCanvas}
+                          className="text-muted-foreground hover:text-rose-500 text-[11px] font-semibold transition-colors flex items-center gap-1"
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                          Clear
+                        </button>
+                      </div>
+
+                      <div className="relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-emerald-500/30 overflow-hidden touch-none flex justify-center py-2">
+                        <canvas
+                          ref={customerCanvasRef}
+                          width={500}
+                          height={130}
+                          onMouseDown={startDrawingCustomerSig}
+                          onMouseMove={drawCustomerSig}
+                          onMouseUp={stopDrawingCustomerSig}
+                          onMouseLeave={stopDrawingCustomerSig}
+                          onTouchStart={startDrawingCustomerSig}
+                          onTouchMove={drawCustomerSig}
+                          onTouchEnd={stopDrawingCustomerSig}
+                          className="cursor-crosshair bg-white dark:bg-slate-950 rounded-lg shadow-sm w-full max-w-[500px] h-[130px]"
+                        />
+                        <div className="absolute bottom-5 inset-x-8 border-b border-dashed border-slate-300 dark:border-slate-700 pointer-events-none flex justify-between px-2">
+                          <span className="text-[9px] text-slate-400 select-none">Sign above line</span>
+                          <span className="text-[9px] text-slate-400 select-none">Touch or mouse</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-[10px] text-muted-foreground">
+                          {hasDrawnCustomerSig
+                            ? 'Multiple strokes supported. Click "Done" when finished.'
+                            : 'Customer signs with touch, stylus, or mouse. Auto-crops & fits cleanly.'}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          {customerSignature && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setIsEditingSignature(false)}
+                              className="text-xs h-7 px-2 text-muted-foreground"
+                            >
+                              Cancel
+                            </Button>
+                          )}
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={!hasDrawnCustomerSig}
+                            onClick={() => captureAndFitSignature()}
+                            className="text-xs h-7 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm disabled:opacity-40"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                            Done
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </Card>
         </div>

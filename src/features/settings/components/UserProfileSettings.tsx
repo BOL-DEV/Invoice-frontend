@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { User as AuthUser } from '../../../types/api';
@@ -24,6 +25,10 @@ import {
   ShieldCheck,
   Save,
   Loader2,
+  PenTool,
+  Upload,
+  Trash2,
+  RotateCcw,
 } from 'lucide-react';
 import { getErrorMessage } from '../../../lib/api-error';
 
@@ -39,6 +44,15 @@ export function UserProfileSettings({ user, onUserUpdated }: UserProfileSettings
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+
+  // Digital Signature States
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sigFileInputRef = useRef<HTMLInputElement>(null);
+  const [signaturePreview, setSignaturePreview] = useState<string | null>(user?.signature || null);
+  const [signatureRemoved, setSignatureRemoved] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasDrawnOnCanvas, setHasDrawnOnCanvas] = useState(false);
+  const [sigInputMode, setSigInputMode] = useState<'draw' | 'upload'>('draw');
 
   const updateProfileMutation = useUpdateProfile();
 
@@ -68,8 +82,97 @@ export function UserProfileSettings({ user, onUserUpdated }: UserProfileSettings
         newPassword: '',
         confirmPassword: '',
       });
+      if (user.signature) {
+        setSignaturePreview(user.signature);
+      }
     }
-  }, [user?.firstName, user?.lastName, resetProfile]);
+  }, [user?.firstName, user?.lastName, user?.signature, resetProfile]);
+
+  const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    return {
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height),
+    };
+  };
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const { x, y } = getCanvasCoordinates(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#0f172a';
+    setIsDrawing(true);
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const { x, y } = getCanvasCoordinates(e);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    setHasDrawnOnCanvas(true);
+  };
+
+  const stopDrawing = () => {
+    if (!isDrawing) return;
+    setIsDrawing(false);
+    const canvas = canvasRef.current;
+    if (canvas && hasDrawnOnCanvas) {
+      const dataUrl = canvas.toDataURL('image/png');
+      setSignaturePreview(dataUrl);
+      setSignatureRemoved(false);
+    }
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasDrawnOnCanvas(false);
+  };
+
+  const handleSigUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      setProfileError('Signature image must be under 2MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setSignaturePreview(base64);
+      setSignatureRemoved(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveSignature = () => {
+    setSignaturePreview(null);
+    setSignatureRemoved(true);
+    clearCanvas();
+    if (sigFileInputRef.current) {
+      sigFileInputRef.current.value = '';
+    }
+  };
 
   const onProfileSubmit = async (data: UpdateProfileInput) => {
     setProfileSuccess(null);
@@ -78,12 +181,19 @@ export function UserProfileSettings({ user, onUserUpdated }: UserProfileSettings
     const payload: {
       firstName: string;
       lastName: string;
+      signature?: string | null;
       currentPassword?: string;
       newPassword?: string;
     } = {
       firstName: data.firstName.trim(),
       lastName: data.lastName.trim(),
     };
+
+    if (signaturePreview && !signatureRemoved) {
+      payload.signature = signaturePreview;
+    } else if (signatureRemoved) {
+      payload.signature = null;
+    }
 
     if (isChangingPassword && data.newPassword && data.newPassword.trim().length > 0) {
       payload.currentPassword = data.currentPassword;
@@ -217,6 +327,155 @@ export function UserProfileSettings({ user, onUserUpdated }: UserProfileSettings
                 {profileErrors.lastName && <p className="text-[11px] text-rose-500">{profileErrors.lastName.message}</p>}
               </div>
             </div>
+          </div>
+
+          {/* User Digital Signature Section */}
+          <div className="space-y-3.5 pt-4 border-t border-border/70">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center space-x-1.5">
+                  <PenTool className="h-3.5 w-3.5 text-emerald-500" />
+                  <span>Authorized Cashier Signature</span>
+                  <Badge variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-600 bg-emerald-500/5">
+                    Printed on Invoices
+                  </Badge>
+                </h4>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Your signature appears automatically in the authorized issuer block of every invoice you create.
+                </p>
+              </div>
+
+              {/* Mode switch */}
+              <div className="flex items-center gap-1.5 bg-muted/40 p-1 rounded-xl border border-border/60 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setSigInputMode('draw')}
+                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors ${
+                    sigInputMode === 'draw'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Draw Pad
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSigInputMode('upload')}
+                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors ${
+                    sigInputMode === 'upload'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Upload File
+                </button>
+              </div>
+            </div>
+
+            {/* Current Active Signature Preview if any */}
+            {(signaturePreview && !signatureRemoved) ? (
+              <div className="p-4 rounded-2xl bg-secondary/30 border border-border/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-36 bg-white dark:bg-slate-900 border border-border/80 rounded-xl p-1 flex items-center justify-center overflow-hidden shadow-inner">
+                    <img
+                      src={signaturePreview}
+                      alt="Active signature"
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-foreground block">Active Signature Saved</span>
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium block">
+                      Ready & attached to all your invoices
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemoveSignature}
+                    className="h-8 rounded-xl text-xs text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 cursor-pointer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Remove Signature
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Drawing Canvas Mode */}
+            {sigInputMode === 'draw' && (
+              <div className="space-y-2 p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-border">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span className="font-medium">Sign inside the box using mouse, stylus, or fingertip:</span>
+                  <button
+                    type="button"
+                    onClick={clearCanvas}
+                    className="flex items-center gap-1 text-muted-foreground hover:text-rose-500 text-[11px] font-semibold transition-colors"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    <span>Clear Pad</span>
+                  </button>
+                </div>
+                <div className="bg-white rounded-xl border-2 border-dashed border-emerald-500/30 overflow-hidden touch-none shadow-sm flex justify-center">
+                  <canvas
+                    ref={canvasRef}
+                    width={450}
+                    height={130}
+                    onMouseDown={startDrawing}
+                    onMouseMove={draw}
+                    onMouseUp={stopDrawing}
+                    onMouseLeave={stopDrawing}
+                    onTouchStart={startDrawing}
+                    onTouchMove={draw}
+                    onTouchEnd={stopDrawing}
+                    className="w-full max-w-[450px] h-[130px] cursor-crosshair bg-white"
+                  />
+                </div>
+                <div className="flex justify-between items-center text-[10px] text-muted-foreground">
+                  <span>Releasing your stroke auto-captures the signature.</span>
+                  {hasDrawnOnCanvas && (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" /> Captured
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Upload File Mode */}
+            {sigInputMode === 'upload' && (
+              <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-foreground block">Upload Signature Image</span>
+                  <p className="text-[11px] text-muted-foreground">
+                    Upload a high-contrast PNG or JPG of your signature (transparent PNG recommended, max 2MB).
+                  </p>
+                </div>
+                <div>
+                  <input
+                    type="file"
+                    ref={sigFileInputRef}
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handleSigUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => sigFileInputRef.current?.click()}
+                    className="h-8 rounded-xl text-xs font-semibold border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
+                  >
+                    <Upload className="h-3.5 w-3.5 mr-1.5" />
+                    Choose Image File
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Security & Password Change */}
