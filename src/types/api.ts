@@ -801,3 +801,143 @@ export interface ReportQueryParams {
   branchId?: string;
 }
 
+
+// Document Extensions: Quotation, Waybill, Letter
+export type QuotationStatus = 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'CONVERTED' | 'EXPIRED';
+export type WaybillStatus = 'DRAFT' | 'DISPATCHED' | 'DELIVERED' | 'CANCELED';
+export type LetterStatus = 'DRAFT' | 'FINALIZED' | 'ARCHIVED';
+
+export interface QuotationItem {
+  id: string;
+  quotationId: string;
+  position: number;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  metrics?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Quotation {
+  id: string;
+  businessId?: string;
+  quotationNumber: string;
+  customerName: string;
+  customerPhone?: string | null;
+  customerEmail?: string | null;
+  customerAddress?: string | null;
+  creatorId: string;
+  status: QuotationStatus;
+  subtotal: number;
+  total: number;
+  notes?: string | null;
+  validUntil?: string | null;
+  convertedInvoiceId?: string | null;
+  convertedInvoice?: {
+    id: string;
+    invoiceNumber: string;
+    status: string;
+    total: number;
+    createdAt: string;
+  } | null;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+  branchId?: string | null;
+  branch?: {
+    id: string;
+    branchName?: string;
+    name?: string;
+    address: string;
+    phone?: string | null;
+  } | null;
+  creator?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    signature?: string | null;
+  };
+  items: QuotationItem[];
+}
+
+export interface WaybillItem {
+  id: string;
+  waybillId: string;
+  position: number;
+  description: string;
+  quantity: number;
+  unit?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Waybill {
+  id: string;
+  businessId?: string;
+  invoiceId: string;
+  invoice?: {
+    id: string;
+    invoiceNumber: string;
+    customerName: string;
+    createdAt: string;
+  };
+  waybillNumber: string;
+  customerName: string;
+  customerPhone?: string | null;
+  deliveryAddress?: string | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
+  lorryNumber?: string | null;
+  deliveredBy?: string | null;
+  receivedBy?: string | null;
+  lpoNumber?: string | null;
+  dispatchDate: string;
+  notes?: string | null;
+  status: WaybillStatus;
+  createdAt: string;
+  updatedAt: string;
+  branchId?: string | null;
+  branch?: {
+    id: string;
+    branchName?: string;
+    address: string;
+    phone?: string | null;
+  } | null;
+  items: WaybillItem[];
+}
+
+export interface Letter {
+  id: string;
+  businessId?: string;
+  letterNumber: string;
+  ourRef?: string | null;
+  yourRef?: string | null;
+  date: string;
+  recipientName?: string | null;
+  recipientAddress?: string | null;
+  title: string;
+  body: string;
+  signatoryName?: string | null;
+  signatoryTitle?: string | null;
+  status: LetterStatus;
+  createdAt: string;
+  updatedAt: string;
+  branchId?: string | null;
+  branch?: {
+    id: string;
+    branchName?: string;
+    address: string;
+    phone?: string | null;
+  } | null;
+  creatorId: string;
+  creator?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    signature?: string | null;
+  };
+}

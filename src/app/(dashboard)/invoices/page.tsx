@@ -51,8 +51,10 @@ import {
   Share2,
   Pencil,
   Store,
+  Truck,
 } from 'lucide-react';
 import { useBranches } from '../../../features/branches';
+import { GenerateWaybillModal } from '../../../features/waybills/components/GenerateWaybillModal';
 
 export default function InvoicesPage() {
   const queryClient = useQueryClient();
@@ -85,6 +87,9 @@ export default function InvoicesPage() {
   const [targetUserId, setTargetUserId] = useState<string>('');
   const [shareNotes, setShareNotes] = useState<string>('');
   const [isSharing, setIsSharing] = useState(false);
+
+  const [isWaybillModalOpen, setIsWaybillModalOpen] = useState(false);
+  const [invoiceForWaybill, setInvoiceForWaybill] = useState<Invoice | null>(null);
 
   const getEligibleRecipients = (invoice: Invoice | null) => {
     if (!invoice) return [];
@@ -1082,6 +1087,20 @@ export default function InvoicesPage() {
                     )
                   )}
 
+                  {/* Generate Waybill Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setInvoiceForWaybill(invoiceDetails);
+                      setIsWaybillModalOpen(true);
+                    }}
+                    className="h-9 text-xs rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    <Truck className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>Waybill</span>
+                  </Button>
+
                   {/* Share Button */}
                   {(isAdmin || (user && invoiceDetails.creatorId === user.id)) && (
                     <Button
@@ -1562,6 +1581,13 @@ export default function InvoicesPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Generate Waybill Modal */}
+      <GenerateWaybillModal
+        isOpen={isWaybillModalOpen}
+        onClose={() => setIsWaybillModalOpen(false)}
+        invoice={invoiceForWaybill}
+      />
     </div>
   );
 }

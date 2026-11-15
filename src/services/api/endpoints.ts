@@ -19,6 +19,23 @@ export const API_ENDPOINTS = {
     SHARE: (id: string) => `/api/invoices/${id}/share`,
     REVOKE_SHARE: (id: string, targetUserId: string) => `/api/invoices/${id}/share/${targetUserId}`,
   },
+  QUOTATIONS: {
+    BASE: '/api/quotations',
+    DETAIL: (id: string) => `/api/quotations/${id}`,
+    CONVERT: (id: string) => `/api/quotations/${id}/convert`,
+    PDF: (id: string) => `/api/printing/quotation/${id}/pdf`,
+  },
+  WAYBILLS: {
+    BASE: '/api/waybills',
+    DETAIL: (id: string) => `/api/waybills/${id}`,
+    FROM_INVOICE: '/api/waybills/from-invoice',
+    PDF: (id: string) => `/api/printing/waybill/${id}/pdf`,
+  },
+  LETTERS: {
+    BASE: '/api/letters',
+    DETAIL: (id: string) => `/api/letters/${id}`,
+    PDF: (id: string) => `/api/printing/letter/${id}/pdf`,
+  },
   CUSTOMERS: {
     AUTOCOMPLETE: '/api/customers/autocomplete',
   },

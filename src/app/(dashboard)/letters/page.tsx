@@ -1,0 +1,363 @@
+'use client';
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { letterService } from '../../../services/letter.service';
+import { Letter, LetterStatus } from '../../../types/api';
+import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
+import { Card } from '../../../components/ui/card';
+import { Badge } from '../../../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../components/ui/dialog';
+import { Skeleton } from '../../../components/ui/skeleton';
+import { useModal } from '../../../components/ui/modal-provider';
+import {
+  Mail,
+  Plus,
+  Search,
+  Printer,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  Trash2,
+  Calendar,
+  User,
+  FileText,
+} from 'lucide-react';
+
+export default function LettersPage() {
+  const queryClient = useQueryClient();
+  const modal = useModal();
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [selectedLetter, setSelectedLetter] = useState<Letter | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['letters', page, search, statusFilter],
+    queryFn: () =>
+      letterService.list({
+        page,
+        limit: 15,
+        search: search.trim() || undefined,
+        status: statusFilter !== 'ALL' ? (statusFilter as LetterStatus) : undefined,
+      }),
+  });
+
+  const letters = data?.letters || [];
+  const pagination = data?.pagination || { total: 0, totalPages: 1, page: 1 };
+
+  const handlePrint = (letterId: string) => {
+    window.open(letterService.getPDFUrl(letterId), '_blank');
+  };
+
+  const handleDelete = async (letter: Letter) => {
+    const confirmed = await modal.confirm(
+      'Delete Letter',
+      `Are you sure you want to delete letter "${letter.title}" (${letter.letterNumber})?`
+    );
+    if (!confirmed) return;
+
+    try {
+      await letterService.delete(letter.id);
+      queryClient.invalidateQueries({ queryKey: ['letters'] });
+      setIsDetailOpen(false);
+      modal.alert('Deleted', 'Letter deleted successfully', 'success');
+    } catch (err: any) {
+      modal.alert('Error', err.response?.data?.message || 'Failed to delete letter', 'error');
+    }
+  };
+
+  const getStatusBadge = (status: LetterStatus) => {
+    switch (status) {
+      case 'FINALIZED':
+        return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs font-semibold">Finalized</Badge>;
+      case 'DRAFT':
+        return <Badge variant="outline" className="text-xs font-semibold">Draft</Badge>;
+      case 'ARCHIVED':
+        return <Badge className="bg-muted text-muted-foreground text-xs font-semibold">Archived</Badge>;
+      default:
+        return <Badge variant="outline" className="text-xs">{status}</Badge>;
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center space-x-2.5">
+          <div className="p-2 bg-indigo-500/10 text-indigo-600 rounded-xl">
+            <Mail className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Official Letters & Correspondence</h1>
+            <p className="text-sm text-muted-foreground">
+              Draft formal business letters formatted directly onto your organization letterhead
+            </p>
+          </div>
+        </div>
+
+        <Link href="/letters/new">
+          <Button className="rounded-xl font-semibold bg-primary text-primary-foreground shadow-sm hover:opacity-90 cursor-pointer">
+            <Plus className="h-4 w-4 mr-1.5" />
+            <span>Compose Letter</span>
+          </Button>
+        </Link>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <Card className="p-4 rounded-2xl border-border bg-card shadow-sm">
+        <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
+          <div className="relative w-full md:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Search by title, ref #, recipient..."
+              className="pl-9 h-10 rounded-xl text-sm"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+            {['ALL', 'DRAFT', 'FINALIZED'].map((st) => (
+              <Button
+                key={st}
+                size="sm"
+                variant={statusFilter === st ? 'default' : 'outline'}
+                onClick={() => {
+                  setStatusFilter(st);
+                  setPage(1);
+                }}
+                className="rounded-xl text-xs font-semibold h-8 cursor-pointer"
+              >
+                {st === 'ALL' ? 'All' : st.charAt(0) + st.slice(1).toLowerCase()}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {/* Letters Table */}
+      <Card className="rounded-2xl border-border overflow-hidden bg-card shadow-sm">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-secondary/40">
+              <TableRow>
+                <TableHead className="font-bold text-xs">Letter #</TableHead>
+                <TableHead className="font-bold text-xs">Subject / Title</TableHead>
+                <TableHead className="font-bold text-xs">Recipient</TableHead>
+                <TableHead className="font-bold text-xs">Our Ref</TableHead>
+                <TableHead className="font-bold text-xs">Date</TableHead>
+                <TableHead className="font-bold text-xs">Status</TableHead>
+                <TableHead className="text-right font-bold text-xs">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                  </TableRow>
+                ))
+              ) : letters.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-48 text-center text-muted-foreground">
+                    <Mail className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p className="font-medium text-sm">No official letters composed yet</p>
+                    <p className="text-xs text-muted-foreground/80 mt-1">
+                      Click &quot;Compose Letter&quot; above to type a document in the letterhead environment.
+                    </p>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                letters.map((ltr) => (
+                  <TableRow key={ltr.id} className="hover:bg-secondary/20 transition-colors">
+                    <TableCell className="font-bold text-xs text-primary">
+                      {ltr.letterNumber}
+                    </TableCell>
+                    <TableCell className="text-xs font-semibold text-foreground max-w-xs truncate">
+                      {ltr.title}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {ltr.recipientName || 'Unspecified'}
+                    </TableCell>
+                    <TableCell className="text-xs font-mono text-[11px] text-muted-foreground">
+                      {ltr.ourRef || '-'}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {new Date(ltr.date).toLocaleDateString('en-GB')}
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(ltr.status)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end space-x-1.5">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedLetter(ltr);
+                            setIsDetailOpen(true);
+                          }}
+                          className="h-8 w-8 p-0 rounded-lg cursor-pointer"
+                          title="View Letter"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePrint(ltr.id)}
+                          className="h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-indigo-500/10 hover:text-indigo-600"
+                          title="Print on Letterhead"
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                          <span>Print</span>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between p-4 border-t border-border">
+            <span className="text-xs text-muted-foreground">
+              Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
+            </span>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="h-8 rounded-lg text-xs"
+              >
+                <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                disabled={page >= pagination.totalPages}
+                className="h-8 rounded-lg text-xs"
+              >
+                Next
+                <ChevronRight className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* Letter Details / Preview Dialog */}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="w-[96vw] max-w-3xl max-h-[85vh] overflow-y-auto p-5 rounded-2xl">
+          {selectedLetter && (
+            <div className="space-y-4">
+              <DialogHeader className="border-b border-border/80 pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="p-2 bg-indigo-500/10 text-indigo-600 rounded-xl">
+                      <Mail className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-lg font-bold">{selectedLetter.title}</DialogTitle>
+                      <DialogDescription className="text-xs text-muted-foreground">
+                        Document #{selectedLetter.letterNumber} • {new Date(selectedLetter.date).toLocaleDateString('en-GB')}
+                      </DialogDescription>
+                    </div>
+                  </div>
+                  <div>{getStatusBadge(selectedLetter.status)}</div>
+                </div>
+              </DialogHeader>
+
+              {/* References Sub-bar */}
+              <div className="grid grid-cols-3 gap-2 bg-secondary/30 p-2.5 rounded-xl text-xs border border-border/70">
+                <div>
+                  <span className="text-muted-foreground text-[11px] block">Our Ref:</span>
+                  <span className="font-semibold text-foreground">{selectedLetter.ourRef || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-[11px] block">Your Ref:</span>
+                  <span className="font-semibold text-foreground">{selectedLetter.yourRef || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-[11px] block">Recipient:</span>
+                  <span className="font-semibold text-foreground">{selectedLetter.recipientName || 'N/A'}</span>
+                </div>
+              </div>
+
+              {/* Letter Preview Sheet Box */}
+              <div className="p-6 bg-card border border-border rounded-xl shadow-inner space-y-4 text-xs leading-relaxed font-serif">
+                {selectedLetter.recipientAddress && (
+                  <div className="text-muted-foreground whitespace-pre-line font-sans text-xs">
+                    {selectedLetter.recipientAddress}
+                  </div>
+                )}
+                <div className="font-bold text-sm uppercase text-foreground border-b border-border pb-1">
+                  RE: {selectedLetter.title}
+                </div>
+                <div className="text-foreground whitespace-pre-line text-sm leading-6">
+                  {selectedLetter.body}
+                </div>
+                <div className="pt-4 space-y-1 font-sans text-xs">
+                  <div className="text-muted-foreground">Yours faithfully,</div>
+                  <div className="font-bold text-foreground text-sm pt-4">
+                    {selectedLetter.signatoryName || `${selectedLetter.creator?.firstName || ''} ${selectedLetter.creator?.lastName || ''}`.trim()}
+                  </div>
+                  {selectedLetter.signatoryTitle && (
+                    <div className="text-muted-foreground italic">{selectedLetter.signatoryTitle}</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="border-t border-border/80 pt-3 flex items-center justify-between">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDelete(selectedLetter)}
+                  className="rounded-xl h-9 text-xs cursor-pointer"
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  <span>Delete</span>
+                </Button>
+                <div className="flex items-center space-x-2">
+                  <Button variant="outline" size="sm" onClick={() => setIsDetailOpen(false)} className="rounded-xl h-9 text-xs">
+                    Close
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handlePrint(selectedLetter.id)}
+                    className="rounded-xl h-9 text-xs bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
+                  >
+                    <Printer className="h-3.5 w-3.5 mr-1.5" />
+                    <span>Print Letterhead PDF</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

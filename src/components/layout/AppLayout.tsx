@@ -35,6 +35,9 @@ import {
   Loader2,
   Lock,
   Store,
+  Truck,
+  FileSpreadsheet,
+  Mail,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
@@ -313,6 +316,9 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       : [
           { href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' },
           { href: '/invoices', icon: <FileText className="h-5 w-5" />, label: 'Invoices' },
+          { href: '/quotations', icon: <FileSpreadsheet className="h-5 w-5" />, label: 'Quotations' },
+          { href: '/waybills', icon: <Truck className="h-5 w-5" />, label: 'Waybills' },
+          { href: '/letters', icon: <Mail className="h-5 w-5" />, label: 'Letters' },
           { href: '/reports', icon: <BarChart3 className="h-5 w-5" />, label: 'Reports' },
           { href: '/approvals', icon: <CheckSquare className="h-5 w-5" />, label: 'Approvals' },
           ...(isAdminOrSuper
