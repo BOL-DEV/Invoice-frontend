@@ -4,11 +4,24 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../components/ui/dialog';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
+import { Badge } from '../../../components/ui/badge';
 import { Invoice } from '../../../types/api';
 import { waybillService } from '../../../services/waybill.service';
+import { apiClient } from '../../../services/api/axios';
 import { useModal } from '../../../components/ui/modal-provider';
-import { Truck, Loader2, Calendar, User, Phone, MapPin, Hash, Check } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import {
+  Truck,
+  Loader2,
+  Calendar,
+  User,
+  Phone,
+  MapPin,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Package,
+  FileText,
+} from 'lucide-react';
 
 interface GenerateWaybillModalProps {
   isOpen: boolean;
@@ -24,7 +37,6 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
   onSuccess,
 }) => {
   const modal = useModal();
-  const router = useRouter();
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -40,31 +52,55 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
   const [items, setItems] = useState<
     { position: number; description: string; quantity: number; unit?: string | null }[]
   >([]);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
 
   useEffect(() => {
-    if (invoice) {
-      setCustomerName(invoice.customerName || '');
-      setCustomerPhone(invoice.customerPhone || '');
-      setDeliveryAddress('');
-      setDriverName('');
-      setDriverPhone('');
-      setLorryNumber('');
-      setDeliveredBy(invoice.creator ? `${invoice.creator.firstName} ${invoice.creator.lastName}`.trim() : '');
-      setReceivedBy('');
-      setLpoNumber('');
-      setDispatchDate(new Date().toISOString().split('T')[0]);
-      setNotes('');
+    if (!isOpen || !invoice) return;
+
+    setCustomerName(invoice.customerName || '');
+    setCustomerPhone(invoice.customerPhone || '');
+    setDeliveryAddress('');
+    setDriverName('');
+    setDriverPhone('');
+    setLorryNumber('');
+    setDeliveredBy(invoice.creator ? `${invoice.creator.firstName || ''} ${invoice.creator.lastName || ''}`.trim() : '');
+    setReceivedBy('');
+    setLpoNumber('');
+    setDispatchDate(new Date().toISOString().split('T')[0]);
+    setNotes('');
+
+    const populateItems = (sourceItems: any[]) => {
       setItems(
-        (invoice.items || []).map((it: any) => ({
-          position: it.position,
+        sourceItems.map((it: any, idx: number) => ({
+          position: it.position ?? idx + 1,
           description: it.description,
-          quantity: Number(it.quantity),
-          unit: it.weight ? `${it.weight} kg` : null,
+          quantity: Number(it.quantity) || 1,
+          unit: it.metrics || (it.weight ? `${it.weight} kg` : null),
         }))
       );
+    };
+
+    if (invoice.items && invoice.items.length > 0) {
+      populateItems(invoice.items);
+    } else {
+      setIsLoadingDetails(true);
+      apiClient
+        .get<Invoice>(`/invoices/${invoice.id}`)
+        .then((res) => {
+          if (res.data?.items && res.data.items.length > 0) {
+            populateItems(res.data.items);
+          }
+        })
+        .catch((err) => {
+          console.warn('Failed to fetch invoice details for waybill items:', err);
+        })
+        .finally(() => {
+          setIsLoadingDetails(false);
+        });
     }
-  }, [invoice]);
+  }, [isOpen, invoice]);
 
   const handleItemQtyChange = (index: number, newQty: number) => {
     setItems((prev) => {
@@ -125,182 +161,269 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[96vw] max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
-        <DialogHeader className="border-b border-border/80 pb-3">
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-xl">
-              <Truck className="h-5 w-5" />
-            </div>
-            <div>
-              <DialogTitle className="text-lg font-bold">Generate Waybill / Delivery Note</DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
-                Originating from Invoice #{invoice?.invoiceNumber}. All prices will be stripped for transport.
-              </DialogDescription>
+      <DialogContent className="w-[94vw] sm:max-w-3xl lg:max-w-4xl max-h-[92vh] overflow-y-auto p-5 sm:p-8 rounded-3xl border-border bg-card shadow-2xl">
+        {/* Header */}
+        <DialogHeader className="border-b border-border/70 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-2xl shrink-0">
+                <Truck className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
+                    Generate Waybill
+                  </DialogTitle>
+                  {invoice?.invoiceNumber && (
+                    <Badge variant="outline" className="font-mono text-xs border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5">
+                      Invoice #{invoice.invoiceNumber}
+                    </Badge>
+                  )}
+                </div>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  Official goods dispatch note. Prices and invoice totals are stripped for logistics.
+                </DialogDescription>
+              </div>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
-          {/* Customer & Address Details */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">Customer Name</label>
-              <Input
-                value={customerName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomerName(e.target.value)}
-                placeholder="Client Name"
-                className="mt-1 h-9 rounded-xl text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">Customer Phone</label>
-              <Input
-                value={customerPhone}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomerPhone(e.target.value)}
-                placeholder="Phone Number"
-                className="mt-1 h-9 rounded-xl text-sm"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="text-xs font-semibold text-muted-foreground">Delivery Site / Destination Address</label>
-              <Input
-                value={deliveryAddress}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeliveryAddress(e.target.value)}
-                placeholder="e.g. Plot 12 Victoria Island Construction Site"
-                className="mt-1 h-9 rounded-xl text-sm"
-              />
+        {/* Modal Form Body */}
+        <div className="space-y-6 py-4">
+          {/* Section 1: Customer & Destination */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <MapPin className="h-4 w-4 text-emerald-500" />
+              <span>Delivery Destination</span>
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground">Customer / Company Name *</label>
+                <Input
+                  value={customerName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomerName(e.target.value)}
+                  placeholder="e.g. Dangote Construction Ltd"
+                  className="mt-1 h-10 rounded-xl text-sm"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground">Customer Phone (Optional)</label>
+                <Input
+                  value={customerPhone}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomerPhone(e.target.value)}
+                  placeholder="e.g. 08034071931"
+                  className="mt-1 h-10 rounded-xl text-sm"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="text-xs font-semibold text-muted-foreground">Delivery Site / Destination Address</label>
+                <Input
+                  value={deliveryAddress}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeliveryAddress(e.target.value)}
+                  placeholder="e.g. Plot 12 Victoria Island Construction Site, Lagos"
+                  className="mt-1 h-10 rounded-xl text-sm"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Logistics, Driver & Vehicle Info */}
-          <div className="p-3 bg-secondary/40 rounded-xl border border-border/70 space-y-3">
+          {/* Section 2: Driver & Transport Details */}
+          <div className="p-4 sm:p-5 bg-secondary/30 rounded-2xl border border-border/80 space-y-4">
             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Truck className="h-3.5 w-3.5 text-primary" />
-              <span>Logistics & Transport Dispatch</span>
+              <Truck className="h-4 w-4 text-emerald-500" />
+              <span>Driver & Transport Logistics</span>
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Driver Name</label>
+                <label className="text-xs font-semibold text-muted-foreground">Driver Name</label>
                 <Input
                   value={driverName}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDriverName(e.target.value)}
-                  placeholder="e.g. Kazeem"
-                  className="mt-0.5 h-8 rounded-lg text-xs"
+                  placeholder="e.g. Kazeem Bello"
+                  className="mt-1 h-10 rounded-xl text-sm bg-card"
                 />
               </div>
+
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Driver Phone</label>
+                <label className="text-xs font-semibold text-muted-foreground">Driver Phone Number</label>
                 <Input
                   value={driverPhone}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDriverPhone(e.target.value)}
-                  placeholder="Driver Phone"
-                  className="mt-0.5 h-8 rounded-lg text-xs"
+                  placeholder="e.g. 08023456789"
+                  className="mt-1 h-10 rounded-xl text-sm bg-card"
                 />
               </div>
+
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Vehicle / Lorry No.</label>
+                <label className="text-xs font-semibold text-muted-foreground">Vehicle / Lorry Registration No.</label>
                 <Input
                   value={lorryNumber}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLorryNumber(e.target.value)}
                   placeholder="e.g. PUR-591-XB"
-                  className="mt-0.5 h-8 rounded-lg text-xs"
+                  className="mt-1 h-10 rounded-xl text-sm bg-card font-mono"
                 />
               </div>
+
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Delivered By (Staff)</label>
-                <Input
-                  value={deliveredBy}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeliveredBy(e.target.value)}
-                  placeholder="e.g. Sherif"
-                  className="mt-0.5 h-8 rounded-lg text-xs"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">LPO Number (Optional)</label>
-                <Input
-                  value={lpoNumber}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLpoNumber(e.target.value)}
-                  placeholder="e.g. LPO-892"
-                  className="mt-0.5 h-8 rounded-lg text-xs"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Dispatch Date</label>
+                <label className="text-xs font-semibold text-muted-foreground">Dispatch Date</label>
                 <Input
                   type="date"
                   value={dispatchDate}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDispatchDate(e.target.value)}
-                  className="mt-0.5 h-8 rounded-lg text-xs"
+                  className="mt-1 h-10 rounded-xl text-sm bg-card"
                 />
               </div>
             </div>
           </div>
 
-          {/* Items Checklist for Waybill */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Goods to Dispatch (No Prices Displayed)
-              </label>
-              <span className="text-[11px] text-muted-foreground">Adjust quantities for partial deliveries</span>
+          {/* Section 3: Goods Checklist */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Package className="h-4 w-4 text-emerald-500" />
+                <span>Goods to Dispatch</span>
+              </h4>
+              <span className="text-[11px] text-muted-foreground">
+                Adjust quantities for partial deliveries (all prices excluded)
+              </span>
             </div>
 
-            <div className="border border-border rounded-xl overflow-hidden divide-y divide-border">
-              {items.map((item, idx) => (
-                <div key={idx} className="p-2.5 flex items-center justify-between bg-card text-xs">
-                  <div className="flex-1 pr-3">
-                    <span className="font-semibold text-foreground">{item.description}</span>
+            {isLoadingDetails ? (
+              <div className="p-8 text-center bg-secondary/20 rounded-2xl border border-border">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto text-emerald-500" />
+                <p className="text-xs text-muted-foreground mt-2 font-medium">Loading items from invoice...</p>
+              </div>
+            ) : items.length === 0 ? (
+              <div className="p-6 text-center bg-secondary/20 rounded-2xl border border-border text-xs text-muted-foreground">
+                No items found on this invoice.
+              </div>
+            ) : (
+              <div className="border border-border/80 rounded-2xl overflow-hidden divide-y divide-border bg-card shadow-sm">
+                {items.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-secondary/20 transition-colors"
+                  >
+                    <div className="flex items-start space-x-3 flex-1 min-w-0">
+                      <span className="text-xs font-mono font-bold text-muted-foreground shrink-0 w-6 pt-0.5">
+                        #{idx + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm text-foreground leading-snug break-words">
+                          {item.description}
+                        </p>
+                        {item.unit && (
+                          <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                            Unit / Spec: {item.unit}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 self-end sm:self-center shrink-0">
+                      <span className="text-xs font-semibold text-muted-foreground">Qty:</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={item.quantity}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleItemQtyChange(idx, parseFloat(e.target.value) || 0)
+                        }
+                        className="w-24 h-9 text-sm text-center font-bold rounded-xl border-border bg-background"
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-muted-foreground text-[11px]">Qty:</span>
-                    <Input
-                      type="number"
-                      step="any"
-                      value={item.quantity}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                        handleItemQtyChange(idx, parseFloat(e.target.value) || 0)
-                      }
-                      className="w-20 h-7 text-xs text-center rounded-lg"
-                    />
-                    {item.unit && <span className="text-[11px] text-muted-foreground">{item.unit}</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Notes */}
-          <div>
-            <label className="text-xs font-semibold text-muted-foreground">Dispatch Remarks / Notes</label>
-            <Input
-              value={notes}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNotes(e.target.value)}
-              placeholder="e.g. Delivered on 10-wheeler trailer, gate pass attached"
-              className="mt-1 h-8 rounded-xl text-xs"
-            />
+          {/* Section 4: Collapsible Additional Details */}
+          <div className="border border-border/80 rounded-2xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowAdditionalDetails((prev) => !prev)}
+              className="w-full p-3.5 bg-secondary/20 hover:bg-secondary/40 text-left flex items-center justify-between text-xs font-semibold text-muted-foreground transition-colors cursor-pointer"
+            >
+              <div className="flex items-center space-x-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span>Additional Remarks & LPO (Optional)</span>
+              </div>
+              {showAdditionalDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+
+            {showAdditionalDetails && (
+              <div className="p-4 sm:p-5 bg-card space-y-4 border-t border-border/80">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground">Delivered By (Staff Name)</label>
+                    <Input
+                      value={deliveredBy}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeliveredBy(e.target.value)}
+                      placeholder="e.g. Warehouse Officer / Abdulakeem"
+                      className="mt-1 h-9 rounded-xl text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground">LPO / Order Number</label>
+                    <Input
+                      value={lpoNumber}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLpoNumber(e.target.value)}
+                      placeholder="e.g. LPO-892"
+                      className="mt-1 h-9 rounded-xl text-sm font-mono"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-semibold text-muted-foreground">Dispatch Remarks / Notes</label>
+                    <Input
+                      value={notes}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNotes(e.target.value)}
+                      placeholder="e.g. Delivered on 10-wheeler trailer, gate pass attached"
+                      className="mt-1 h-9 rounded-xl text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="border-t border-border/80 pt-3 flex items-center justify-end space-x-2">
-          <Button variant="outline" size="sm" onClick={onClose} disabled={isSubmitting} className="rounded-xl h-9">
+        <div className="border-t border-border/80 pt-4 flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="w-full sm:w-auto rounded-xl h-10 px-5 text-xs font-semibold cursor-pointer"
+          >
             Cancel
           </Button>
+
           <Button
+            type="button"
             variant="secondary"
-            size="sm"
             onClick={() => handleSubmit(false)}
             disabled={isSubmitting}
-            className="rounded-xl h-9 cursor-pointer"
+            className="w-full sm:w-auto rounded-xl h-10 px-5 text-xs font-semibold cursor-pointer"
           >
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Check className="h-4 w-4 mr-1.5" />}
             <span>Save Waybill</span>
           </Button>
+
           <Button
-            size="sm"
+            type="button"
             onClick={() => handleSubmit(true)}
             disabled={isSubmitting}
-            className="rounded-xl h-9 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+            className="w-full sm:w-auto rounded-xl h-10 px-5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer"
           >
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Truck className="h-4 w-4 mr-1.5" />}
             <span>Generate & Print Waybill</span>

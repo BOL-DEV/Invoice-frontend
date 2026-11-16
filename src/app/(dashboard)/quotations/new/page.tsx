@@ -35,9 +35,6 @@ export default function NewQuotationPage() {
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
-  const [customerAddress, setCustomerAddress] = useState('');
-  const [validUntil, setValidUntil] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -104,9 +101,6 @@ export default function NewQuotationPage() {
       const quotation = await quotationService.create({
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim() || null,
-        customerEmail: customerEmail.trim() || null,
-        customerAddress: customerAddress.trim() || null,
-        validUntil: validUntil ? new Date(validUntil).toISOString() : null,
         notes: notes.trim() || null,
         subtotal,
         total: grandTotal,
@@ -169,7 +163,7 @@ export default function NewQuotationPage() {
         <Card className="p-5 rounded-2xl border-border bg-card shadow-sm space-y-4">
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
             <User className="h-4 w-4 text-primary" />
-            <span>Customer & Validity Information</span>
+            <span>Customer Information</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -184,39 +178,11 @@ export default function NewQuotationPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-muted-foreground">Phone Number</label>
+              <label className="text-xs font-semibold text-muted-foreground">Phone Number (Optional)</label>
               <Input
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 placeholder="e.g. 08034071931"
-                className="mt-1 h-9 rounded-xl text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">Email Address</label>
-              <Input
-                type="email"
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
-                placeholder="e.g. procurement@company.com"
-                className="mt-1 h-9 rounded-xl text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">Valid Until Date</label>
-              <Input
-                type="date"
-                value={validUntil}
-                onChange={(e) => setValidUntil(e.target.value)}
-                className="mt-1 h-9 rounded-xl text-sm"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="text-xs font-semibold text-muted-foreground">Customer Address</label>
-              <Input
-                value={customerAddress}
-                onChange={(e) => setCustomerAddress(e.target.value)}
-                placeholder="e.g. Plot 15 Commercial District, Lagos"
                 className="mt-1 h-9 rounded-xl text-sm"
               />
             </div>

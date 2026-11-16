@@ -175,7 +175,7 @@ export default function QuotationsPage() {
           </div>
 
           <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-            {['ALL', 'DRAFT', 'SENT', 'ACCEPTED', 'CONVERTED'].map((st) => (
+            {['ALL', 'DRAFT', 'CONVERTED'].map((st) => (
               <Button
                 key={st}
                 size="sm"
