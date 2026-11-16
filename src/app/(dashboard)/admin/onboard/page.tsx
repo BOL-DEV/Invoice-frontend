@@ -131,9 +131,23 @@ export default function OnboardBusinessPage() {
   const [receiptPrefix, setReceiptPrefix] = useState('INV');
   const [tagline, setTagline] = useState('');
 
-  // Invoice Template State (Modern Corporate Universal Default or Custom PDFKit Script)
+  // Document Template & Prefix States
   const [receiptTemplateId, setReceiptTemplateId] = useState<'classic' | 'modern' | 'custom'>('modern');
   const [customTemplateUrl, setCustomTemplateUrl] = useState<string>('');
+
+  const [quotationPrefix, setQuotationPrefix] = useState('QUO');
+  const [quotationTemplateId, setQuotationTemplateId] = useState<'classic' | 'modern' | 'custom'>('modern');
+  const [customQuotationTemplateUrl, setCustomQuotationTemplateUrl] = useState<string>('');
+
+  const [waybillPrefix, setWaybillPrefix] = useState('WAY');
+  const [waybillTemplateId, setWaybillTemplateId] = useState<'classic' | 'modern' | 'custom'>('modern');
+  const [customWaybillTemplateUrl, setCustomWaybillTemplateUrl] = useState<string>('');
+
+  const [letterPrefix, setLetterPrefix] = useState('LTR');
+  const [letterTemplateId, setLetterTemplateId] = useState<'classic' | 'modern' | 'custom'>('modern');
+  const [customLetterTemplateUrl, setCustomLetterTemplateUrl] = useState<string>('');
+
+  const [onboardDocTab, setOnboardDocTab] = useState<'invoice' | 'quotation' | 'waybill' | 'letter'>('invoice');
 
   // Domains State (Live custom domain / Bolxolve subdomain, Dev domain businessname.localhost)
   const [customDomain, setCustomDomain] = useState('');
@@ -190,7 +204,14 @@ export default function OnboardBusinessPage() {
         setCustomDomain('');
       }
       setDevDomain(`${generatedSlug}.localhost`);
-      if (receiptPrefix === 'INV' || receiptPrefix === slug.slice(0, 3).toUpperCase()) {
+      const isLao = generatedSlug.includes('lao-steel') || name.toLowerCase().includes('lao steel');
+      if (isLao) {
+        setReceiptPrefix('LSV');
+        setReceiptTemplateId('classic');
+        setQuotationTemplateId('classic');
+        setWaybillTemplateId('classic');
+        setLetterTemplateId('classic');
+      } else if (receiptPrefix === 'INV' || receiptPrefix === slug.slice(0, 3).toUpperCase()) {
         const prefix = generatedSlug.replace(/[^a-z]/g, '').slice(0, 3).toUpperCase() || 'INV';
         setReceiptPrefix(prefix);
       }
@@ -277,6 +298,15 @@ export default function OnboardBusinessPage() {
         receiptPrefix: receiptPrefix.trim().toUpperCase(),
         receiptTemplateId,
         customTemplateUrl: receiptTemplateId === 'custom' ? (customTemplateUrl.trim() || null) : null,
+        quotationPrefix: quotationPrefix.trim().toUpperCase(),
+        quotationTemplateId,
+        customQuotationTemplateUrl: quotationTemplateId === 'custom' ? (customQuotationTemplateUrl.trim() || null) : null,
+        waybillPrefix: waybillPrefix.trim().toUpperCase(),
+        waybillTemplateId,
+        customWaybillTemplateUrl: waybillTemplateId === 'custom' ? (customWaybillTemplateUrl.trim() || null) : null,
+        letterPrefix: letterPrefix.trim().toUpperCase(),
+        letterTemplateId,
+        customLetterTemplateUrl: letterTemplateId === 'custom' ? (customLetterTemplateUrl.trim() || null) : null,
         tagline: tagline.trim() || null,
         plan,
         billingMode,
@@ -649,25 +679,53 @@ export default function OnboardBusinessPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2 border-t border-border/70">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t border-border/70">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground">Receipt Numbering Prefix</Label>
+                <Label className="text-xs font-bold text-foreground">Invoice Prefix</Label>
                 <Input
                   value={receiptPrefix}
                   onChange={(e) => setReceiptPrefix(e.target.value.toUpperCase())}
                   placeholder="e.g. INV"
-                  className="h-11 rounded-xl text-sm font-mono uppercase px-4 bg-background border-border"
+                  className="h-10 rounded-xl text-xs font-mono uppercase px-3 bg-background border-border"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground">Motto / Tagline</Label>
+                <Label className="text-xs font-bold text-foreground">Quotation Prefix</Label>
                 <Input
-                  value={tagline}
-                  onChange={(e) => setTagline(e.target.value)}
-                  placeholder="e.g. Premium Industrial & Commercial Solutions"
-                  className="h-11 rounded-xl text-sm px-4 bg-background border-border"
+                  value={quotationPrefix}
+                  onChange={(e) => setQuotationPrefix(e.target.value.toUpperCase())}
+                  placeholder="e.g. QUO"
+                  className="h-10 rounded-xl text-xs font-mono uppercase px-3 bg-background border-border"
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">Waybill Prefix</Label>
+                <Input
+                  value={waybillPrefix}
+                  onChange={(e) => setWaybillPrefix(e.target.value.toUpperCase())}
+                  placeholder="e.g. WAY"
+                  className="h-10 rounded-xl text-xs font-mono uppercase px-3 bg-background border-border"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">Letter Prefix</Label>
+                <Input
+                  value={letterPrefix}
+                  onChange={(e) => setLetterPrefix(e.target.value.toUpperCase())}
+                  placeholder="e.g. LTR"
+                  className="h-10 rounded-xl text-xs font-mono uppercase px-3 bg-background border-border"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5 pt-2">
+              <Label className="text-xs font-bold text-foreground">Motto / Tagline</Label>
+              <Input
+                value={tagline}
+                onChange={(e) => setTagline(e.target.value)}
+                placeholder="e.g. Premium Industrial & Commercial Solutions"
+                className="h-11 rounded-xl text-sm px-4 bg-background border-border"
+              />
             </div>
           </CardContent>
         </Card>
@@ -836,7 +894,7 @@ export default function OnboardBusinessPage() {
         )}
 
         {/* ========================================================= */}
-        {/* SECTION 4: PRINTABLE INVOICE & RECEIPT TEMPLATE (OPTIONAL) */}
+        {/* SECTION 4: MULTI-DOCUMENT PRINTING & TEMPLATE STUDIO      */}
         {/* ========================================================= */}
         <Card className="rounded-3xl border-border bg-card shadow-sm overflow-hidden">
           <CardHeader className="bg-secondary/20 border-b border-border/80 p-6 sm:p-8">
@@ -846,16 +904,53 @@ export default function OnboardBusinessPage() {
               </div>
               <div>
                 <CardTitle className="text-lg sm:text-xl font-bold font-heading text-foreground">
-                  Invoice & Receipt Template Design
+                  Document Printing &amp; Template Studio
                 </CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
-                  Choose from built-in receipts or upload a bespoke template. (Optional — can also be set or changed later).
+                  Configure PDF layouts, numbering prefixes, and custom scripts across all document types (Invoice, Quotation, Waybill, Letterhead).
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
 
           <CardContent className="p-6 sm:p-8 space-y-6">
+            {/* Document Sub-Tab Switcher */}
+            <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-secondary/40 border border-border/60">
+              {[
+                { id: 'invoice' as const, label: 'Invoices & Receipts', icon: FileText, badge: receiptTemplateId },
+                { id: 'quotation' as const, label: 'Quotations', icon: Sparkles, badge: quotationTemplateId },
+                { id: 'waybill' as const, label: 'Waybills', icon: Tag, badge: waybillTemplateId },
+                { id: 'letter' as const, label: 'Official Letterhead', icon: Mail, badge: letterTemplateId },
+              ].map((tab) => {
+                const isActive = onboardDocTab === tab.id;
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setOnboardDocTab(tab.id)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-background text-foreground shadow-sm border border-border/80 font-bold'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    <span>{tab.label}</span>
+                    <Badge className={`text-[9px] px-1.5 py-0 capitalize ${
+                      tab.badge === 'classic'
+                        ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30'
+                        : tab.badge === 'custom'
+                        ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+                        : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                    }`}>
+                      {tab.badge}
+                    </Badge>
+                  </button>
+                );
+              })}
+            </div>
+
             {(() => {
               const isLaoSteel = Boolean(
                 businessName?.toLowerCase().includes('lao steel') ||
@@ -863,45 +958,130 @@ export default function OnboardBusinessPage() {
                 receiptPrefix?.toUpperCase() === 'LSV'
               );
 
+              const activeDocConfig = {
+                invoice: {
+                  title: 'Tax Invoice & Receipt Template',
+                  prefix: receiptPrefix,
+                  setPrefix: (val: string) => setReceiptPrefix(val.toUpperCase()),
+                  prefixLabel: 'Invoice Prefix',
+                  prefixPlaceholder: 'e.g. INV',
+                  templateId: receiptTemplateId,
+                  setTemplateId: setReceiptTemplateId,
+                  customScript: customTemplateUrl,
+                  setCustomScript: setCustomTemplateUrl,
+                  classicName: 'Lao Steel Bespoke Ledger',
+                  classicDesc: 'Dual green company borders, circular globe emblem, LSV watermark, and trade guarantee terms.',
+                  modernName: 'Modern Corporate Executive',
+                  modernDesc: 'Minimalist corporate layout with modern typography, charge breakdowns, and digital verification.',
+                },
+                quotation: {
+                  title: 'Commercial Quotation Template',
+                  prefix: quotationPrefix,
+                  setPrefix: (val: string) => setQuotationPrefix(val.toUpperCase()),
+                  prefixLabel: 'Quotation Prefix',
+                  prefixPlaceholder: 'e.g. QUO',
+                  templateId: quotationTemplateId,
+                  setTemplateId: setQuotationTemplateId,
+                  customScript: customQuotationTemplateUrl,
+                  setCustomScript: setCustomQuotationTemplateUrl,
+                  classicName: 'Lao Steel Quotation Banner',
+                  classicDesc: 'LSV globe header with dedicated "QUOTATION" banner, validity dates, itemized rate table, and company terms.',
+                  modernName: 'Modern Corporate Quotation',
+                  modernDesc: 'Clean corporate quotation with estimates, itemized pricing, subtotal, and validity terms.',
+                },
+                waybill: {
+                  title: 'Logistics Waybill / Delivery Note Template',
+                  prefix: waybillPrefix,
+                  setPrefix: (val: string) => setWaybillPrefix(val.toUpperCase()),
+                  prefixLabel: 'Waybill Prefix',
+                  prefixPlaceholder: 'e.g. WAY',
+                  templateId: waybillTemplateId,
+                  setTemplateId: setWaybillTemplateId,
+                  customScript: customWaybillTemplateUrl,
+                  setCustomScript: setCustomWaybillTemplateUrl,
+                  classicName: 'Lao Steel Dispatch Waybill',
+                  classicDesc: 'Zero prices displayed. Full dispatch delivery sign-off box (Received by, Delivered by, Driver Name, Lorry No, Stamp).',
+                  modernName: 'Modern Corporate Delivery Note',
+                  modernDesc: 'Priceless delivery document with item descriptions, dispatched quantities, and transfer-of-custody signatures.',
+                },
+                letter: {
+                  title: 'Official Letterhead Template',
+                  prefix: letterPrefix,
+                  setPrefix: (val: string) => setLetterPrefix(val.toUpperCase()),
+                  prefixLabel: 'Letter Reference Prefix',
+                  prefixPlaceholder: 'e.g. LTR',
+                  templateId: letterTemplateId,
+                  setTemplateId: setLetterTemplateId,
+                  customScript: customLetterTemplateUrl,
+                  setCustomScript: setCustomLetterTemplateUrl,
+                  classicName: 'Lao Steel Executive Letterhead',
+                  classicDesc: 'Full Lao Steel vector branding, circular globe badge, green inner-border rule, and executive signatory sign-off.',
+                  modernName: 'Modern Corporate Letterhead',
+                  modernDesc: 'Clean corporate letterhead with company logo, references (Our Ref / Your Ref), date, and signatory.',
+                },
+              }[onboardDocTab];
+
               const templateOptions = isLaoSteel
                 ? [
                     {
                       id: 'classic' as const,
-                      name: 'Lao Steel Bespoke Ledger',
+                      name: activeDocConfig.classicName,
                       badge: 'Dedicated Bespoke',
-                      desc: 'Dual company ledger dark-green border, centered header with circular green emblem, LSV watermark across itemized rebar specifications table, and guarantee disclaimer.',
+                      desc: activeDocConfig.classicDesc,
                     },
                     {
                       id: 'custom' as const,
                       name: 'Custom PDFKit Code',
                       badge: 'External AI Engine',
-                      desc: 'Full programmatic PDFKit code generated from client invoice image using Claude or ChatGPT.',
+                      desc: 'Full programmatic PDFKit code generated specifically for this document type using Claude or ChatGPT.',
                     },
                   ]
                 : [
                     {
                       id: 'modern' as const,
-                      name: 'Modern Corporate Executive',
+                      name: activeDocConfig.modernName,
                       badge: 'Universal Default',
-                      desc: 'Sleek minimalist executive design with modern typography, itemized charge breakdown, and structured digital verification.',
+                      desc: activeDocConfig.modernDesc,
                     },
                     {
                       id: 'custom' as const,
                       name: 'Custom PDFKit Code',
                       badge: 'External AI Engine',
-                      desc: 'Full programmatic PDFKit code generated from client invoice image using Claude or ChatGPT.',
+                      desc: 'Full programmatic PDFKit code generated specifically for this document type using Claude or ChatGPT.',
                     },
                   ];
 
               return (
-                <div className="space-y-6">
+                <div className="space-y-6 animate-in fade-in duration-200">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 pb-3 border-b border-border/60">
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground font-heading">
+                        {activeDocConfig.title}
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        Configure layout mode and prefix for this specific document type.
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Label className="text-xs font-bold text-foreground whitespace-nowrap">
+                        {activeDocConfig.prefixLabel}:
+                      </Label>
+                      <Input
+                        value={activeDocConfig.prefix}
+                        onChange={(e) => activeDocConfig.setPrefix(e.target.value)}
+                        placeholder={activeDocConfig.prefixPlaceholder}
+                        className="h-9 w-28 rounded-xl text-xs font-mono uppercase px-3 bg-background border-border"
+                      />
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {templateOptions.map((tpl) => {
-                      const isSelected = receiptTemplateId === tpl.id;
+                      const isSelected = activeDocConfig.templateId === tpl.id;
                       return (
                         <div
                           key={tpl.id}
-                          onClick={() => setReceiptTemplateId(tpl.id)}
+                          onClick={() => activeDocConfig.setTemplateId(tpl.id)}
                           className={`p-5 rounded-2xl border text-left transition-all relative cursor-pointer ${
                             isSelected
                               ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md shadow-emerald-500/10'
@@ -939,18 +1119,18 @@ export default function OnboardBusinessPage() {
                   </div>
 
                   {/* If Custom Script Mode is Selected */}
-                  {receiptTemplateId === 'custom' && (
+                  {activeDocConfig.templateId === 'custom' && (
                     <div className="space-y-4 pt-2 border-t border-border/60 animate-in fade-in duration-200">
                       <div className="p-4 rounded-2xl bg-secondary/30 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="space-y-0.5">
                           <div className="flex items-center space-x-2">
                             <Code2 className="h-4 w-4 text-emerald-500" />
                             <span className="text-xs font-bold text-foreground font-heading">
-                              External AI PDFKit Engine Code
+                              External AI PDFKit Engine Code ({onboardDocTab.toUpperCase()})
                             </span>
                           </div>
                           <p className="text-[11px] text-muted-foreground">
-                            Feed the client invoice scan along with our master prompt to Claude or ChatGPT, then paste the generated code below.
+                            Paste the custom PDFKit code generated for this document type below.
                           </p>
                         </div>
 
@@ -972,14 +1152,14 @@ export default function OnboardBusinessPage() {
                             PDFKit Rendering Script (JavaScript)
                           </Label>
                           <span className="text-[11px] text-muted-foreground font-mono">
-                            Parameters: (doc, invoice, business, helpers)
+                            Parameters: (doc, {onboardDocTab}, business, helpers)
                           </span>
                         </div>
                         <textarea
-                          value={customTemplateUrl || ''}
-                          onChange={(e) => setCustomTemplateUrl(e.target.value)}
-                          placeholder={`// Paste the generated PDFKit code from Claude / ChatGPT here\nasync function renderInvoicePDF(doc, invoice, business, helpers) {\n  doc.rect(30, 30, 535, 780).strokeColor('#0d47a1').lineWidth(1.5).stroke();\n  // ...\n}`}
-                          rows={14}
+                          value={activeDocConfig.customScript || ''}
+                          onChange={(e) => activeDocConfig.setCustomScript(e.target.value)}
+                          placeholder={`// Paste the generated PDFKit code for ${onboardDocTab} here\nasync function render${onboardDocTab.charAt(0).toUpperCase() + onboardDocTab.slice(1)}PDF(doc, ${onboardDocTab}, business, helpers) {\n  // ...\n}`}
+                          rows={12}
                           className="w-full rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs p-4 border border-border focus:border-emerald-500 focus:outline-none leading-relaxed resize-y"
                           spellCheck={false}
                         />
