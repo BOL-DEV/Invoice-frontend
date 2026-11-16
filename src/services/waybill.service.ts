@@ -1,4 +1,4 @@
-import { apiClient } from './api/axios';
+import { apiClient, tokenStore } from './api/axios';
 import { API_ENDPOINTS } from './api/endpoints';
 import { ApiResponse, Waybill, WaybillStatus } from '../types/api';
 
@@ -80,5 +80,9 @@ export const waybillService = {
     await apiClient.delete(API_ENDPOINTS.WAYBILLS.DETAIL(id));
   },
 
-  getPDFUrl: (id: string) => API_ENDPOINTS.WAYBILLS.PDF(id),
+  getPDFUrl: (id: string) => {
+    const token = tokenStore.getAccessToken();
+    const base = API_ENDPOINTS.WAYBILLS.PDF(id);
+    return token ? `${base}?token=${encodeURIComponent(token)}` : base;
+  },
 };

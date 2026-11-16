@@ -1,4 +1,4 @@
-import { apiClient } from './api/axios';
+import { apiClient, tokenStore } from './api/axios';
 import { API_ENDPOINTS } from './api/endpoints';
 import { ApiResponse, Quotation, QuotationStatus } from '../types/api';
 
@@ -84,5 +84,9 @@ export const quotationService = {
     return response.data.data;
   },
 
-  getPDFUrl: (id: string) => API_ENDPOINTS.QUOTATIONS.PDF(id),
+  getPDFUrl: (id: string) => {
+    const token = tokenStore.getAccessToken();
+    const base = API_ENDPOINTS.QUOTATIONS.PDF(id);
+    return token ? `${base}?token=${encodeURIComponent(token)}` : base;
+  },
 };

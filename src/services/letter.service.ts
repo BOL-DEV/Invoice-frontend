@@ -1,4 +1,4 @@
-import { apiClient } from './api/axios';
+import { apiClient, tokenStore } from './api/axios';
 import { API_ENDPOINTS } from './api/endpoints';
 import { ApiResponse, Letter, LetterStatus } from '../types/api';
 
@@ -70,5 +70,9 @@ export const letterService = {
     await apiClient.delete(API_ENDPOINTS.LETTERS.DETAIL(id));
   },
 
-  getPDFUrl: (id: string) => API_ENDPOINTS.LETTERS.PDF(id),
+  getPDFUrl: (id: string) => {
+    const token = tokenStore.getAccessToken();
+    const base = API_ENDPOINTS.LETTERS.PDF(id);
+    return token ? `${base}?token=${encodeURIComponent(token)}` : base;
+  },
 };

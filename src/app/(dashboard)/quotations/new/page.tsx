@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { quotationService } from '../../../../services/quotation.service';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
-import { Card } from '../../../../components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table';
 import { useModal } from '../../../../components/ui/modal-provider';
 import {
   FileSpreadsheet,
@@ -14,19 +15,19 @@ import {
   Trash2,
   ArrowLeft,
   Loader2,
-  Calendar,
+  Printer,
   Check,
   User,
-  Calculator,
+  ShoppingBag,
 } from 'lucide-react';
 
 interface FormItem {
   position: number;
-  description: string;
   quantity: number | '';
+  description: string;
+  totalMeters: string;
   unitPrice: number | '';
   totalPrice: number;
-  metrics: string;
 }
 
 export default function NewQuotationPage() {
@@ -38,8 +39,11 @@ export default function NewQuotationPage() {
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Start with 3 rows just like invoice creation
   const [items, setItems] = useState<FormItem[]>([
-    { position: 1, description: '', quantity: 1, unitPrice: '', totalPrice: 0, metrics: '' },
+    { position: 1, quantity: '', description: '', totalMeters: '', unitPrice: '', totalPrice: 0 },
+    { position: 2, quantity: '', description: '', totalMeters: '', unitPrice: '', totalPrice: 0 },
+    { position: 3, quantity: '', description: '', totalMeters: '', unitPrice: '', totalPrice: 0 },
   ]);
 
   const handleItemChange = (index: number, field: keyof FormItem, value: any) => {
@@ -61,7 +65,7 @@ export default function NewQuotationPage() {
   const addItem = () => {
     setItems((prev) => [
       ...prev,
-      { position: prev.length + 1, description: '', quantity: 1, unitPrice: '', totalPrice: 0, metrics: '' },
+      { position: prev.length + 1, quantity: '', description: '', totalMeters: '', unitPrice: '', totalPrice: 0 },
     ]);
   };
 
@@ -75,22 +79,27 @@ export default function NewQuotationPage() {
     );
   };
 
+  const filledItems = items.filter(
+    (it) => it.description.trim() !== '' || (typeof it.quantity === 'number' && it.quantity > 0)
+  );
+
   const subtotal = items.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
   const grandTotal = subtotal;
 
   const handleSubmit = async (andPrint = false) => {
     if (!customerName.trim()) {
-      modal.alert('Validation Error', 'Customer Name is required', 'warning');
+      modal.alert('Validation Error', 'Customer / Company Name is required', 'warning');
       return;
     }
 
-    const invalidItem = items.find(
-      (it) => !it.description.trim() || Number(it.quantity) <= 0 || Number(it.unitPrice) < 0
+    const validItems = items.filter(
+      (it) => it.description.trim() && Number(it.quantity) > 0 && Number(it.unitPrice) >= 0
     );
-    if (invalidItem) {
+
+    if (validItems.length === 0) {
       modal.alert(
         'Invalid Items',
-        'Please ensure each line item has a valid description, quantity greater than 0, and non-negative unit price.',
+        'Please enter at least one item with a description, quantity greater than 0, and a valid rate.',
         'warning'
       );
       return;
@@ -104,13 +113,13 @@ export default function NewQuotationPage() {
         notes: notes.trim() || null,
         subtotal,
         total: grandTotal,
-        items: items.map((it, idx) => ({
+        items: validItems.map((it, idx) => ({
           position: idx + 1,
           description: it.description.trim(),
           quantity: Number(it.quantity),
           unitPrice: Number(it.unitPrice),
           totalPrice: Number(it.totalPrice),
-          metrics: it.metrics.trim() || null,
+          metrics: it.totalMeters.trim() ? `${it.totalMeters.trim()} m` : null,
         })),
       });
 
@@ -173,7 +182,7 @@ export default function NewQuotationPage() {
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder="e.g. Dangote Construction Ltd"
-                className="mt-1 h-9 rounded-xl text-sm"
+                className="mt-1 h-10 rounded-xl text-sm"
                 required
               />
             </div>
@@ -183,103 +192,246 @@ export default function NewQuotationPage() {
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 placeholder="e.g. 08034071931"
-                className="mt-1 h-9 rounded-xl text-sm"
+                className="mt-1 h-10 rounded-xl text-sm"
               />
             </div>
           </div>
         </Card>
 
-        {/* Quoted Items Table Card */}
-        <Card className="p-5 rounded-2xl border-border bg-card shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Calculator className="h-4 w-4 text-primary" />
-              <span>Quoted Line Items</span>
-            </h3>
+        {/* Quoted Items Table Card - Styled Exactly Like Invoice Creation */}
+        <Card className="border-border bg-card shadow-sm rounded-2xl overflow-hidden">
+          <CardHeader className="flex flex-row justify-between items-center bg-secondary/15 border-b border-border py-3 px-4 sm:px-6">
+            <div className="flex items-center space-x-2.5">
+              <div className="bg-primary/10 text-primary p-1.5 rounded-lg shrink-0">
+                <ShoppingBag className="h-4 w-4" />
+              </div>
+              <CardTitle className="text-xs sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                Quoted Line Items
+              </CardTitle>
+            </div>
+
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={addItem}
-              className="rounded-xl text-xs font-semibold h-8 cursor-pointer"
+              className="space-x-1.5 font-semibold text-xs border-primary text-primary hover:bg-primary/5 rounded-xl h-8 px-3 cursor-pointer"
             >
-              <Plus className="h-3.5 w-3.5 mr-1" />
-              <span>Add Item Line</span>
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Row</span>
             </Button>
+          </CardHeader>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-secondary/20">
+                <TableRow className="border-b border-border hover:bg-transparent">
+                  <TableHead className="w-12 text-center text-[10px] uppercase font-bold text-muted-foreground">
+                    S/N
+                  </TableHead>
+                  <TableHead className="w-28 text-right text-[10px] uppercase font-bold text-muted-foreground">
+                    Quantity *
+                  </TableHead>
+                  <TableHead className="text-[10px] uppercase font-bold text-muted-foreground">
+                    Description of Goods *
+                  </TableHead>
+                  <TableHead className="w-32 text-right text-[10px] uppercase font-bold text-muted-foreground">
+                    Total Meters
+                  </TableHead>
+                  <TableHead className="w-36 text-right text-[10px] uppercase font-bold text-muted-foreground">
+                    Rate (₦) *
+                  </TableHead>
+                  <TableHead className="w-36 text-right pr-4 text-[10px] uppercase font-bold text-muted-foreground">
+                    Amount (₦)
+                  </TableHead>
+                  <TableHead className="w-12 text-center"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item, idx) => (
+                  <TableRow
+                    key={idx}
+                    className="border-b border-border/60 hover:bg-slate-50/20 dark:hover:bg-slate-900/10 transition-colors"
+                  >
+                    {/* S/N */}
+                    <TableCell className="text-center font-mono text-xs text-muted-foreground select-none py-3">
+                      {idx + 1}
+                    </TableCell>
+
+                    {/* Quantity */}
+                    <TableCell className="py-2">
+                      <Input
+                        type="number"
+                        step="any"
+                        value={item.quantity}
+                        onChange={(e) =>
+                          handleItemChange(
+                            idx,
+                            'quantity',
+                            e.target.value === '' ? '' : parseFloat(e.target.value) || 0
+                          )
+                        }
+                        placeholder="0"
+                        className="bg-background text-sm font-medium h-9 rounded-xl border border-border text-right"
+                      />
+                    </TableCell>
+
+                    {/* Description of Goods */}
+                    <TableCell className="py-2">
+                      <Input
+                        type="text"
+                        value={item.description}
+                        onChange={(e) => handleItemChange(idx, 'description', e.target.value)}
+                        placeholder="e.g. 15mmX3m U-Channel"
+                        className="bg-background text-sm font-medium h-9 rounded-xl border border-border"
+                      />
+                    </TableCell>
+
+                    {/* Total Meters */}
+                    <TableCell className="py-2">
+                      <Input
+                        type="text"
+                        value={item.totalMeters}
+                        onChange={(e) => handleItemChange(idx, 'totalMeters', e.target.value)}
+                        placeholder="e.g. 22"
+                        className="bg-background text-sm font-medium h-9 rounded-xl border border-border text-right"
+                      />
+                    </TableCell>
+
+                    {/* Rate */}
+                    <TableCell className="py-2">
+                      <Input
+                        type="number"
+                        step="any"
+                        value={item.unitPrice}
+                        onChange={(e) =>
+                          handleItemChange(
+                            idx,
+                            'unitPrice',
+                            e.target.value === '' ? '' : parseFloat(e.target.value) || 0
+                          )
+                        }
+                        placeholder="0.00"
+                        className="bg-background text-sm font-medium h-9 rounded-xl border border-border text-right"
+                      />
+                    </TableCell>
+
+                    {/* Amount */}
+                    <TableCell className="text-right font-mono font-bold text-sm py-3 select-none pr-4 text-foreground">
+                      ₦{(Number(item.totalPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </TableCell>
+
+                    {/* Action */}
+                    <TableCell className="text-center py-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeItem(idx)}
+                        disabled={items.length === 1}
+                        className="h-8 w-8 rounded-full text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
 
-          <div className="border border-border rounded-xl overflow-hidden divide-y divide-border">
-            <div className="p-2.5 grid grid-cols-12 bg-secondary/40 text-[11px] font-bold text-muted-foreground gap-2">
-              <span className="col-span-4 sm:col-span-5">Description *</span>
-              <span className="col-span-2 sm:col-span-2 text-center">Qty *</span>
-              <span className="col-span-2 sm:col-span-2 text-center">Unit / Metric</span>
-              <span className="col-span-3 sm:col-span-2 text-right">Rate (₦) *</span>
-              <span className="col-span-1 sm:col-span-1 text-center">Action</span>
-            </div>
-
+          {/* Mobile Compact View */}
+          <div className="md:hidden p-3 space-y-3 bg-slate-50/50 dark:bg-slate-900/10 border-t border-border">
             {items.map((item, idx) => (
-              <div key={idx} className="p-2.5 grid grid-cols-12 gap-2 items-center bg-card text-xs">
-                <div className="col-span-4 sm:col-span-5">
+              <div
+                key={idx}
+                className="p-3 rounded-xl border border-border bg-card space-y-2.5 shadow-sm"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="w-6 h-6 rounded-md bg-secondary/80 text-[11px] font-mono font-bold flex items-center justify-center text-muted-foreground">
+                    #{idx + 1}
+                  </span>
                   <Input
+                    type="text"
                     value={item.description}
                     onChange={(e) => handleItemChange(idx, 'description', e.target.value)}
-                    placeholder="e.g. 16mm x 12m Iron Rod"
-                    className="h-8 rounded-lg text-xs"
+                    placeholder="Description (e.g. 15mmX3m)..."
+                    className="h-9 rounded-lg text-xs flex-1"
                   />
-                </div>
-                <div className="col-span-2 sm:col-span-2">
-                  <Input
-                    type="number"
-                    step="any"
-                    value={item.quantity}
-                    onChange={(e) =>
-                      handleItemChange(idx, 'quantity', e.target.value === '' ? '' : parseFloat(e.target.value))
-                    }
-                    placeholder="Qty"
-                    className="h-8 rounded-lg text-xs text-center"
-                  />
-                </div>
-                <div className="col-span-2 sm:col-span-2">
-                  <Input
-                    value={item.metrics}
-                    onChange={(e) => handleItemChange(idx, 'metrics', e.target.value)}
-                    placeholder="e.g. Meters, Pcs"
-                    className="h-8 rounded-lg text-xs text-center"
-                  />
-                </div>
-                <div className="col-span-3 sm:col-span-2">
-                  <Input
-                    type="number"
-                    step="any"
-                    value={item.unitPrice}
-                    onChange={(e) =>
-                      handleItemChange(idx, 'unitPrice', e.target.value === '' ? '' : parseFloat(e.target.value))
-                    }
-                    placeholder="0.00"
-                    className="h-8 rounded-lg text-xs text-right"
-                  />
-                </div>
-                <div className="col-span-1 sm:col-span-1 flex justify-center">
                   <Button
                     type="button"
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     onClick={() => removeItem(idx)}
-                    className="h-7 w-7 p-0 rounded-lg text-red-500 hover:bg-red-500/10 cursor-pointer"
+                    disabled={items.length === 1}
+                    className="h-8 w-8 text-muted-foreground hover:text-rose-500"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground">Qty *</label>
+                    <Input
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) =>
+                        handleItemChange(
+                          idx,
+                          'quantity',
+                          e.target.value === '' ? '' : parseFloat(e.target.value) || 0
+                        )
+                      }
+                      placeholder="0"
+                      className="h-8 rounded-lg text-xs text-right mt-0.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground">Total Meters</label>
+                    <Input
+                      type="text"
+                      value={item.totalMeters}
+                      onChange={(e) => handleItemChange(idx, 'totalMeters', e.target.value)}
+                      placeholder="22m"
+                      className="h-8 rounded-lg text-xs text-right mt-0.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground">Rate (₦) *</label>
+                    <Input
+                      type="number"
+                      value={item.unitPrice}
+                      onChange={(e) =>
+                        handleItemChange(
+                          idx,
+                          'unitPrice',
+                          e.target.value === '' ? '' : parseFloat(e.target.value) || 0
+                        )
+                      }
+                      placeholder="0.00"
+                      className="h-8 rounded-lg text-xs text-right mt-0.5"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1 border-t border-border/60 text-xs">
+                  <span className="text-muted-foreground">Line Total:</span>
+                  <span className="font-mono font-bold text-foreground">
+                    ₦{(Number(item.totalPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
                 </div>
               </div>
             ))}
+          </div>
 
-            {/* Total Row */}
-            <div className="p-3 bg-secondary/30 flex justify-between items-center text-sm font-bold text-foreground">
-              <span>Grand Total:</span>
-              <span className="text-lg text-primary">
-                ₦{subtotal.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-              </span>
-            </div>
+          {/* Grand Total Summary Row */}
+          <div className="p-4 sm:px-6 bg-secondary/30 border-t border-border flex justify-between items-center text-sm font-bold text-foreground">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">Grand Total:</span>
+            <span className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+              ₦{grandTotal.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+            </span>
           </div>
         </Card>
 
@@ -313,16 +465,16 @@ export default function NewQuotationPage() {
             className="rounded-xl h-10 px-5 text-xs font-semibold cursor-pointer"
           >
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Check className="h-4 w-4 mr-1.5" />}
-            <span>Save Quotation</span>
+            <span>Save as Draft</span>
           </Button>
           <Button
             type="button"
             onClick={() => handleSubmit(true)}
             disabled={isSubmitting}
-            className="rounded-xl h-10 px-6 text-xs font-semibold bg-primary text-white cursor-pointer"
+            className="rounded-xl h-10 px-5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer"
           >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <FileSpreadsheet className="h-4 w-4 mr-1.5" />}
-            <span>Save & Print PDF</span>
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Printer className="h-4 w-4 mr-1.5" />}
+            <span>Save & Print Quotation</span>
           </Button>
         </div>
       </div>
