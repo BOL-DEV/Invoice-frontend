@@ -855,20 +855,22 @@ export default function InvoicesPage() {
                           <span>View</span>
                         </Button>
 
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          title="Generate Waybill / Delivery Note"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setInvoiceForWaybill(inv);
-                            setIsWaybillModalOpen(true);
-                          }}
-                          className="h-8 px-2.5 rounded-xl text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1 cursor-pointer font-medium transition-colors"
-                        >
-                          <Truck className="h-3.5 w-3.5 text-emerald-500" />
-                          <span>Waybill</span>
-                        </Button>
+                        {(inv.status === 'FINALIZED' || inv.status === 'PRINTED') && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            title="Generate Waybill / Delivery Note"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setInvoiceForWaybill(inv);
+                              setIsWaybillModalOpen(true);
+                            }}
+                            className="h-8 px-2.5 rounded-xl text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1 cursor-pointer font-medium transition-colors"
+                          >
+                            <Truck className="h-3.5 w-3.5 text-emerald-500" />
+                            <span>Waybill</span>
+                          </Button>
+                        )}
 
                         {(() => {
                           const isRowUnder24Hours = inv.createdAt ? Date.now() - new Date(inv.createdAt).getTime() <= 24 * 60 * 60 * 1000 : true;
@@ -1102,19 +1104,21 @@ export default function InvoicesPage() {
                     )
                   )}
 
-                  {/* Generate Waybill Button */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setInvoiceForWaybill(invoiceDetails);
-                      setIsWaybillModalOpen(true);
-                    }}
-                    className="h-9 text-xs rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1.5 cursor-pointer"
-                  >
-                    <Truck className="h-3.5 w-3.5 text-emerald-500" />
-                    <span>Waybill</span>
-                  </Button>
+                  {/* Generate Waybill Button (only for finalized / printed invoices) */}
+                  {(invoiceDetails.status === 'FINALIZED' || invoiceDetails.status === 'PRINTED') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setInvoiceForWaybill(invoiceDetails);
+                        setIsWaybillModalOpen(true);
+                      }}
+                      className="h-9 text-xs rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1.5 cursor-pointer"
+                    >
+                      <Truck className="h-3.5 w-3.5 text-emerald-500" />
+                      <span>Waybill</span>
+                    </Button>
+                  )}
 
                   {/* Share Button */}
                   {(isAdmin || (user && invoiceDetails.creatorId === user.id)) && (
