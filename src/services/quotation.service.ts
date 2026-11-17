@@ -9,6 +9,7 @@ export interface CreateQuotationInput {
   customerAddress?: string | null;
   status?: QuotationStatus;
   notes?: string | null;
+  customerSignature?: string | null;
   validUntil?: string | null;
   subtotal: number;
   total: number;

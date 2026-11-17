@@ -851,6 +851,7 @@ export interface Quotation {
   subtotal: number;
   total: number;
   notes?: string | null;
+  customerSignature?: string | null;
   validUntil?: string | null;
   convertedInvoiceId?: string | null;
   convertedInvoice?: {

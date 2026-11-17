@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { quotationService } from '../../../../services/quotation.service';
@@ -8,6 +8,7 @@ import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table';
+import { Label } from '../../../../components/ui/label';
 import { useModal } from '../../../../components/ui/modal-provider';
 import { downloadDocumentPDF, printDocumentPDF } from '../../../../lib/document-download';
 import {
@@ -21,6 +22,10 @@ import {
   User,
   ShoppingBag,
   FileDown,
+  PenTool,
+  RotateCcw,
+  CheckCircle2,
+  X,
 } from 'lucide-react';
 
 interface FormItem {
@@ -40,6 +45,147 @@ export default function NewQuotationPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Customer signature states
+  const [customerSignature, setCustomerSignature] = useState<string | null>(null);
+  const [showSignatureField, setShowSignatureField] = useState(false);
+  const [isEditingSignature, setIsEditingSignature] = useState(false);
+  const [isDrawingCustomerSig, setIsDrawingCustomerSig] = useState(false);
+  const [hasDrawnCustomerSig, setHasDrawnCustomerSig] = useState(false);
+  const customerCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Drawing helpers
+  const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = customerCanvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    return {
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height),
+    };
+  };
+
+  const startDrawingCustomerSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const canvas = customerCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const { x, y } = getCanvasCoordinates(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineWidth = 2.8;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#0f172a';
+    setIsDrawingCustomerSig(true);
+  };
+
+  const drawCustomerSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawingCustomerSig) return;
+    e.preventDefault();
+    const canvas = customerCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const { x, y } = getCanvasCoordinates(e);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    setHasDrawnCustomerSig(true);
+  };
+
+  const stopDrawingCustomerSig = () => {
+    if (!isDrawingCustomerSig) return;
+    setIsDrawingCustomerSig(false);
+  };
+
+  const clearCustomerCanvas = () => {
+    const canvas = customerCanvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    setHasDrawnCustomerSig(false);
+  };
+
+  const captureAndFitSignature = (): string | null => {
+    const canvas = customerCanvasRef.current;
+    if (!canvas || !hasDrawnCustomerSig) return null;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    try {
+      const { width, height } = canvas;
+      const imgData = ctx.getImageData(0, 0, width, height);
+      const data = imgData.data;
+
+      let minX = width, minY = height, maxX = 0, maxY = 0;
+      let hasInk = false;
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const alpha = data[(y * width + x) * 4 + 3];
+          if (alpha > 15) {
+            hasInk = true;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+
+      if (!hasInk) return null;
+
+      const pad = 14;
+      const cropX = Math.max(0, minX - pad);
+      const cropY = Math.max(0, minY - pad);
+      const cropW = Math.min(width - cropX, (maxX - minX) + pad * 2);
+      const cropH = Math.min(height - cropY, (maxY - minY) + pad * 2);
+
+      const targetW = 400;
+      const targetH = 120;
+      const normCanvas = document.createElement('canvas');
+      normCanvas.width = targetW;
+      normCanvas.height = targetH;
+      const normCtx = normCanvas.getContext('2d');
+      if (!normCtx) {
+        const raw = canvas.toDataURL('image/png');
+        setCustomerSignature(raw);
+        setIsEditingSignature(false);
+        return raw;
+      }
+
+      const scale = Math.min((targetW - 20) / cropW, (targetH - 20) / cropH);
+      const drawW = cropW * scale;
+      const drawH = cropH * scale;
+      const offsetX = (targetW - drawW) / 2;
+      const offsetY = (targetH - drawH) / 2;
+
+      normCtx.imageSmoothingEnabled = true;
+      normCtx.imageSmoothingQuality = 'high';
+      normCtx.drawImage(canvas, cropX, cropY, cropW, cropH, offsetX, offsetY, drawW, drawH);
+
+      const fittedDataUrl = normCanvas.toDataURL('image/png');
+      setCustomerSignature(fittedDataUrl);
+      setIsEditingSignature(false);
+      return fittedDataUrl;
+    } catch {
+      const raw = canvas.toDataURL('image/png');
+      setCustomerSignature(raw);
+      setIsEditingSignature(false);
+      return raw;
+    }
+  };
+
+  const removeCustomerSignature = () => {
+    clearCustomerCanvas();
+    setCustomerSignature(null);
+    setShowSignatureField(false);
+    setIsEditingSignature(false);
+  };
 
   // Start with 3 rows just like invoice creation
   const [items, setItems] = useState<FormItem[]>([
@@ -109,9 +255,17 @@ export default function NewQuotationPage() {
 
     try {
       setIsSubmitting(true);
+
+      let currentCustomerSig = customerSignature;
+      if (isEditingSignature && hasDrawnCustomerSig) {
+        const captured = captureAndFitSignature();
+        if (captured) currentCustomerSig = captured;
+      }
+
       const quotation = await quotationService.create({
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim() || null,
+        customerSignature: currentCustomerSig || null,
         status: action === 'draft' ? 'DRAFT' : 'SENT',
         notes: notes.trim() || null,
         subtotal,
@@ -460,6 +614,138 @@ export default function NewQuotationPage() {
             placeholder="e.g. Prices are subject to market changes after 7 days. Transportation not included."
             className="h-10 rounded-xl text-xs"
           />
+        </Card>
+
+        {/* Optional Customer Signature Card */}
+        <Card className="p-5 rounded-2xl border-border bg-card shadow-sm space-y-3">
+          {!showSignatureField && !customerSignature ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setShowSignatureField(true);
+                setIsEditingSignature(true);
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1.5 px-2 h-7 rounded-lg"
+            >
+              <PenTool className="h-3.5 w-3.5 text-muted-foreground" />
+              <span>+ Add Customer Signature (Optional)</span>
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                  <PenTool className="h-3.5 w-3.5 text-emerald-500" />
+                  <span>Customer Signature</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">(Auto-fitted to printable area)</span>
+                </Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={removeCustomerSignature}
+                  className="text-[11px] text-muted-foreground hover:text-rose-500 h-6 px-1.5"
+                >
+                  Remove
+                </Button>
+              </div>
+
+              {customerSignature && !isEditingSignature ? (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-950 border border-emerald-500/30">
+                  <div className="h-14 w-44 border border-dashed border-border rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center overflow-hidden p-1">
+                    <img src={customerSignature} alt="Customer Signature" className="max-h-full max-w-full object-contain" />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <span>Signature Captured & Fitted</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Will appear above "Customer's Signature" on quotation documents.</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsEditingSignature(true);
+                      setHasDrawnCustomerSig(false);
+                    }}
+                    className="text-xs h-7 px-2.5"
+                  >
+                    Re-sign
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2 p-3.5 rounded-2xl bg-white dark:bg-slate-950 border border-border">
+                  <div className="flex items-center justify-between text-xs pb-1">
+                    <span className="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
+                      <span>Sign on screen</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={clearCustomerCanvas}
+                      className="text-muted-foreground hover:text-rose-500 text-[11px] font-semibold transition-colors flex items-center gap-1"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      Clear
+                    </button>
+                  </div>
+
+                  <div className="relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-emerald-500/30 overflow-hidden touch-none flex justify-center py-2">
+                    <canvas
+                      ref={customerCanvasRef}
+                      width={500}
+                      height={130}
+                      onMouseDown={startDrawingCustomerSig}
+                      onMouseMove={drawCustomerSig}
+                      onMouseUp={stopDrawingCustomerSig}
+                      onMouseLeave={stopDrawingCustomerSig}
+                      onTouchStart={startDrawingCustomerSig}
+                      onTouchMove={drawCustomerSig}
+                      onTouchEnd={stopDrawingCustomerSig}
+                      className="cursor-crosshair bg-white dark:bg-slate-950 rounded-lg shadow-sm w-full max-w-[500px] h-[130px]"
+                    />
+                    <div className="absolute bottom-5 inset-x-8 border-b border-dashed border-slate-300 dark:border-slate-700 pointer-events-none flex justify-between px-2">
+                      <span className="text-[9px] text-slate-400 select-none">Sign above line</span>
+                      <span className="text-[9px] text-slate-400 select-none">Touch or mouse</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-[10px] text-muted-foreground">
+                      {hasDrawnCustomerSig
+                        ? 'Multiple strokes supported. Click "Done" when finished.'
+                        : 'Customer signs with touch, stylus, or mouse. Auto-crops & fits cleanly.'}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      {customerSignature && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsEditingSignature(false)}
+                          className="text-xs h-7 px-2 text-muted-foreground"
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={!hasDrawnCustomerSig}
+                        onClick={() => captureAndFitSignature()}
+                        className="text-xs h-7 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm disabled:opacity-40"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                        Done
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </Card>
 
         {/* Footer Actions */}
