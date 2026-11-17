@@ -426,27 +426,16 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
 
           <Button
             type="button"
-            variant="outline"
             onClick={() => handleSubmit('print')}
-            disabled={isSubmitting}
-            className="w-full sm:w-auto rounded-xl h-10 px-4 text-xs font-semibold border-border hover:bg-secondary cursor-pointer flex items-center justify-center space-x-1.5"
-          >
-            <Printer className="h-4 w-4 text-muted-foreground" />
-            <span>Print</span>
-          </Button>
-
-          <Button
-            type="button"
-            onClick={() => handleSubmit('download')}
             disabled={isSubmitting}
             className="w-full sm:w-auto rounded-xl h-10 px-6 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer flex items-center justify-center space-x-1.5"
           >
             {isSubmitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <FileDown className="h-4 w-4" />
+              <Printer className="h-4 w-4" />
             )}
-            <span>Save & Download Waybill</span>
+            <span>Create &amp; Print Waybill</span>
           </Button>
         </div>
       </DialogContent>

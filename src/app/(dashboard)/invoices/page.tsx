@@ -55,6 +55,7 @@ import {
 } from 'lucide-react';
 import { useBranches } from '../../../features/branches';
 import { GenerateWaybillModal } from '../../../features/waybills/components/GenerateWaybillModal';
+import { printDocumentPDF } from '../../../lib/document-download';
 
 export default function InvoicesPage() {
   const queryClient = useQueryClient();
@@ -167,7 +168,7 @@ export default function InvoicesPage() {
     ? (user?.branchId || undefined)
     : (isCashier ? undefined : (branchFilter !== 'ALL' ? branchFilter : undefined));
 
-  const { data, isLoading, isError } = useInvoicesList({
+  const { data, isLoading, isError, refetch } = useInvoicesList({
     page,
     limit: 10,
     search: search || undefined,
@@ -856,20 +857,40 @@ export default function InvoicesPage() {
                         </Button>
 
                         {(inv.status === 'FINALIZED' || inv.status === 'PRINTED') && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            title="Generate Waybill / Delivery Note"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setInvoiceForWaybill(inv);
-                              setIsWaybillModalOpen(true);
-                            }}
-                            className="h-8 px-2.5 rounded-xl text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1 cursor-pointer font-medium transition-colors"
-                          >
-                            <Truck className="h-3.5 w-3.5 text-emerald-500" />
-                            <span>Waybill</span>
-                          </Button>
+                          inv.waybills && inv.waybills.length > 0 ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              title={`Waybill #${inv.waybills[0].waybillNumber} generated - Click to Print`}
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  await printDocumentPDF(`/api/printing/waybill/${inv.waybills![0].id}/pdf`);
+                                } catch {
+                                  window.open(`/waybills`, '_blank');
+                                }
+                              }}
+                              className="h-8 px-2.5 rounded-xl text-xs border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25 flex items-center space-x-1 cursor-pointer font-medium transition-colors"
+                            >
+                              <Truck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                              <span>#{inv.waybills[0].waybillNumber}</span>
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              title="Generate Waybill / Delivery Note"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setInvoiceForWaybill(inv);
+                                setIsWaybillModalOpen(true);
+                              }}
+                              className="h-8 px-2.5 rounded-xl text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1 cursor-pointer font-medium transition-colors"
+                            >
+                              <Truck className="h-3.5 w-3.5 text-emerald-500" />
+                              <span>Waybill</span>
+                            </Button>
+                          )
                         )}
 
                         {(() => {
@@ -1104,20 +1125,38 @@ export default function InvoicesPage() {
                     )
                   )}
 
-                  {/* Generate Waybill Button (only for finalized / printed invoices) */}
+                  {/* Waybill Button (only for finalized / printed invoices) */}
                   {(invoiceDetails.status === 'FINALIZED' || invoiceDetails.status === 'PRINTED') && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setInvoiceForWaybill(invoiceDetails);
-                        setIsWaybillModalOpen(true);
-                      }}
-                      className="h-9 text-xs rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1.5 cursor-pointer"
-                    >
-                      <Truck className="h-3.5 w-3.5 text-emerald-500" />
-                      <span>Waybill</span>
-                    </Button>
+                    invoiceDetails.waybills && invoiceDetails.waybills.length > 0 ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            await printDocumentPDF(`/api/printing/waybill/${invoiceDetails.waybills![0].id}/pdf`);
+                          } catch {
+                            window.open(`/waybills`, '_blank');
+                          }
+                        }}
+                        className="h-9 text-xs rounded-xl border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25 flex items-center space-x-1.5 cursor-pointer font-medium"
+                      >
+                        <Truck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>Print Waybill #{invoiceDetails.waybills[0].waybillNumber}</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setInvoiceForWaybill(invoiceDetails);
+                          setIsWaybillModalOpen(true);
+                        }}
+                        className="h-9 text-xs rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1.5 cursor-pointer"
+                      >
+                        <Truck className="h-3.5 w-3.5 text-emerald-500" />
+                        <span>Waybill</span>
+                      </Button>
+                    )
                   )}
 
                   {/* Share Button */}
@@ -1606,6 +1645,10 @@ export default function InvoicesPage() {
         isOpen={isWaybillModalOpen}
         onClose={() => setIsWaybillModalOpen(false)}
         invoice={invoiceForWaybill}
+        onSuccess={() => {
+          refetch();
+          queryClient.invalidateQueries({ queryKey: ['invoices'] });
+        }}
       />
     </div>
   );

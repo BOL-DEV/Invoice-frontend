@@ -27,27 +27,24 @@ import {
   Clock,
   Trash2,
   Loader2,
-  FileDown,
 } from 'lucide-react';
-import { downloadDocumentPDF, printDocumentPDF } from '../../../lib/document-download';
+import { printDocumentPDF } from '../../../lib/document-download';
 
 export default function WaybillsPage() {
   const queryClient = useQueryClient();
   const modal = useModal();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [selectedWaybill, setSelectedWaybill] = useState<Waybill | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['waybills', page, search, statusFilter],
+    queryKey: ['waybills', page, search],
     queryFn: () =>
       waybillService.list({
         page,
         limit: 15,
         search: search.trim() || undefined,
-        status: statusFilter !== 'ALL' ? (statusFilter as WaybillStatus) : undefined,
       }),
   });
 
@@ -59,17 +56,6 @@ export default function WaybillsPage() {
       await printDocumentPDF(`/api/printing/waybill/${waybillId}/pdf`);
     } catch {
       window.open(waybillService.getPDFUrl(waybillId), '_blank');
-    }
-  };
-
-  const handleDownload = async (waybill: Waybill) => {
-    try {
-      await downloadDocumentPDF(
-        `/api/printing/waybill/${waybill.id}/pdf`,
-        `waybill_${waybill.waybillNumber}.pdf`
-      );
-    } catch (err: any) {
-      modal.alert('Download Failed', err.message || 'Failed to download waybill PDF', 'error');
     }
   };
 
@@ -91,16 +77,18 @@ export default function WaybillsPage() {
   };
 
   const getStatusBadge = (status: WaybillStatus) => {
-    switch (status) {
-      case 'DELIVERED':
-        return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs">Delivered</Badge>;
-      case 'DISPATCHED':
-        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-xs">Dispatched</Badge>;
-      case 'CANCELED':
-        return <Badge className="bg-red-500/10 text-red-600 border-red-500/20 text-xs">Canceled</Badge>;
-      default:
-        return <Badge variant="outline" className="text-xs">{status}</Badge>;
+    if (status === 'CANCELED') {
+      return (
+        <Badge className="bg-red-500/10 text-red-500 border-red-500/20 text-xs font-medium">
+          Canceled
+        </Badge>
+      );
     }
+    return (
+      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs font-medium">
+        Created
+      </Badge>
+    );
   };
 
   return (
@@ -115,7 +103,7 @@ export default function WaybillsPage() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">Waybills & Delivery Notes</h1>
               <p className="text-sm text-muted-foreground">
-                Transport dispatch & proof-of-delivery documents originated from invoices
+                Transport dispatch &amp; proof-of-delivery documents originated from invoices
               </p>
             </div>
           </div>
@@ -125,7 +113,7 @@ export default function WaybillsPage() {
       {/* Filter and Search Bar */}
       <Card className="p-4 rounded-2xl border-border bg-card shadow-sm">
         <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
-          <div className="relative w-full md:w-96">
+          <div className="relative w-full md:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               value={search}
@@ -137,22 +125,8 @@ export default function WaybillsPage() {
               className="pl-9 h-10 rounded-xl text-sm"
             />
           </div>
-
-          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-            {['ALL', 'DISPATCHED', 'DELIVERED', 'CANCELED'].map((st) => (
-              <Button
-                key={st}
-                size="sm"
-                variant={statusFilter === st ? 'default' : 'outline'}
-                onClick={() => {
-                  setStatusFilter(st);
-                  setPage(1);
-                }}
-                className="rounded-xl text-xs font-semibold h-8 cursor-pointer"
-              >
-                {st === 'ALL' ? 'All Statuses' : st.charAt(0) + st.slice(1).toLowerCase()}
-              </Button>
-            ))}
+          <div className="text-xs text-muted-foreground font-medium self-end md:self-center">
+            {pagination.total} {pagination.total === 1 ? 'Waybill' : 'Waybills'} Recorded
           </div>
         </div>
       </Card>
@@ -238,16 +212,6 @@ export default function WaybillsPage() {
                           title="View Details"
                         >
                           <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDownload(wb)}
-                          className="h-8 px-2 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600 hover:border-emerald-500/30"
-                          title="Download Waybill PDF"
-                        >
-                          <FileDown className="h-3.5 w-3.5" />
-                          <span>PDF</span>
                         </Button>
                         <Button
                           variant="outline"

@@ -471,6 +471,15 @@ export interface Invoice {
     requesterId: string;
     createdAt: string;
   }[];
+  waybills?: {
+    id: string;
+    waybillNumber: string;
+    status: WaybillStatus;
+    driverName?: string | null;
+    lorryNumber?: string | null;
+    dispatchDate: string;
+    createdAt: string;
+  }[];
 }
 
 export type ApprovalType = 'EDIT' | 'PRINT' | 'DELETE';
