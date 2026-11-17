@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useRef, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { quotationService } from '../../../../services/quotation.service';
+import { Quotation } from '../../../../types/api';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
@@ -50,8 +52,20 @@ interface FormItem {
 
 export default function NewQuotationPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const modal = useModal();
+  const editId = searchParams.get('edit') || searchParams.get('id');
+
   const { data: subDetails } = useSubscription();
+
+  const { data: existingQuotation } = useQuery({
+    queryKey: ['quotation', editId],
+    queryFn: () => quotationService.getById(editId!),
+    enabled: !!editId,
+  });
+
+  const isLoadedRef = useRef(false);
 
   const currentPlan = subDetails?.subscription?.plan;
   const aiScansLimit =
@@ -69,6 +83,41 @@ export default function NewQuotationPage() {
   const [notes, setNotes] = useState('');
   const [showNoteField, setShowNoteField] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Populate existing quotation if editing
+  useEffect(() => {
+    if (existingQuotation && !isLoadedRef.current) {
+      isLoadedRef.current = true;
+      if (existingQuotation.status === 'CONVERTED') {
+        modal.alert('Cannot Edit', 'This quotation has already been converted to an invoice and cannot be modified.', 'warning');
+        router.push('/quotations');
+        return;
+      }
+      setCustomerName(existingQuotation.customerName || '');
+      setCustomerPhone(existingQuotation.customerPhone || '');
+      setNotes(existingQuotation.notes || '');
+      if (existingQuotation.notes?.trim()) {
+        setShowNoteField(true);
+      }
+      if (existingQuotation.customerSignature) {
+        setCustomerSignature(existingQuotation.customerSignature);
+        setShowSignatureField(true);
+        setIsEditingSignature(false);
+      }
+      if (Array.isArray(existingQuotation.items) && existingQuotation.items.length > 0) {
+        setItems(
+          existingQuotation.items.map((it, idx) => ({
+            position: idx + 1,
+            description: it.description || '',
+            quantity: Number(it.quantity) || 0,
+            totalMeters: it.metrics ? it.metrics.replace(/\s*m\b/gi, '').trim() : '',
+            unitPrice: Number(it.unitPrice) || 0,
+            totalPrice: Number(it.totalPrice) || 0,
+          }))
+        );
+      }
+    }
+  }, [existingQuotation, modal, router]);
 
   // Scan & Calculator states
   const [showImportModal, setShowImportModal] = useState(false);
@@ -355,23 +404,46 @@ export default function NewQuotationPage() {
         if (captured) currentCustomerSig = captured;
       }
 
-      const quotation = await quotationService.create({
-        customerName: customerName.trim(),
-        customerPhone: customerPhone.trim() || null,
-        customerSignature: currentCustomerSig || null,
-        status: 'DRAFT',
-        notes: notes.trim() || null,
-        subtotal,
-        total: grandTotal,
-        items: validItems.map((it, idx) => ({
-          position: idx + 1,
-          description: it.description.trim(),
-          quantity: Number(it.quantity),
-          unitPrice: Number(it.unitPrice),
-          totalPrice: Number(it.totalPrice),
-          metrics: it.totalMeters.trim() ? `${it.totalMeters.trim()} m` : null,
-        })),
-      });
+      let quotation: Quotation;
+      if (editId) {
+        quotation = await quotationService.update(editId, {
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim() || null,
+          customerSignature: currentCustomerSig || null,
+          notes: notes.trim() || null,
+          subtotal,
+          total: grandTotal,
+          items: validItems.map((it, idx) => ({
+            position: idx + 1,
+            description: it.description.trim(),
+            quantity: Number(it.quantity),
+            unitPrice: Number(it.unitPrice),
+            totalPrice: Number(it.totalPrice),
+            metrics: it.totalMeters.trim() ? `${it.totalMeters.trim()} m` : null,
+          })),
+        });
+        queryClient.invalidateQueries({ queryKey: ['quotations'] });
+        queryClient.invalidateQueries({ queryKey: ['quotation', editId] });
+      } else {
+        quotation = await quotationService.create({
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim() || null,
+          customerSignature: currentCustomerSig || null,
+          status: 'DRAFT',
+          notes: notes.trim() || null,
+          subtotal,
+          total: grandTotal,
+          items: validItems.map((it, idx) => ({
+            position: idx + 1,
+            description: it.description.trim(),
+            quantity: Number(it.quantity),
+            unitPrice: Number(it.unitPrice),
+            totalPrice: Number(it.totalPrice),
+            metrics: it.totalMeters.trim() ? `${it.totalMeters.trim()} m` : null,
+          })),
+        });
+        queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      }
 
       if (action === 'print') {
         try {
@@ -383,8 +455,8 @@ export default function NewQuotationPage() {
       }
 
       modal.alert(
-        'Quotation Saved',
-        `Quotation ${quotation.quotationNumber} has been successfully created.`,
+        editId ? 'Quotation Updated' : 'Quotation Saved',
+        `Quotation ${quotation.quotationNumber} has been successfully ${editId ? 'updated' : 'created'}.`,
         'success'
       );
       router.push('/quotations');
@@ -410,10 +482,12 @@ export default function NewQuotationPage() {
           </Button>
           <div>
             <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC] font-heading">
-              Create New Quotation
+              {editId ? `Edit Quotation #${existingQuotation?.quotationNumber || ''}` : 'Create New Quotation'}
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Complete cashier ledger entry fields sequentially.
+              {editId
+                ? 'Modify customer details and quoted line items for this estimate.'
+                : 'Complete cashier ledger entry fields sequentially.'}
             </p>
           </div>
         </div>
@@ -989,7 +1063,7 @@ export default function NewQuotationPage() {
                 </p>
               </div>
 
-              {/* Action Operations Buttons - Save & Print is the primary operation with built-in preview/Save-as-PDF */}
+              {/* Action Operations Buttons */}
               <div className="space-y-2.5 pt-1.5">
                 <Button
                   type="button"
@@ -1002,7 +1076,7 @@ export default function NewQuotationPage() {
                   ) : (
                     <Printer className="h-4 w-4 mr-1.5" />
                   )}
-                  <span>Save & Print Quotation</span>
+                  <span>{editId ? 'Update & Print Quotation' : 'Save & Print Quotation'}</span>
                 </Button>
 
                 <Button
@@ -1017,7 +1091,7 @@ export default function NewQuotationPage() {
                   ) : (
                     <Check className="h-4 w-4 mr-1.5 text-muted-foreground" />
                   )}
-                  <span>Save Quotation Draft</span>
+                  <span>{editId ? 'Update Quotation Draft' : 'Save Quotation Draft'}</span>
                 </Button>
               </div>
             </CardContent>

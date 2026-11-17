@@ -29,6 +29,7 @@ import {
   User,
   ExternalLink,
   Send,
+  Pencil,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { downloadDocumentPDF, printDocumentPDF } from '../../../lib/document-download';
@@ -288,21 +289,39 @@ export default function QuotationsPage() {
                             setSelectedQuotation(quo);
                             setIsDetailOpen(true);
                           }}
-                          className="h-8 w-8 p-0 rounded-lg cursor-pointer"
+                          className="h-8 w-8 p-0 rounded-lg cursor-pointer hover:bg-secondary"
                           title="View Details"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePrint(quo.id)}
-                          className="h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 cursor-pointer hover:bg-blue-500/10 hover:text-blue-600"
-                          title="Print Quotation PDF"
-                        >
-                          <Printer className="h-3.5 w-3.5" />
-                          <span>Print</span>
-                        </Button>
+
+                        {(quo.status === 'DRAFT' || quo.status === 'SENT') && (
+                          <>
+                            <Link href={`/quotations/new?edit=${quo.id}`}>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-secondary"
+                                title="Edit Quotation"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                <span>Edit</span>
+                              </Button>
+                            </Link>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handlePrint(quo.id)}
+                              className="h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 cursor-pointer hover:bg-blue-500/10 hover:text-blue-600"
+                              title="Print Quotation PDF"
+                            >
+                              <Printer className="h-3.5 w-3.5" />
+                              <span>Print</span>
+                            </Button>
+                          </>
+                        )}
+
                         {quo.status !== 'CONVERTED' ? (
                           <Button
                             size="sm"
@@ -484,50 +503,66 @@ export default function QuotationsPage() {
                   <Button variant="outline" size="sm" onClick={() => setIsDetailOpen(false)} className="rounded-xl h-9 text-xs cursor-pointer">
                     Close
                   </Button>
-                  {selectedQuotation.status === 'DRAFT' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleUpdateStatus(selectedQuotation.id, 'SENT')}
-                      className="rounded-xl h-9 text-xs cursor-pointer hover:bg-blue-500/10 hover:text-blue-600"
-                    >
-                      <Send className="h-3.5 w-3.5 mr-1.5" />
-                      <span>Mark as Sent</span>
-                    </Button>
-                  )}
-                  {selectedQuotation.status === 'SENT' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleUpdateStatus(selectedQuotation.id, 'DRAFT')}
-                      className="rounded-xl h-9 text-xs cursor-pointer"
-                    >
-                      <span>Mark as Draft</span>
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePrint(selectedQuotation.id)}
-                    className="rounded-xl h-9 text-xs cursor-pointer hover:bg-blue-500/10 hover:text-blue-600"
-                  >
-                    <Printer className="h-3.5 w-3.5 mr-1.5" />
-                    <span>Print PDF</span>
-                  </Button>
-                  {selectedQuotation.status !== 'CONVERTED' && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleConvert(selectedQuotation)}
-                      disabled={isConverting}
-                      className="rounded-xl h-9 text-xs bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                    >
-                      {isConverting ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                      ) : (
-                        <ArrowRightCircle className="h-3.5 w-3.5 mr-1.5" />
+
+                  {(selectedQuotation.status === 'DRAFT' || selectedQuotation.status === 'SENT') && (
+                    <>
+                      <Link href={`/quotations/new?edit=${selectedQuotation.id}`}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-xl h-9 text-xs cursor-pointer hover:bg-secondary flex items-center space-x-1.5"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          <span>Edit Quotation</span>
+                        </Button>
+                      </Link>
+
+                      {selectedQuotation.status === 'DRAFT' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleUpdateStatus(selectedQuotation.id, 'SENT')}
+                          className="rounded-xl h-9 text-xs cursor-pointer hover:bg-blue-500/10 hover:text-blue-600"
+                        >
+                          <Send className="h-3.5 w-3.5 mr-1.5" />
+                          <span>Mark as Sent</span>
+                        </Button>
                       )}
-                      <span>Convert to Invoice</span>
-                    </Button>
+                      {selectedQuotation.status === 'SENT' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleUpdateStatus(selectedQuotation.id, 'DRAFT')}
+                          className="rounded-xl h-9 text-xs cursor-pointer"
+                        >
+                          <span>Mark as Draft</span>
+                        </Button>
+                      )}
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePrint(selectedQuotation.id)}
+                        className="rounded-xl h-9 text-xs cursor-pointer hover:bg-blue-500/10 hover:text-blue-600"
+                      >
+                        <Printer className="h-3.5 w-3.5 mr-1.5" />
+                        <span>Print PDF</span>
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        onClick={() => handleConvert(selectedQuotation)}
+                        disabled={isConverting}
+                        className="rounded-xl h-9 text-xs bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                      >
+                        {isConverting ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                        ) : (
+                          <ArrowRightCircle className="h-3.5 w-3.5 mr-1.5" />
+                        )}
+                        <span>Convert to Invoice</span>
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
