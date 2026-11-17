@@ -25,7 +25,9 @@ import {
   Calendar,
   User,
   FileText,
+  FileDown,
 } from 'lucide-react';
+import { downloadDocumentPDF, printDocumentPDF } from '../../../lib/document-download';
 
 export default function LettersPage() {
   const queryClient = useQueryClient();
@@ -50,8 +52,23 @@ export default function LettersPage() {
   const letters = data?.letters || [];
   const pagination = data?.pagination || { total: 0, totalPages: 1, page: 1 };
 
-  const handlePrint = (letterId: string) => {
-    window.open(letterService.getPDFUrl(letterId), '_blank');
+  const handlePrint = async (letterId: string) => {
+    try {
+      await printDocumentPDF(`/api/printing/letter/${letterId}/pdf`);
+    } catch {
+      window.open(letterService.getPDFUrl(letterId), '_blank');
+    }
+  };
+
+  const handleDownload = async (letter: Letter) => {
+    try {
+      await downloadDocumentPDF(
+        `/api/printing/letter/${letter.id}/pdf`,
+        `letter_${letter.letterNumber}.pdf`
+      );
+    } catch (err: any) {
+      modal.alert('Download Failed', err.message || 'Failed to download letter PDF', 'error');
+    }
   };
 
   const handleDelete = async (letter: Letter) => {
@@ -215,6 +232,16 @@ export default function LettersPage() {
                           title="View Letter"
                         >
                           <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownload(ltr)}
+                          className="h-8 px-2 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600"
+                          title="Download Official Letter PDF"
+                        >
+                          <FileDown className="h-3.5 w-3.5" />
+                          <span>PDF</span>
                         </Button>
                         <Button
                           variant="outline"

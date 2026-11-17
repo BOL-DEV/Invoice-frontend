@@ -23,7 +23,9 @@ import {
   AlignJustify,
   FileText,
   Undo2,
+  FileDown,
 } from 'lucide-react';
+import { downloadDocumentPDF, printDocumentPDF } from '../../../../lib/document-download';
 
 export default function NewLetterPage() {
   const router = useRouter();
@@ -126,7 +128,7 @@ export default function NewLetterPage() {
       ? 'text-justify'
       : 'text-left';
 
-  const handleSubmit = async (andPrint = false) => {
+  const handleSubmit = async (action: 'download' | 'print' | 'draft' = 'download') => {
     if (!title.trim()) {
       modal.alert('Validation Error', 'Letter title / subject is required', 'warning');
       return;
@@ -148,16 +150,29 @@ export default function NewLetterPage() {
         recipientAddress: null,
         signatoryName: signatoryName.trim() || null,
         signatoryTitle: signatoryTitle.trim() || null,
-        status: andPrint ? 'FINALIZED' : 'DRAFT',
+        status: action === 'draft' ? 'DRAFT' : 'FINALIZED',
       });
 
-      if (andPrint) {
-        window.open(letterService.getPDFUrl(letter.id), '_blank');
+      if (action === 'download') {
+        try {
+          await downloadDocumentPDF(
+            `/api/printing/letter/${letter.id}/pdf`,
+            `letter_${letter.letterNumber}.pdf`
+          );
+        } catch (downloadErr) {
+          console.warn('Letter direct download fallback:', downloadErr);
+        }
+      } else if (action === 'print') {
+        try {
+          await printDocumentPDF(`/api/printing/letter/${letter.id}/pdf`);
+        } catch (printErr) {
+          window.open(letterService.getPDFUrl(letter.id), '_blank');
+        }
       }
 
       modal.alert(
         'Letter Saved',
-        `Letter "${letter.title}" (${letter.letterNumber}) has been created successfully.`,
+        `Letter "${letter.title}" (${letter.letterNumber}) has been created successfully.${action === 'download' ? ' Your PDF document has been downloaded.' : ''}`,
         'success'
       );
       router.push('/letters');
@@ -194,7 +209,7 @@ export default function NewLetterPage() {
           <Button
             type="button"
             variant="secondary"
-            onClick={() => handleSubmit(false)}
+            onClick={() => handleSubmit('draft')}
             disabled={isSubmitting}
             className="rounded-xl h-9 px-4 text-xs font-semibold cursor-pointer"
           >
@@ -204,12 +219,23 @@ export default function NewLetterPage() {
 
           <Button
             type="button"
-            onClick={() => handleSubmit(true)}
+            variant="outline"
+            onClick={() => handleSubmit('print')}
             disabled={isSubmitting}
-            className="rounded-xl h-9 px-4 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm cursor-pointer"
+            className="rounded-xl h-9 px-3.5 text-xs font-semibold border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center space-x-1"
           >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Printer className="h-4 w-4 mr-1.5" />}
-            <span>Print Official Letter</span>
+            <Printer className="h-3.5 w-3.5 text-muted-foreground" />
+            <span>Print</span>
+          </Button>
+
+          <Button
+            type="button"
+            onClick={() => handleSubmit('download')}
+            disabled={isSubmitting}
+            className="rounded-xl h-9 px-4 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm cursor-pointer flex items-center space-x-1.5"
+          >
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            <span>Save & Download Letter</span>
           </Button>
         </div>
       </div>

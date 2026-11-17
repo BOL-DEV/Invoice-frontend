@@ -9,6 +9,7 @@ import { Input } from '../../../../components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table';
 import { useModal } from '../../../../components/ui/modal-provider';
+import { downloadDocumentPDF, printDocumentPDF } from '../../../../lib/document-download';
 import {
   FileSpreadsheet,
   Plus,
@@ -19,6 +20,7 @@ import {
   Check,
   User,
   ShoppingBag,
+  FileDown,
 } from 'lucide-react';
 
 interface FormItem {
@@ -86,7 +88,7 @@ export default function NewQuotationPage() {
   const subtotal = items.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
   const grandTotal = subtotal;
 
-  const handleSubmit = async (andPrint = false) => {
+  const handleSubmit = async (action: 'download' | 'print' | 'draft' = 'download') => {
     if (!customerName.trim()) {
       modal.alert('Validation Error', 'Customer / Company Name is required', 'warning');
       return;
@@ -110,6 +112,7 @@ export default function NewQuotationPage() {
       const quotation = await quotationService.create({
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim() || null,
+        status: action === 'draft' ? 'DRAFT' : 'SENT',
         notes: notes.trim() || null,
         subtotal,
         total: grandTotal,
@@ -123,13 +126,26 @@ export default function NewQuotationPage() {
         })),
       });
 
-      if (andPrint) {
-        window.open(quotationService.getPDFUrl(quotation.id), '_blank');
+      if (action === 'download') {
+        try {
+          await downloadDocumentPDF(
+            `/api/printing/quotation/${quotation.id}/pdf`,
+            `quotation_${quotation.quotationNumber}.pdf`
+          );
+        } catch (downloadErr) {
+          console.warn('PDF direct download fallback:', downloadErr);
+        }
+      } else if (action === 'print') {
+        try {
+          await printDocumentPDF(`/api/printing/quotation/${quotation.id}/pdf`);
+        } catch (printErr) {
+          window.open(quotationService.getPDFUrl(quotation.id), '_blank');
+        }
       }
 
       modal.alert(
-        'Quotation Created',
-        `Quotation ${quotation.quotationNumber} has been successfully created.`,
+        'Quotation Saved',
+        `Quotation ${quotation.quotationNumber} has been successfully created.${action === 'download' ? ' Your PDF document has been downloaded.' : ''}`,
         'success'
       );
       router.push('/quotations');
@@ -447,34 +463,44 @@ export default function NewQuotationPage() {
         </Card>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-end space-x-3 pt-2">
+        <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5 pt-2">
           <Button
             type="button"
             variant="outline"
             onClick={() => router.push('/quotations')}
             disabled={isSubmitting}
-            className="rounded-xl h-10 px-5 text-xs font-semibold cursor-pointer"
+            className="w-full sm:w-auto rounded-xl h-10 px-5 text-xs font-semibold cursor-pointer"
           >
             Cancel
           </Button>
           <Button
             type="button"
             variant="secondary"
-            onClick={() => handleSubmit(false)}
+            onClick={() => handleSubmit('draft')}
             disabled={isSubmitting}
-            className="rounded-xl h-10 px-5 text-xs font-semibold cursor-pointer"
+            className="w-full sm:w-auto rounded-xl h-10 px-5 text-xs font-semibold cursor-pointer"
           >
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Check className="h-4 w-4 mr-1.5" />}
             <span>Save as Draft</span>
           </Button>
           <Button
             type="button"
-            onClick={() => handleSubmit(true)}
+            variant="outline"
+            onClick={() => handleSubmit('print')}
             disabled={isSubmitting}
-            className="rounded-xl h-10 px-5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer"
+            className="w-full sm:w-auto rounded-xl h-10 px-4 text-xs font-semibold border-border hover:bg-secondary cursor-pointer flex items-center justify-center space-x-1.5"
           >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Printer className="h-4 w-4 mr-1.5" />}
-            <span>Save & Print Quotation</span>
+            <Printer className="h-4 w-4 text-muted-foreground" />
+            <span>Print</span>
+          </Button>
+          <Button
+            type="button"
+            onClick={() => handleSubmit('download')}
+            disabled={isSubmitting}
+            className="w-full sm:w-auto rounded-xl h-10 px-6 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer flex items-center justify-center space-x-1.5"
+          >
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <FileDown className="h-4 w-4 mr-1.5" />}
+            <span>Save & Download Quotation</span>
           </Button>
         </div>
       </div>

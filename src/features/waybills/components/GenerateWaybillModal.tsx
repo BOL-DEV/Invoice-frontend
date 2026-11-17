@@ -8,6 +8,7 @@ import { Badge } from '../../../components/ui/badge';
 import { Invoice } from '../../../types/api';
 import { waybillService } from '../../../services/waybill.service';
 import { apiClient } from '../../../services/api/axios';
+import { downloadDocumentPDF, printDocumentPDF } from '../../../lib/document-download';
 import { useModal } from '../../../components/ui/modal-provider';
 import {
   Truck,
@@ -21,6 +22,8 @@ import {
   ChevronUp,
   Package,
   FileText,
+  Printer,
+  FileDown,
 } from 'lucide-react';
 
 interface GenerateWaybillModalProps {
@@ -110,7 +113,7 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
     });
   };
 
-  const handleSubmit = async (andPrint = false) => {
+  const handleSubmit = async (action: 'download' | 'print' = 'download') => {
     if (!invoice) return;
     if (!customerName.trim()) {
       modal.alert('Validation Error', 'Customer name is required', 'warning');
@@ -140,16 +143,29 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
         items: validItems,
       });
 
+      if (action === 'download') {
+        try {
+          await downloadDocumentPDF(
+            `/api/printing/waybill/${waybill.id}/pdf`,
+            `waybill_${waybill.waybillNumber}.pdf`
+          );
+        } catch (downloadErr) {
+          console.warn('Direct PDF download fallback:', downloadErr);
+        }
+      } else if (action === 'print') {
+        try {
+          await printDocumentPDF(`/api/printing/waybill/${waybill.id}/pdf`);
+        } catch (printErr) {
+          window.open(waybillService.getPDFUrl(waybill.id), '_blank');
+        }
+      }
+
       onClose();
       if (onSuccess) onSuccess();
 
-      if (andPrint) {
-        window.open(waybillService.getPDFUrl(waybill.id), '_blank');
-      }
-
       modal.alert(
         'Waybill Generated',
-        `Waybill ${waybill.waybillNumber} has been created successfully for physical dispatch.`,
+        `Waybill ${waybill.waybillNumber} has been created successfully.${action === 'download' ? ' Your PDF document has been downloaded.' : ''}`,
         'success'
       );
     } catch (err: any) {
@@ -410,23 +426,27 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
 
           <Button
             type="button"
-            variant="secondary"
-            onClick={() => handleSubmit(false)}
+            variant="outline"
+            onClick={() => handleSubmit('print')}
             disabled={isSubmitting}
-            className="w-full sm:w-auto rounded-xl h-10 px-5 text-xs font-semibold cursor-pointer"
+            className="w-full sm:w-auto rounded-xl h-10 px-4 text-xs font-semibold border-border hover:bg-secondary cursor-pointer flex items-center justify-center space-x-1.5"
           >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Check className="h-4 w-4 mr-1.5" />}
-            <span>Save Waybill</span>
+            <Printer className="h-4 w-4 text-muted-foreground" />
+            <span>Print</span>
           </Button>
 
           <Button
             type="button"
-            onClick={() => handleSubmit(true)}
+            onClick={() => handleSubmit('download')}
             disabled={isSubmitting}
-            className="w-full sm:w-auto rounded-xl h-10 px-5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer"
+            className="w-full sm:w-auto rounded-xl h-10 px-6 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer flex items-center justify-center space-x-1.5"
           >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Truck className="h-4 w-4 mr-1.5" />}
-            <span>Generate & Print Waybill</span>
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileDown className="h-4 w-4" />
+            )}
+            <span>Save & Download Waybill</span>
           </Button>
         </div>
       </DialogContent>

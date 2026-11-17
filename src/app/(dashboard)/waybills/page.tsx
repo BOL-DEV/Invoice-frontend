@@ -27,7 +27,9 @@ import {
   Clock,
   Trash2,
   Loader2,
+  FileDown,
 } from 'lucide-react';
+import { downloadDocumentPDF, printDocumentPDF } from '../../../lib/document-download';
 
 export default function WaybillsPage() {
   const queryClient = useQueryClient();
@@ -52,8 +54,23 @@ export default function WaybillsPage() {
   const waybills = data?.waybills || [];
   const pagination = data?.pagination || { total: 0, totalPages: 1, page: 1 };
 
-  const handlePrint = (waybillId: string) => {
-    window.open(waybillService.getPDFUrl(waybillId), '_blank');
+  const handlePrint = async (waybillId: string) => {
+    try {
+      await printDocumentPDF(`/api/printing/waybill/${waybillId}/pdf`);
+    } catch {
+      window.open(waybillService.getPDFUrl(waybillId), '_blank');
+    }
+  };
+
+  const handleDownload = async (waybill: Waybill) => {
+    try {
+      await downloadDocumentPDF(
+        `/api/printing/waybill/${waybill.id}/pdf`,
+        `waybill_${waybill.waybillNumber}.pdf`
+      );
+    } catch (err: any) {
+      modal.alert('Download Failed', err.message || 'Failed to download waybill PDF', 'error');
+    }
   };
 
   const handleDelete = async (waybill: Waybill) => {
@@ -221,6 +238,16 @@ export default function WaybillsPage() {
                           title="View Details"
                         >
                           <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownload(wb)}
+                          className="h-8 px-2 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600 hover:border-emerald-500/30"
+                          title="Download Waybill PDF"
+                        >
+                          <FileDown className="h-3.5 w-3.5" />
+                          <span>PDF</span>
                         </Button>
                         <Button
                           variant="outline"

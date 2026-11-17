@@ -28,8 +28,10 @@ import {
   Calendar,
   User,
   ExternalLink,
+  FileDown,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { downloadDocumentPDF, printDocumentPDF } from '../../../lib/document-download';
 
 export default function QuotationsPage() {
   const queryClient = useQueryClient();
@@ -56,8 +58,23 @@ export default function QuotationsPage() {
   const quotations = data?.quotations || [];
   const pagination = data?.pagination || { total: 0, totalPages: 1, page: 1 };
 
-  const handlePrint = (quotationId: string) => {
-    window.open(quotationService.getPDFUrl(quotationId), '_blank');
+  const handlePrint = async (quotationId: string) => {
+    try {
+      await printDocumentPDF(`/api/printing/quotation/${quotationId}/pdf`);
+    } catch {
+      window.open(quotationService.getPDFUrl(quotationId), '_blank');
+    }
+  };
+
+  const handleDownload = async (quotation: Quotation) => {
+    try {
+      await downloadDocumentPDF(
+        `/api/printing/quotation/${quotation.id}/pdf`,
+        `quotation_${quotation.quotationNumber}.pdf`
+      );
+    } catch (err: any) {
+      modal.alert('Download Failed', err.message || 'Failed to download quotation PDF', 'error');
+    }
   };
 
   const handleConvert = async (quotation: Quotation) => {
@@ -266,6 +283,16 @@ export default function QuotationsPage() {
                           title="View Details"
                         >
                           <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownload(quo)}
+                          className="h-8 px-2 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600"
+                          title="Download Quotation PDF"
+                        >
+                          <FileDown className="h-3.5 w-3.5" />
+                          <span>PDF</span>
                         </Button>
                         <Button
                           variant="outline"
