@@ -10,13 +10,16 @@ import { Textarea } from '../../../../components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table';
 import { useModal } from '../../../../components/ui/modal-provider';
-import { downloadDocumentPDF, printDocumentPDF } from '../../../../lib/document-download';
+import { printDocumentPDF } from '../../../../lib/document-download';
 import { CustomerSearchInput } from '../../../../components/forms/CustomerSearchInput';
 import { PhoneInput } from '../../../../components/forms/PhoneInput';
 import { QuantityInput } from '../../../../components/forms/QuantityInput';
 import { MoneyInput } from '../../../../components/forms/MoneyInput';
 import { BasicCalculator } from '../../../../components/forms/BasicCalculator';
 import { WeightCalculator } from '../../../../components/forms/WeightCalculator';
+import { DocumentImportModal } from '../../../../features/invoices/components/DocumentImportModal';
+import { useSubscription } from '../../../../features/subscriptions/hooks/useSubscription';
+import { ExtractedInvoiceData } from '../../../../types/api';
 import { numberToNairaWords } from '../../../../features/invoices/utils/numberToWords';
 import {
   Plus,
@@ -27,13 +30,13 @@ import {
   Check,
   User,
   ShoppingBag,
-  FileDown,
   PenTool,
   RotateCcw,
   CheckCircle2,
   FileText,
   Calculator,
   Scale,
+  Sparkles,
 } from 'lucide-react';
 
 interface FormItem {
@@ -48,6 +51,18 @@ interface FormItem {
 export default function NewQuotationPage() {
   const router = useRouter();
   const modal = useModal();
+  const { data: subDetails } = useSubscription();
+
+  const currentPlan = subDetails?.subscription?.plan;
+  const aiScansLimit =
+    subDetails?.aiScans?.limit ??
+    (currentPlan === 'ENTERPRISE' ? 150 : currentPlan === 'BUSINESS' ? 60 : 10);
+  const aiScansUsed = subDetails?.aiScans?.used ?? 0;
+  const aiScansRemaining =
+    subDetails?.aiScans?.remaining !== undefined
+      ? subDetails.aiScans.remaining
+      : Math.max(0, aiScansLimit - aiScansUsed);
+  const isAiQuotaExhausted = aiScansRemaining <= 0;
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -55,7 +70,8 @@ export default function NewQuotationPage() {
   const [showNoteField, setShowNoteField] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Calculator states
+  // Scan & Calculator states
+  const [showImportModal, setShowImportModal] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showWeightCalculator, setShowWeightCalculator] = useState(false);
 
@@ -124,6 +140,55 @@ export default function NewQuotationPage() {
       { position: 2, quantity: 0, description: '', totalMeters: '', unitPrice: 0, totalPrice: 0 },
       { position: 3, quantity: 0, description: '', totalMeters: '', unitPrice: 0, totalPrice: 0 },
     ]);
+  };
+
+  // AI Document / Note scan handler
+  const handleApplyExtractedData = (extracted: ExtractedInvoiceData) => {
+    if (extracted.customerName && !customerName.trim()) {
+      setCustomerName(extracted.customerName);
+    }
+    if (extracted.customerPhone && !customerPhone.trim()) {
+      setCustomerPhone(extracted.customerPhone);
+    }
+    if (extracted.notes && !notes.trim()) {
+      setNotes(extracted.notes);
+      setShowNoteField(true);
+    }
+
+    const existingFilledItems = items.filter(
+      (it) => it.description.trim() !== '' || Number(it.quantity) > 0 || Number(it.unitPrice) > 0
+    );
+    const hasExistingItems = existingFilledItems.length > 0;
+
+    const newItems: FormItem[] = (extracted.items || []).map((it, idx) => {
+      const qty = Number(it.quantity) > 0 ? Number(it.quantity) : 1;
+      const unit = Number(it.unitPrice) >= 0 ? Number(it.unitPrice) : 0;
+      const accurateTotal = Math.round(qty * unit * 100) / 100;
+      const tot = accurateTotal > 0 ? accurateTotal : (Number(it.totalPrice) > 0 ? Number(it.totalPrice) : 0);
+      return {
+        position: idx + 1,
+        description: it.description || '',
+        quantity: qty,
+        totalMeters: (it as any).metrics || '',
+        unitPrice: unit,
+        totalPrice: Math.round(tot * 100) / 100,
+      };
+    });
+
+    if (newItems.length > 0) {
+      if (hasExistingItems) {
+        const startingPos = existingFilledItems.length + 1;
+        const reindexedNew = newItems.map((it, idx) => ({
+          ...it,
+          position: startingPos + idx,
+        }));
+        setItems([...existingFilledItems, ...reindexedNew]);
+      } else {
+        setItems(newItems);
+      }
+    }
+
+    setShowImportModal(false);
   };
 
   // Drawing helpers
@@ -262,7 +327,7 @@ export default function NewQuotationPage() {
   const subtotal = items.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
   const grandTotal = subtotal;
 
-  const handleSubmit = async (action: 'download' | 'print' | 'draft' = 'download') => {
+  const handleSubmit = async (action: 'print' | 'draft' = 'print') => {
     if (!customerName.trim()) {
       modal.alert('Validation Error', 'Customer Name is required', 'warning');
       return;
@@ -294,7 +359,7 @@ export default function NewQuotationPage() {
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim() || null,
         customerSignature: currentCustomerSig || null,
-        status: action === 'draft' ? 'DRAFT' : 'SENT',
+        status: 'DRAFT',
         notes: notes.trim() || null,
         subtotal,
         total: grandTotal,
@@ -308,17 +373,9 @@ export default function NewQuotationPage() {
         })),
       });
 
-      if (action === 'download') {
+      if (action === 'print') {
         try {
-          await downloadDocumentPDF(
-            `/api/printing/quotation/${quotation.id}/pdf`,
-            `quotation_${quotation.quotationNumber}.pdf`
-          );
-        } catch (downloadErr) {
-          console.warn('PDF direct download fallback:', downloadErr);
-        }
-      } else if (action === 'print') {
-        try {
+          // Triggers browser's native built-in print preview window with preview & Save-as-PDF destination
           await printDocumentPDF(`/api/printing/quotation/${quotation.id}/pdf`);
         } catch (printErr) {
           window.open(quotationService.getPDFUrl(quotation.id), '_blank');
@@ -327,7 +384,7 @@ export default function NewQuotationPage() {
 
       modal.alert(
         'Quotation Saved',
-        `Quotation ${quotation.quotationNumber} has been successfully created.${action === 'download' ? ' Your PDF document has been downloaded.' : ''}`,
+        `Quotation ${quotation.quotationNumber} has been successfully created.`,
         'success'
       );
       router.push('/quotations');
@@ -363,6 +420,47 @@ export default function NewQuotationPage() {
 
         {/* Floating Utilities triggers */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* AI Document Scan Trigger */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={isAiQuotaExhausted}
+            onClick={() => {
+              if (isAiQuotaExhausted) {
+                modal.alert(
+                  'AI Scanning Quota Exhausted',
+                  `This business has exhausted its monthly AI document scanning quota (${aiScansUsed}/${aiScansLimit} scans used). You can enter line items manually or contact your administrator to upgrade your allowance.`,
+                  'warning'
+                );
+                return;
+              }
+              setShowImportModal(true);
+            }}
+            className={`space-x-1.5 font-semibold text-xs rounded-xl h-9 shadow-sm transition-all cursor-pointer ${
+              isAiQuotaExhausted
+                ? 'border-border text-muted-foreground/60 bg-muted/20 cursor-not-allowed opacity-60'
+                : 'border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30'
+            }`}
+            title={
+              isAiQuotaExhausted
+                ? `AI Document Scanning Quota Exhausted (${aiScansUsed}/${aiScansLimit} scans used this month)`
+                : `Auto-fill quotation from handwritten note, photo, or PDF (${aiScansRemaining} scans remaining)`
+            }
+          >
+            <Sparkles className={`h-4 w-4 ${isAiQuotaExhausted ? 'text-muted-foreground/50' : 'text-indigo-500 animate-pulse'}`} />
+            <span>Auto-fill from Note / File</span>
+            {isAiQuotaExhausted ? (
+              <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-bold border border-amber-500/20">
+                0 Left
+              </span>
+            ) : (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-mono font-medium">
+                {aiScansRemaining} left
+              </span>
+            )}
+          </Button>
+
           <Button
             type="button"
             variant="outline"
@@ -373,6 +471,7 @@ export default function NewQuotationPage() {
             <Calculator className="h-4 w-4 text-muted-foreground" />
             <span>Open Calculator</span>
           </Button>
+
           <Button
             type="button"
             variant="outline"
@@ -383,6 +482,7 @@ export default function NewQuotationPage() {
             <Scale className="h-4 w-4 text-muted-foreground" />
             <span>Weight Estimator</span>
           </Button>
+
           <Button
             type="button"
             variant="outline"
@@ -457,6 +557,18 @@ export default function NewQuotationPage() {
               </div>
 
               <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isAiQuotaExhausted}
+                  onClick={() => setShowImportModal(true)}
+                  className="space-x-1.5 font-semibold text-xs border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30 rounded-xl h-8 px-3 cursor-pointer"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-500 animate-pulse" />
+                  <span>Scan / Import</span>
+                </Button>
+
                 <Button
                   type="button"
                   variant="outline"
@@ -845,7 +957,7 @@ export default function NewQuotationPage() {
           </Card>
         </div>
 
-        {/* Right Side: Sticky Summary Details Card (1 Col) - Matches Create New Invoice exactly */}
+        {/* Right Side: Sticky Summary Details Card (1 Col) - Matches Create New Invoice */}
         <div className="space-y-6 lg:sticky lg:top-20">
           <Card className="border-border bg-card shadow-sm rounded-2xl overflow-hidden">
             <CardHeader className="border-b border-border py-4 px-6 bg-slate-50 dark:bg-slate-900/35">
@@ -877,31 +989,20 @@ export default function NewQuotationPage() {
                 </p>
               </div>
 
-              {/* Action Operations Buttons */}
+              {/* Action Operations Buttons - Save & Print is the primary operation with built-in preview/Save-as-PDF */}
               <div className="space-y-2.5 pt-1.5">
                 <Button
                   type="button"
-                  onClick={() => handleSubmit('download')}
+                  onClick={() => handleSubmit('print')}
                   disabled={isSubmitting}
                   className="w-full font-bold bg-[#10B981] hover:bg-[#059669] text-white py-5 text-xs rounded-xl shadow-sm cursor-pointer flex items-center justify-center space-x-1.5"
                 >
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
                   ) : (
-                    <FileDown className="h-4 w-4 mr-1.5" />
+                    <Printer className="h-4 w-4 mr-1.5" />
                   )}
-                  <span>Save & Download Quotation</span>
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleSubmit('print')}
-                  disabled={isSubmitting}
-                  className="w-full font-semibold border-border hover:bg-secondary py-5 text-xs rounded-xl cursor-pointer flex items-center justify-center space-x-1.5"
-                >
-                  <Printer className="h-4 w-4 text-muted-foreground mr-1.5" />
-                  <span>Print Quotation</span>
+                  <span>Save & Print Quotation</span>
                 </Button>
 
                 <Button
@@ -929,6 +1030,14 @@ export default function NewQuotationPage() {
 
       {/* Slide-over Weight Calculator */}
       <WeightCalculator isOpen={showWeightCalculator} onClose={() => setShowWeightCalculator(false)} />
+
+      {/* AI Document & Jotting Note Import Modal */}
+      <DocumentImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onApply={handleApplyExtractedData}
+        hasExistingItems={items.some((it) => it.description.trim() !== '' || Number(it.quantity) > 0 || Number(it.unitPrice) > 0)}
+      />
     </div>
   );
 }

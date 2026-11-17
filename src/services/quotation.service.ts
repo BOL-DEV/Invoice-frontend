@@ -85,6 +85,14 @@ export const quotationService = {
     return response.data.data;
   },
 
+  linkInvoice: async (id: string, invoiceId: string): Promise<Quotation> => {
+    const response = await apiClient.post<ApiResponse<Quotation>>(
+      `${API_ENDPOINTS.QUOTATIONS.BASE}/${id}/link-invoice`,
+      { invoiceId }
+    );
+    return response.data.data;
+  },
+
   getPDFUrl: (id: string) => {
     const token = tokenStore.getAccessToken();
     const base = API_ENDPOINTS.QUOTATIONS.PDF(id);

@@ -28,7 +28,6 @@ import {
   Calendar,
   User,
   ExternalLink,
-  FileDown,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { downloadDocumentPDF, printDocumentPDF } from '../../../lib/document-download';
@@ -61,53 +60,55 @@ export default function QuotationsPage() {
   const handlePrint = async (quotationId: string) => {
     try {
       await printDocumentPDF(`/api/printing/quotation/${quotationId}/pdf`);
-    } catch {
-      window.open(quotationService.getPDFUrl(quotationId), '_blank');
+    } catch (err) {
+      console.error('Print error:', err);
     }
   };
 
-  const handleDownload = async (quotation: Quotation) => {
-    try {
-      await downloadDocumentPDF(
-        `/api/printing/quotation/${quotation.id}/pdf`,
-        `quotation_${quotation.quotationNumber}.pdf`
-      );
-    } catch (err: any) {
-      modal.alert('Download Failed', err.message || 'Failed to download quotation PDF', 'error');
-    }
-  };
-
-  const handleConvert = async (quotation: Quotation) => {
+  const handleConvert = (quotation: Quotation) => {
     if (quotation.status === 'CONVERTED') {
       modal.alert('Already Converted', `This quotation has already been converted to Invoice #${quotation.convertedInvoice?.invoiceNumber || ''}.`, 'info');
       return;
     }
 
-    const confirmed = await modal.confirm(
-      'Convert Quotation to Invoice',
-      `Are you sure you want to convert Quotation ${quotation.quotationNumber} (${quotation.customerName}) to a live invoice? This will lock the quotation as CONVERTED and generate a new sequential invoice.`
-    );
-    if (!confirmed) return;
+    // Map quotation items to invoice item schema
+    const mappedItems = (quotation.items || []).map((it, idx) => ({
+      id: `quo_${idx}_${Date.now()}`,
+      description: it.description || '',
+      quantity: Number(it.quantity) || 0,
+      unitPrice: Number(it.unitPrice) || 0,
+      totalPrice: Number(it.totalPrice) || (Number(it.quantity) * Number(it.unitPrice)),
+    }));
+
+    while (mappedItems.length < 3) {
+      mappedItems.push({
+        id: `empty_${mappedItems.length}_${Date.now()}`,
+        description: '',
+        quantity: 0,
+        unitPrice: 0,
+        totalPrice: 0,
+      });
+    }
+
+    const draft = {
+      customerName: quotation.customerName || '',
+      customerPhone: quotation.customerPhone || '',
+      notes: quotation.notes || '',
+      customerSignature: quotation.customerSignature || '',
+      items: mappedItems,
+      charges: [],
+      fromQuotationId: quotation.id,
+      fromQuotationNumber: quotation.quotationNumber,
+    };
 
     try {
-      setIsConverting(true);
-      const result = await quotationService.convertToInvoice(quotation.id);
-      queryClient.invalidateQueries({ queryKey: ['quotations'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      setIsDetailOpen(false);
-
-      const viewInvoice = await modal.confirm(
-        'Invoice Created',
-        `Quotation ${quotation.quotationNumber} was successfully converted to Invoice #${result.invoice.invoiceNumber}. Would you like to view the new invoice now?`
-      );
-      if (viewInvoice) {
-        router.push(`/invoices`);
-      }
-    } catch (err: any) {
-      modal.alert('Conversion Failed', err.response?.data?.message || 'Failed to convert quotation', 'error');
-    } finally {
-      setIsConverting(false);
+      localStorage.setItem('invoice_creation_draft', JSON.stringify(draft));
+    } catch (e) {
+      console.error('Failed to set invoice draft from quotation', e);
     }
+
+    setIsDetailOpen(false);
+    router.push(`/invoices/create?fromQuotation=${quotation.id}`);
   };
 
   const handleDelete = async (quotation: Quotation) => {
@@ -136,18 +137,9 @@ export default function QuotationsPage() {
     switch (status) {
       case 'CONVERTED':
         return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs font-semibold">Converted</Badge>;
-      case 'ACCEPTED':
-        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-xs font-semibold">Accepted</Badge>;
-      case 'SENT':
-        return <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20 text-xs font-semibold">Sent</Badge>;
       case 'DRAFT':
-        return <Badge variant="outline" className="text-xs font-semibold">Draft</Badge>;
-      case 'REJECTED':
-        return <Badge className="bg-red-500/10 text-red-600 border-red-500/20 text-xs font-semibold">Rejected</Badge>;
-      case 'EXPIRED':
-        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-xs font-semibold">Expired</Badge>;
       default:
-        return <Badge variant="outline" className="text-xs">{status}</Badge>;
+        return <Badge variant="outline" className="text-xs font-semibold">Draft</Badge>;
     }
   };
 
@@ -218,7 +210,7 @@ export default function QuotationsPage() {
               <TableRow>
                 <TableHead className="font-bold text-xs">Quotation #</TableHead>
                 <TableHead className="font-bold text-xs">Customer</TableHead>
-                <TableHead className="font-bold text-xs">Total Amount (=N=)</TableHead>
+                <TableHead className="font-bold text-xs">Total Amount (₦)</TableHead>
                 <TableHead className="font-bold text-xs">Date</TableHead>
                 <TableHead className="font-bold text-xs">Valid Until</TableHead>
                 <TableHead className="font-bold text-xs">Status</TableHead>
@@ -287,18 +279,8 @@ export default function QuotationsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDownload(quo)}
-                          className="h-8 px-2 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600"
-                          title="Download Quotation PDF"
-                        >
-                          <FileDown className="h-3.5 w-3.5" />
-                          <span>PDF</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
                           onClick={() => handlePrint(quo.id)}
-                          className="h-8 px-2 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-blue-500/10 hover:text-blue-600"
+                          className="h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 cursor-pointer hover:bg-blue-500/10 hover:text-blue-600"
                           title="Print Quotation PDF"
                         >
                           <Printer className="h-3.5 w-3.5" />

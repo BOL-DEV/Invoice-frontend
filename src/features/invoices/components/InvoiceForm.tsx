@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
+import { quotationService } from '../../../services/quotation.service';
 import { useInvoice } from '../context/InvoiceContext';
 import { useInvoiceRows } from '../hooks/useInvoiceRows';
 import { useInvoiceCalculations } from '../hooks/useInvoiceCalculations';
@@ -61,10 +62,14 @@ interface InvoiceFormProps {
 
 export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const modal = useModal();
   const { isAdmin } = usePermission();
   const { user } = useAuth();
+
+  const [fromQuotationId, setFromQuotationId] = useState<string | null>(null);
+  const [fromQuotationNumber, setFromQuotationNumber] = useState<string | null>(null);
   
   // Context state
   const {
@@ -418,6 +423,10 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
             if (parsed.customerPhone) setCustomerPhone(parsed.customerPhone);
             if (parsed.notes) setNotes(parsed.notes);
             if (parsed.customerSignature) setCustomerSignature(parsed.customerSignature);
+            if (parsed.fromQuotationId) {
+              setFromQuotationId(parsed.fromQuotationId);
+              setFromQuotationNumber(parsed.fromQuotationNumber || null);
+            }
             if (Array.isArray(parsed.items) && parsed.items.length > 0) {
               setItems(parsed.items);
             }
@@ -434,6 +443,16 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       resetInvoice();
     }
   }, [mode, existingInvoice, loadInvoice, resetInvoice, setCustomerName, setCustomerPhone, setNotes, setCustomerSignature, setItems, setCharges]);
+
+  // Sync quotation query param if navigated with ?fromQuotation=
+  useEffect(() => {
+    if (mode === 'create') {
+      const quoQuery = searchParams.get('fromQuotation');
+      if (quoQuery && !fromQuotationId) {
+        setFromQuotationId(quoQuery);
+      }
+    }
+  }, [mode, searchParams, fromQuotationId]);
 
   // Persist working draft in localStorage whenever changes occur
   useEffect(() => {
@@ -497,6 +516,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     } catch {}
     resetInvoice();
     setHasRestoredDraft(false);
+    setFromQuotationId(null);
+    setFromQuotationNumber(null);
   };
 
   const handleClearFormConfirm = async () => {
@@ -598,6 +619,14 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       try {
         if (mode === 'create') {
           const res = await createMutation.mutateAsync(payload);
+          if (fromQuotationId) {
+            try {
+              await quotationService.linkInvoice(fromQuotationId, res.id);
+              queryClient.invalidateQueries({ queryKey: ['quotations'] });
+            } catch (linkErr) {
+              console.error('Failed to link quotation to invoice:', linkErr);
+            }
+          }
           try {
             localStorage.removeItem('invoice_creation_draft');
           } catch {}
@@ -720,8 +749,40 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
           </div>
         </div>
       )}
+      {/* Converting from Quotation banner */}
+      {mode === 'create' && fromQuotationId && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-800 dark:text-emerald-300 text-xs shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center space-x-2.5">
+            <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="font-bold text-xs text-foreground">
+                Converting from Quotation {fromQuotationNumber ? `#${fromQuotationNumber}` : ''}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Quotation items and customer details are pre-filled below. Review, adjust prices or quantities as needed, then save to finalize as a live invoice.
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setFromQuotationId(null);
+              setFromQuotationNumber(null);
+            }}
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground rounded-lg self-end sm:self-center"
+            title="Dismiss banner"
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+
       {/* Draft restoration alert banner */}
-      {mode === 'create' && hasRestoredDraft && (
+      {mode === 'create' && hasRestoredDraft && !fromQuotationId && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-300 text-xs shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center space-x-2.5">
             <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
