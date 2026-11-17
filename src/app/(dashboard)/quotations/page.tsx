@@ -28,6 +28,7 @@ import {
   Calendar,
   User,
   ExternalLink,
+  Send,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { downloadDocumentPDF, printDocumentPDF } from '../../../lib/document-download';
@@ -133,10 +134,26 @@ export default function QuotationsPage() {
     }
   };
 
+  const handleUpdateStatus = async (quotationId: string, newStatus: QuotationStatus) => {
+    try {
+      await quotationService.update(quotationId, { status: newStatus });
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      if (selectedQuotation && selectedQuotation.id === quotationId) {
+        setSelectedQuotation({ ...selectedQuotation, status: newStatus });
+      }
+    } catch (err: any) {
+      modal.alert('Status Update Failed', err.response?.data?.message || 'Failed to update quotation status', 'error');
+    }
+  };
+
   const getStatusBadge = (status: QuotationStatus) => {
     switch (status) {
       case 'CONVERTED':
         return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs font-semibold">Converted</Badge>;
+      case 'SENT':
+        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-xs font-semibold">Sent</Badge>;
+      case 'EXPIRED':
+        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-xs font-semibold">Expired</Badge>;
       case 'DRAFT':
       default:
         return <Badge variant="outline" className="text-xs font-semibold">Draft</Badge>;
@@ -184,7 +201,7 @@ export default function QuotationsPage() {
           </div>
 
           <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-            {['ALL', 'DRAFT', 'CONVERTED'].map((st) => (
+            {['ALL', 'DRAFT', 'SENT', 'CONVERTED', 'EXPIRED'].map((st) => (
               <Button
                 key={st}
                 size="sm"
@@ -457,6 +474,27 @@ export default function QuotationsPage() {
                   <Button variant="outline" size="sm" onClick={() => setIsDetailOpen(false)} className="rounded-xl h-9 text-xs">
                     Close
                   </Button>
+                  {selectedQuotation.status === 'DRAFT' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleUpdateStatus(selectedQuotation.id, 'SENT')}
+                      className="rounded-xl h-9 text-xs cursor-pointer hover:bg-blue-500/10 hover:text-blue-600"
+                    >
+                      <Send className="h-3.5 w-3.5 mr-1.5" />
+                      <span>Mark as Sent</span>
+                    </Button>
+                  )}
+                  {selectedQuotation.status === 'SENT' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleUpdateStatus(selectedQuotation.id, 'DRAFT')}
+                      className="rounded-xl h-9 text-xs cursor-pointer"
+                    >
+                      <span>Mark as Draft</span>
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
