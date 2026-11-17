@@ -821,7 +821,7 @@ export interface ReportQueryParams {
 
 
 // Document Extensions: Quotation, Waybill, Letter
-export type QuotationStatus = 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'CONVERTED' | 'EXPIRED';
+export type QuotationStatus = 'DRAFT' | 'SENT' | 'CONVERTED' | 'EXPIRED';
 export type WaybillStatus = 'DRAFT' | 'DISPATCHED' | 'DELIVERED' | 'CANCELED';
 export type LetterStatus = 'DRAFT' | 'FINALIZED' | 'ARCHIVED';
 

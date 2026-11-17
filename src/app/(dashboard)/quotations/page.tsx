@@ -361,13 +361,13 @@ export default function QuotationsPage() {
 
       {/* Quotation Details Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="w-[96vw] max-w-3xl max-h-[85vh] overflow-y-auto p-5 rounded-2xl">
+        <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl border-border bg-card shadow-2xl">
           {selectedQuotation && (
             <div className="space-y-4">
               <DialogHeader className="border-b border-border/80 pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <div className="p-2 bg-blue-500/10 text-blue-600 rounded-xl">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="p-2 bg-blue-500/10 text-blue-600 rounded-xl shrink-0">
                       <FileSpreadsheet className="h-5 w-5" />
                     </div>
                     <div>
@@ -395,14 +395,14 @@ export default function QuotationsPage() {
               )}
 
               {/* Meta Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs bg-secondary/30 p-3 rounded-xl border border-border/70">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-secondary/30 p-3.5 rounded-xl border border-border/70">
                 <div>
                   <span className="text-muted-foreground block text-[11px]">Customer</span>
-                  <span className="font-bold text-foreground text-sm">{selectedQuotation.customerName}</span>
+                  <span className="font-bold text-foreground text-sm break-words">{selectedQuotation.customerName}</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-[11px]">Customer Contact</span>
-                  <span className="font-semibold text-foreground">
+                  <span className="font-semibold text-foreground break-words">
                     {selectedQuotation.customerPhone || selectedQuotation.customerEmail || 'N/A'}
                   </span>
                 </div>
@@ -417,34 +417,44 @@ export default function QuotationsPage() {
               {/* Line Items Table */}
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Quoted Items</h4>
-                <div className="border border-border rounded-xl overflow-hidden divide-y divide-border">
-                  <div className="p-2.5 grid grid-cols-12 bg-secondary/40 text-[11px] font-bold text-muted-foreground">
-                    <span className="col-span-1">#</span>
-                    <span className="col-span-5">Description</span>
-                    <span className="col-span-2 text-center">Qty</span>
-                    <span className="col-span-2 text-right">Unit Price</span>
-                    <span className="col-span-2 text-right">Total</span>
-                  </div>
-                  {selectedQuotation.items.map((it, idx) => (
-                    <div key={idx} className="p-2.5 grid grid-cols-12 text-xs bg-card items-center">
-                      <span className="col-span-1 text-muted-foreground">{idx + 1}</span>
-                      <span className="col-span-5 font-semibold text-foreground">{it.description}</span>
-                      <span className="col-span-2 text-center text-muted-foreground">
-                        {Number(it.quantity)} {it.metrics || ''}
-                      </span>
-                      <span className="col-span-2 text-right text-muted-foreground">
-                        ₦{Number(it.unitPrice).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-                      </span>
-                      <span className="col-span-2 text-right font-bold text-foreground">
-                        ₦{Number(it.totalPrice).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  ))}
-                  <div className="p-3 bg-secondary/30 flex justify-between items-center text-xs font-bold text-foreground">
-                    <span>Grand Total:</span>
-                    <span className="text-base text-primary">
-                      ₦{Number(selectedQuotation.total).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-                    </span>
+                <div className="rounded-xl border border-border overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <Table className="w-full min-w-[560px] text-xs">
+                      <TableHeader className="bg-secondary/50">
+                        <TableRow className="border-b border-border hover:bg-transparent">
+                          <TableHead className="w-10 text-center font-bold text-[11px] text-muted-foreground">#</TableHead>
+                          <TableHead className="min-w-[200px] font-bold text-[11px] text-muted-foreground">Description</TableHead>
+                          <TableHead className="w-28 text-center font-bold text-[11px] text-muted-foreground">Qty / Metric</TableHead>
+                          <TableHead className="w-32 text-right font-bold text-[11px] text-muted-foreground">Unit Price</TableHead>
+                          <TableHead className="w-36 text-right font-bold text-[11px] text-muted-foreground">Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody className="divide-y divide-border">
+                        {selectedQuotation.items.map((it, idx) => (
+                          <TableRow key={idx} className="hover:bg-secondary/20 transition-colors">
+                            <TableCell className="text-center text-muted-foreground font-mono text-[11px]">{idx + 1}</TableCell>
+                            <TableCell className="font-semibold text-foreground break-words">{it.description}</TableCell>
+                            <TableCell className="text-center text-muted-foreground whitespace-nowrap">
+                              {Number(it.quantity).toLocaleString()} {it.metrics || ''}
+                            </TableCell>
+                            <TableCell className="text-right text-muted-foreground whitespace-nowrap font-mono">
+                              ₦{Number(it.unitPrice).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="text-right font-bold text-foreground whitespace-nowrap font-mono">
+                              ₦{Number(it.totalPrice).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow className="bg-secondary/40 hover:bg-secondary/40 font-bold border-t-2 border-border">
+                          <TableCell colSpan={3} className="text-right text-xs font-bold text-foreground">
+                            Grand Total:
+                          </TableCell>
+                          <TableCell colSpan={2} className="text-right text-base text-primary font-bold font-mono">
+                            ₦{Number(selectedQuotation.total).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
                   </div>
                 </div>
               </div>
@@ -457,21 +467,21 @@ export default function QuotationsPage() {
               )}
 
               {/* Footer Actions */}
-              <div className="border-t border-border/80 pt-3 flex items-center justify-between">
+              <div className="border-t border-border/80 pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                 {selectedQuotation.status !== 'CONVERTED' ? (
                   <Button
                     variant="destructive"
                     size="sm"
                     onClick={() => handleDelete(selectedQuotation)}
-                    className="rounded-xl h-9 text-xs cursor-pointer"
+                    className="rounded-xl h-9 text-xs cursor-pointer w-full sm:w-auto"
                   >
                     <Trash2 className="h-3.5 w-3.5 mr-1" />
                     <span>Delete</span>
                   </Button>
                 ) : <div />}
 
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => setIsDetailOpen(false)} className="rounded-xl h-9 text-xs">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setIsDetailOpen(false)} className="rounded-xl h-9 text-xs cursor-pointer">
                     Close
                   </Button>
                   {selectedQuotation.status === 'DRAFT' && (
