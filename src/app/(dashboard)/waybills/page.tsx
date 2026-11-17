@@ -27,6 +27,7 @@ import {
   Clock,
   Trash2,
   Loader2,
+  FileDown,
 } from 'lucide-react';
 import { printDocumentPDF } from '../../../lib/document-download';
 
