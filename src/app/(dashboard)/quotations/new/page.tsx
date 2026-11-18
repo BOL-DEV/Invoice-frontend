@@ -12,7 +12,7 @@ import { Textarea } from '../../../../components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table';
 import { useModal } from '../../../../components/ui/modal-provider';
-import { printDocumentPDF } from '../../../../lib/document-download';
+import { printDocumentPDF, downloadDocumentPDF } from '../../../../lib/document-download';
 import { CustomerSearchInput } from '../../../../components/forms/CustomerSearchInput';
 import { PhoneInput } from '../../../../components/forms/PhoneInput';
 import { QuantityInput } from '../../../../components/forms/QuantityInput';
@@ -39,6 +39,7 @@ import {
   Calculator,
   Scale,
   Sparkles,
+  FileDown,
 } from 'lucide-react';
 
 interface FormItem {
@@ -376,7 +377,7 @@ export default function NewQuotationPage() {
   const subtotal = items.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
   const grandTotal = subtotal;
 
-  const handleSubmit = async (action: 'print' | 'draft' = 'print') => {
+  const handleSubmit = async (action: 'download' | 'print' | 'draft' = 'download') => {
     if (!customerName.trim()) {
       modal.alert('Validation Error', 'Customer Name is required', 'warning');
       return;
@@ -445,9 +446,17 @@ export default function NewQuotationPage() {
         queryClient.invalidateQueries({ queryKey: ['quotations'] });
       }
 
-      if (action === 'print') {
+      if (action === 'download') {
         try {
-          // Triggers browser's native built-in print preview window with preview & Save-as-PDF destination
+          await downloadDocumentPDF(
+            `/api/printing/quotation/${quotation.id}/pdf`,
+            `quotation_${quotation.quotationNumber}.pdf`
+          );
+        } catch (downloadErr) {
+          console.warn('Direct PDF download fallback:', downloadErr);
+        }
+      } else if (action === 'print') {
+        try {
           await printDocumentPDF(`/api/printing/quotation/${quotation.id}/pdf`);
         } catch (printErr) {
           window.open(quotationService.getPDFUrl(quotation.id), '_blank');
@@ -456,7 +465,7 @@ export default function NewQuotationPage() {
 
       modal.alert(
         editId ? 'Quotation Updated' : 'Quotation Saved',
-        `Quotation ${quotation.quotationNumber} has been successfully ${editId ? 'updated' : 'created'}.`,
+        `Quotation ${quotation.quotationNumber} has been successfully ${editId ? 'updated' : 'created'}.${action === 'download' ? ' Your PDF document has been downloaded.' : ''}`,
         'success'
       );
       router.push('/quotations');
@@ -1067,31 +1076,42 @@ export default function NewQuotationPage() {
               <div className="space-y-2.5 pt-1.5">
                 <Button
                   type="button"
-                  onClick={() => handleSubmit('print')}
+                  onClick={() => handleSubmit('download')}
                   disabled={isSubmitting}
                   className="w-full font-bold bg-[#10B981] hover:bg-[#059669] text-white py-5 text-xs rounded-xl shadow-sm cursor-pointer flex items-center justify-center space-x-1.5"
                 >
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
                   ) : (
-                    <Printer className="h-4 w-4 mr-1.5" />
+                    <FileDown className="h-4 w-4 mr-1.5" />
                   )}
-                  <span>{editId ? 'Update & Print Quotation' : 'Save & Print Quotation'}</span>
+                  <span>Download</span>
                 </Button>
 
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => handleSubmit('draft')}
+                  onClick={() => handleSubmit('print')}
                   disabled={isSubmitting}
-                  className="w-full font-semibold border-border hover:bg-secondary py-5 text-xs rounded-xl cursor-pointer flex items-center justify-center space-x-1.5"
+                  className="w-full font-bold border-border hover:bg-secondary py-5 text-xs rounded-xl cursor-pointer flex items-center justify-center space-x-1.5"
                 >
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
                   ) : (
-                    <Check className="h-4 w-4 mr-1.5 text-muted-foreground" />
+                    <Printer className="h-4 w-4 mr-1.5" />
                   )}
-                  <span>{editId ? 'Update Quotation Draft' : 'Save Quotation Draft'}</span>
+                  <span>Print</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => handleSubmit('draft')}
+                  disabled={isSubmitting}
+                  className="w-full font-semibold text-muted-foreground hover:text-foreground py-3 text-xs rounded-xl cursor-pointer flex items-center justify-center space-x-1.5"
+                >
+                  <Check className="h-4 w-4 mr-1.5 text-muted-foreground" />
+                  <span>Save Draft</span>
                 </Button>
               </div>
             </CardContent>

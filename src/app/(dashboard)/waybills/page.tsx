@@ -29,7 +29,7 @@ import {
   Loader2,
   FileDown,
 } from 'lucide-react';
-import { printDocumentPDF } from '../../../lib/document-download';
+import { printDocumentPDF, downloadDocumentPDF } from '../../../lib/document-download';
 
 export default function WaybillsPage() {
   const queryClient = useQueryClient();
@@ -57,6 +57,14 @@ export default function WaybillsPage() {
       await printDocumentPDF(`/api/printing/waybill/${waybillId}/pdf`);
     } catch {
       window.open(waybillService.getPDFUrl(waybillId), '_blank');
+    }
+  };
+
+  const handleDownload = async (wb: Waybill) => {
+    try {
+      await downloadDocumentPDF(`/api/printing/waybill/${wb.id}/pdf`, `waybill_${wb.waybillNumber}.pdf`);
+    } catch (err) {
+      console.error('Download error:', err);
     }
   };
 
@@ -217,6 +225,16 @@ export default function WaybillsPage() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => handleDownload(wb)}
+                          className="h-8 px-2 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600 hover:border-emerald-500/30"
+                          title="Download Waybill PDF"
+                        >
+                          <FileDown className="h-3.5 w-3.5" />
+                          <span>PDF</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handlePrint(wb.id)}
                           className="h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600 hover:border-emerald-500/30"
                           title="Print Waybill PDF"
@@ -365,12 +383,21 @@ export default function WaybillsPage() {
                     Close
                   </Button>
                   <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDownload(selectedWaybill)}
+                    className="rounded-xl h-9 text-xs cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600"
+                  >
+                    <FileDown className="h-3.5 w-3.5 mr-1.5" />
+                    <span>Download</span>
+                  </Button>
+                  <Button
                     size="sm"
                     onClick={() => handlePrint(selectedWaybill.id)}
                     className="rounded-xl h-9 text-xs bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
                   >
                     <Printer className="h-3.5 w-3.5 mr-1.5" />
-                    <span>Print PDF</span>
+                    <span>Print</span>
                   </Button>
                 </div>
               </div>

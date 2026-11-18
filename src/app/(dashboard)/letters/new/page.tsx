@@ -207,24 +207,23 @@ export default function NewLetterPage() {
             className="rounded-xl h-9 px-4 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm cursor-pointer flex items-center space-x-1.5"
           >
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-            <span>Save & Download Letter</span>
+            <span>Download</span>
           </Button>
         </div>
       </div>
 
-      {/* Microsoft Word Document Suite Container */}
+      {/* Document Suite Container */}
       <div className="rounded-2xl border border-slate-300 dark:border-slate-800 shadow-xl overflow-hidden bg-slate-200/70 dark:bg-slate-900/80">
-        {/* Microsoft Word Title Bar */}
+        {/* Document Title Bar */}
         <div className="bg-[#2b579a] text-white px-4 py-2 flex items-center justify-between text-xs font-medium">
           <div className="flex items-center space-x-2">
             <div className="bg-white/20 p-1 rounded">
               <FileText className="h-3.5 w-3.5 text-white" />
             </div>
             <span className="font-semibold tracking-wide">
-              {title.trim() ? `${title.slice(0, 40)}${title.length > 40 ? '...' : ''} - Official Letter Document` : 'Document1 - Official Letter Document'}
+              {title.trim() ? `${title.slice(0, 50)}${title.length > 50 ? '...' : ''}` : 'Official Letter Document'}
             </span>
           </div>
-          <span className="text-[11px] text-blue-100 hidden sm:inline">Microsoft Word Environment</span>
         </div>
 
         {/* Word Ribbon Toolbar */}
@@ -424,13 +423,9 @@ export default function NewLetterPage() {
               <Eraser className="h-4 w-4" />
             </button>
           </div>
-
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 ml-auto flex items-center gap-1.5 hidden md:flex">
-            <span>Visual WYSIWYG Mode</span>
-          </div>
         </div>
 
-        {/* The Word Document Canvas Desk */}
+        {/* The Document Canvas Desk */}
         <div className="p-4 sm:p-10 flex justify-center overflow-x-auto min-h-[800px]">
           {/* Authentic White A4 Paper Sheet */}
           <div className={`bg-white text-slate-900 w-full max-w-[820px] min-h-[960px] p-8 sm:p-14 shadow-2xl rounded-sm border border-slate-300 relative flex flex-col justify-between space-y-6 ${fontStyleClass}`}>
@@ -494,7 +489,7 @@ export default function NewLetterPage() {
             {/* Seamless Document Body Writing Canvas (TipTap WYSIWYG) */}
             <div className="flex-1 flex flex-col pt-2">
               <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2 select-none">
-                Letter Body Content (Visual WYSIWYG) *
+                Letter Body Content *
               </div>
               <div className="tiptap-wrapper flex-1">
                 <EditorContent

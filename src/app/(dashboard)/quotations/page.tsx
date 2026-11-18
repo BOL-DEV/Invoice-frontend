@@ -18,6 +18,7 @@ import {
   Plus,
   Search,
   Printer,
+  FileDown,
   Eye,
   ChevronLeft,
   ChevronRight,
@@ -64,6 +65,17 @@ export default function QuotationsPage() {
       await printDocumentPDF(`/api/printing/quotation/${quotationId}/pdf`);
     } catch (err) {
       console.error('Print error:', err);
+    }
+  };
+
+  const handleDownload = async (quo: Quotation) => {
+    try {
+      await downloadDocumentPDF(
+        `/api/printing/quotation/${quo.id}/pdf`,
+        `quotation_${quo.quotationNumber}.pdf`
+      );
+    } catch (err) {
+      console.error('Download error:', err);
     }
   };
 
@@ -312,6 +324,17 @@ export default function QuotationsPage() {
                             <Button
                               variant="outline"
                               size="sm"
+                              onClick={() => handleDownload(quo)}
+                              className="h-8 px-2 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600"
+                              title="Download Quotation PDF"
+                            >
+                              <FileDown className="h-3.5 w-3.5" />
+                              <span>PDF</span>
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
                               onClick={() => handlePrint(quo.id)}
                               className="h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 cursor-pointer hover:bg-blue-500/10 hover:text-blue-600"
                               title="Print Quotation PDF"
@@ -542,11 +565,21 @@ export default function QuotationsPage() {
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => handleDownload(selectedQuotation)}
+                        className="rounded-xl h-9 text-xs cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600"
+                      >
+                        <FileDown className="h-3.5 w-3.5 mr-1.5" />
+                        <span>Download</span>
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => handlePrint(selectedQuotation.id)}
                         className="rounded-xl h-9 text-xs cursor-pointer hover:bg-blue-500/10 hover:text-blue-600"
                       >
                         <Printer className="h-3.5 w-3.5 mr-1.5" />
-                        <span>Print PDF</span>
+                        <span>Print</span>
                       </Button>
 
                       <Button

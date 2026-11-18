@@ -1220,20 +1220,37 @@ export default function InvoicesPage() {
                     )
                   )}
 
-                  {/* PDF Export */}
+                  {/* Print Invoice */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        await printDocumentPDF(`/api/printing/${invoiceDetails.id}/pdf`);
+                      } catch {
+                        await handleExport(invoiceDetails.id, 'pdf', invoiceDetails.invoiceNumber);
+                      }
+                    }}
+                    className="h-9 text-xs rounded-xl border-border flex items-center space-x-1.5 cursor-pointer hover:bg-blue-500/10 hover:text-blue-600"
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                    <span>Print</span>
+                  </Button>
+
+                  {/* Download Invoice PDF */}
                   <Button
                     variant="outline"
                     size="sm"
                     disabled={exportingFormat === 'pdf'}
                     onClick={() => handleExport(invoiceDetails.id, 'pdf', invoiceDetails.invoiceNumber)}
-                    className="h-9 text-xs rounded-xl border-border flex items-center space-x-1.5 cursor-pointer"
+                    className="h-9 text-xs rounded-xl border-border flex items-center space-x-1.5 cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600"
                   >
                     {exportingFormat === 'pdf' ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
-                      <Printer className="h-3.5 w-3.5 text-emerald-500" />
+                      <FileDown className="h-3.5 w-3.5 text-emerald-500" />
                     )}
-                    <span>PDF</span>
+                    <span>Download</span>
                   </Button>
 
                   {/* Excel/CSV Export */}

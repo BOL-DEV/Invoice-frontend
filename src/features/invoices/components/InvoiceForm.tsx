@@ -32,6 +32,7 @@ import { apiClient } from '../../../services/api/axios';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { DocumentImportModal } from './DocumentImportModal';
 import { useSubscription } from '../../subscriptions/hooks/useSubscription';
+import { printDocumentPDF } from '../../../lib/document-download';
 import {
   Trash2,
   X,
@@ -44,6 +45,7 @@ import {
   Scale,
   DollarSign,
   Printer,
+  FileDown,
   FileSpreadsheet,
   User,
   ShoppingBag,
@@ -583,7 +585,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     setChargeType('custom');
   };
 
-  const handleSave = async (targetStatus: 'DRAFT' | 'FINALIZED') => {
+  const handleSave = async (targetStatus: 'DRAFT' | 'FINALIZED', action: 'download' | 'print' = 'download') => {
     if (isSubmitting.current) return;
 
     if (!customerName.trim()) {
@@ -633,14 +635,30 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
           setHasRestoredDraft(false);
           await modal.alert('Success', 'Invoice saved successfully', 'success');
           if (targetStatus === 'FINALIZED') {
-            await handleExport(res.id, 'pdf', res.invoiceNumber);
+            if (action === 'print') {
+              try {
+                await printDocumentPDF(`/api/printing/${res.id}/pdf`);
+              } catch {
+                await handleExport(res.id, 'pdf', res.invoiceNumber);
+              }
+            } else {
+              await handleExport(res.id, 'pdf', res.invoiceNumber);
+            }
           }
           router.push('/invoices');
         } else {
           const res = await updateMutation.mutateAsync(payload);
           await modal.alert('Success', 'Invoice updated successfully', 'success');
           if (targetStatus === 'FINALIZED') {
-            await handleExport(invoiceId || '', 'pdf', res.invoiceNumber);
+            if (action === 'print') {
+              try {
+                await printDocumentPDF(`/api/printing/${invoiceId || ''}/pdf`);
+              } catch {
+                await handleExport(invoiceId || '', 'pdf', res.invoiceNumber);
+              }
+            } else {
+              await handleExport(invoiceId || '', 'pdf', res.invoiceNumber);
+            }
           }
           router.push('/invoices');
         }
@@ -1528,48 +1546,81 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
               {/* Action operations buttons */}
               <div className="space-y-2 pt-1.5">
                 {mode === 'edit' && existingInvoice && existingInvoice.status !== 'DRAFT' ? (
-                  <Button
-                    onClick={() => handleSave('FINALIZED')}
-                    disabled={updateMutation.isPending}
-                    className="w-full font-bold bg-[#10B981] hover:bg-[#059669] text-white py-5 text-xs rounded-xl shadow-premium"
-                  >
-                    {updateMutation.isPending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="mr-2 h-4 w-4" />
-                    )}
-                    <span>Save & Update Finalized Invoice</span>
-                  </Button>
-                ) : (
                   <>
                     <Button
-                      onClick={() => handleSave('DRAFT')}
-                      disabled={createMutation.isPending || updateMutation.isPending}
-                      variant="outline"
-                      className="w-full font-semibold border-[#10B981] hover:bg-emerald-500/5 text-[#059669] dark:text-[#10B981] py-5 text-xs rounded-xl"
+                      type="button"
+                      onClick={() => handleSave('FINALIZED', 'download')}
+                      disabled={updateMutation.isPending}
+                      className="w-full font-bold bg-[#10B981] hover:bg-[#059669] text-white py-5 text-xs rounded-xl shadow-premium cursor-pointer flex items-center justify-center space-x-1.5"
                     >
-                      {createMutation.isPending || updateMutation.isPending ? (
+                      {updateMutation.isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
-                        <Save className="mr-2 h-4 w-4" />
+                        <FileDown className="mr-2 h-4 w-4" />
                       )}
-                      <span>Save Invoice Draft</span>
+                      <span>Download</span>
                     </Button>
 
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleSave('FINALIZED', 'print')}
+                      disabled={updateMutation.isPending}
+                      className="w-full font-bold border-border hover:bg-secondary py-5 text-xs rounded-xl cursor-pointer flex items-center justify-center space-x-1.5"
+                    >
+                      {updateMutation.isPending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Printer className="mr-2 h-4 w-4" />
+                      )}
+                      <span>Print</span>
+                    </Button>
+                  </>
+                ) : (
+                  <>
                     {(isAdmin || status === 'DRAFT' || mode === 'create') && (
-                      <Button
-                        onClick={() => handleSave('FINALIZED')}
-                        disabled={createMutation.isPending || updateMutation.isPending}
-                        className="w-full font-bold bg-[#10B981] hover:bg-[#059669] text-white py-5 text-xs rounded-xl shadow-premium"
-                      >
-                        {createMutation.isPending || updateMutation.isPending ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <FileCheck className="mr-2 h-4 w-4" />
-                        )}
-                        <span>Save & Finalize Invoice</span>
-                      </Button>
+                      <>
+                        <Button
+                          type="button"
+                          onClick={() => handleSave('FINALIZED', 'download')}
+                          disabled={createMutation.isPending || updateMutation.isPending}
+                          className="w-full font-bold bg-[#10B981] hover:bg-[#059669] text-white py-5 text-xs rounded-xl shadow-premium cursor-pointer flex items-center justify-center space-x-1.5"
+                        >
+                          {createMutation.isPending || updateMutation.isPending ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <FileDown className="mr-2 h-4 w-4" />
+                          )}
+                          <span>Download</span>
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => handleSave('FINALIZED', 'print')}
+                          disabled={createMutation.isPending || updateMutation.isPending}
+                          className="w-full font-bold border-border hover:bg-secondary py-5 text-xs rounded-xl cursor-pointer flex items-center justify-center space-x-1.5"
+                        >
+                          {createMutation.isPending || updateMutation.isPending ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Printer className="mr-2 h-4 w-4" />
+                          )}
+                          <span>Print</span>
+                        </Button>
+                      </>
                     )}
+
+                    <Button
+                      type="button"
+                      onClick={() => handleSave('DRAFT')}
+                      disabled={createMutation.isPending || updateMutation.isPending}
+                      variant="ghost"
+                      className="w-full font-semibold text-muted-foreground hover:text-foreground py-3 text-xs rounded-xl cursor-pointer flex items-center justify-center space-x-1.5"
+                    >
+                      <Save className="mr-2 h-4 w-4" />
+                      <span>Save Draft</span>
+                    </Button>
                   </>
                 )}
               </div>
