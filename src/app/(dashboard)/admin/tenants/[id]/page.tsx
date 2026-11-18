@@ -3193,7 +3193,6 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-foreground">Branch Name *</Label>
               <Input
-                placeholder="e.g. Victoria Island Outlet, Depot B"
                 value={newBranchName}
                 onChange={(e) => setNewBranchName(e.target.value)}
                 required
@@ -3205,7 +3204,6 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground">Branch Code (Optional)</Label>
                 <Input
-                  placeholder="e.g. VI-01"
                   value={newBranchCode}
                   onChange={(e) => setNewBranchCode(e.target.value.toUpperCase())}
                   maxLength={10}
@@ -3216,10 +3214,10 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground">Contact Phone</Label>
                 <Input
-                  placeholder="e.g. 08012345678"
+                  type="tel"
                   value={newBranchPhone}
-                  onChange={(e) => setNewBranchPhone(e.target.value)}
-                  className="text-xs"
+                  onChange={(e) => setNewBranchPhone(e.target.value.replace(/[^0-9+ ]/g, ''))}
+                  className="text-xs font-mono"
                 />
               </div>
             </div>
@@ -3227,7 +3225,6 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-foreground">Physical Address *</Label>
               <Input
-                placeholder="Full address of the branch or warehouse"
                 value={newBranchAddress}
                 onChange={(e) => setNewBranchAddress(e.target.value)}
                 required
@@ -3239,7 +3236,6 @@ STRICT SYNTAX & STABILITY RULES (CRITICAL):
               <Label className="text-xs font-semibold text-foreground">Branch Email (Optional)</Label>
               <Input
                 type="email"
-                placeholder="branch@business.com"
                 value={newBranchEmail}
                 onChange={(e) => setNewBranchEmail(e.target.value)}
                 className="text-xs"

@@ -1114,7 +1114,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                                 onChange={(e) => updateRow(idx, { description: e.target.value })}
                                 onKeyDown={(e) => handleKeyDown(e, idx, 'description')}
                                 onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'description' })}
-                                placeholder="e.g. 16mm Iron Rods"
                                 className="bg-background text-sm font-medium h-9 rounded-xl border border-border"
                               />
                             </TableCell>
@@ -1187,7 +1186,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                           onChange={(e) => updateRow(idx, { description: e.target.value })}
                           onKeyDown={(e) => handleKeyDown(e, idx, 'description')}
                           onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'description' })}
-                          placeholder="Item description (e.g. 16mm Rods)..."
                           className="bg-background text-xs font-medium h-8 rounded-lg border border-border flex-1"
                         />
                         <Button
@@ -1288,7 +1286,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                   <Textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Type any instructions, remarks, or notes to appear on this invoice..."
                     className="text-xs bg-background resize-none rounded-xl border border-border focus:border-emerald-500/60"
                     rows={2}
                   />
@@ -1513,7 +1510,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                         type="text"
                         value={newChargeName}
                         onChange={(e) => setNewChargeName(e.target.value)}
-                        placeholder="e.g. Discount"
                         disabled={chargeType !== 'custom'}
                         className="h-8 bg-background text-xs rounded-lg"
                       />
@@ -1525,7 +1521,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                         type="number"
                         value={newChargeAmount || ''}
                         onChange={(e) => setNewChargeAmount(parseFloat(e.target.value) || 0)}
-                        placeholder="Negative = discount"
                         disabled={chargeType !== 'custom'}
                         className="h-8 bg-background text-xs font-mono rounded-lg"
                       />

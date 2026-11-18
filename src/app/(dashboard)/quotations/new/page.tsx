@@ -620,7 +620,6 @@ export default function NewQuotationPage() {
                   id="customer-phone"
                   value={customerPhone}
                   onChange={setCustomerPhone}
-                  placeholder="e.g. 08012345678"
                   className="bg-background h-10 rounded-xl"
                 />
               </div>
@@ -729,7 +728,6 @@ export default function NewQuotationPage() {
                           type="text"
                           value={item.description}
                           onChange={(e) => handleItemChange(idx, 'description', e.target.value)}
-                          placeholder="e.g. 16mm Iron Rods"
                           className="bg-background text-sm font-medium h-9 rounded-xl border border-border"
                         />
                       </TableCell>
@@ -740,8 +738,7 @@ export default function NewQuotationPage() {
                           id={`row-${idx}-totalMeters`}
                           type="text"
                           value={item.totalMeters}
-                          onChange={(e) => handleItemChange(idx, 'totalMeters', e.target.value)}
-                          placeholder="e.g. 22"
+                          onChange={(e) => handleItemChange(idx, 'totalMeters', e.target.value.replace(/[^0-9.]/g, ''))}
                           className="bg-background text-sm font-medium h-9 rounded-xl border border-border text-right font-mono"
                         />
                       </TableCell>
@@ -795,7 +792,6 @@ export default function NewQuotationPage() {
                       type="text"
                       value={item.description}
                       onChange={(e) => handleItemChange(idx, 'description', e.target.value)}
-                      placeholder="Item description (e.g. 16mm Rods)..."
                       className="bg-background text-xs font-medium h-8 rounded-lg border border-border flex-1"
                     />
                     <Button
@@ -824,8 +820,7 @@ export default function NewQuotationPage() {
                       <Input
                         type="text"
                         value={item.totalMeters}
-                        onChange={(e) => handleItemChange(idx, 'totalMeters', e.target.value)}
-                        placeholder="22m"
+                        onChange={(e) => handleItemChange(idx, 'totalMeters', e.target.value.replace(/[^0-9.]/g, ''))}
                         className="bg-background text-xs h-7 rounded-lg border border-border text-center font-mono"
                       />
                     </div>
@@ -898,7 +893,6 @@ export default function NewQuotationPage() {
                   <Textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Type any instructions, terms, remarks, or validity notice to appear on this quotation..."
                     className="text-xs bg-background resize-none rounded-xl border border-border focus:border-emerald-500/60"
                     rows={2}
                   />

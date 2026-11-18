@@ -973,7 +973,6 @@ export default function UsersPage() {
                     <div className="relative">
                       <Store className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                       <Input
-                        placeholder="e.g. Lekki Central Depot"
                         {...branchForm.register('branchName')}
                         className="bg-background pl-9 h-10 rounded-xl text-xs border-border/80 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                       />
@@ -993,7 +992,6 @@ export default function UsersPage() {
                     <div className="relative">
                       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                       <Input
-                        placeholder="e.g. Plot 14, Commercial Avenue, Lekki Phase 1, Lagos"
                         {...branchForm.register('branchAddress')}
                         className="bg-background pl-9 h-10 rounded-xl text-xs border-border/80 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                       />
@@ -1030,7 +1028,6 @@ export default function UsersPage() {
                       Manager First Name <span className="text-rose-500">*</span>
                     </Label>
                     <Input
-                      placeholder="e.g. John"
                       {...branchForm.register('managerFirstName')}
                       className="bg-background h-10 rounded-xl text-xs border-border/80 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                     />
@@ -1047,7 +1044,6 @@ export default function UsersPage() {
                       Manager Last Name <span className="text-rose-500">*</span>
                     </Label>
                     <Input
-                      placeholder="e.g. Doe"
                       {...branchForm.register('managerLastName')}
                       className="bg-background h-10 rounded-xl text-xs border-border/80 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                     />
@@ -1067,7 +1063,6 @@ export default function UsersPage() {
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                       <Input
                         type="email"
-                        placeholder="e.g. manager.lekki@company.com"
                         {...branchForm.register('managerEmail')}
                         className="bg-background pl-9 h-10 rounded-xl text-xs font-mono border-border/80 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                       />
@@ -1091,7 +1086,6 @@ export default function UsersPage() {
                       <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                       <Input
                         type={showManagerPassword ? 'text' : 'password'}
-                        placeholder="Enter secure password..."
                         {...branchForm.register('managerPassword')}
                         className="bg-background pl-9 pr-10 h-10 rounded-xl text-xs border-border/80 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                       />
@@ -1229,7 +1223,6 @@ export default function UsersPage() {
                   </Label>
                   <Input
                     id="cashierFirstName"
-                    placeholder="e.g. Amina"
                     {...cashierForm.register('firstName')}
                     className="bg-background h-10 rounded-xl text-xs"
                   />
@@ -1246,7 +1239,6 @@ export default function UsersPage() {
                   </Label>
                   <Input
                     id="cashierLastName"
-                    placeholder="e.g. Bello"
                     {...cashierForm.register('lastName')}
                     className="bg-background h-10 rounded-xl text-xs"
                   />
@@ -1267,7 +1259,6 @@ export default function UsersPage() {
                   <Input
                     id="cashierEmail"
                     type="email"
-                    placeholder="e.g. cashier.branch@business.com"
                     {...cashierForm.register('email')}
                     className="bg-background pl-9 h-10 rounded-xl text-xs font-mono"
                   />
@@ -1288,7 +1279,6 @@ export default function UsersPage() {
                   <Input
                     id="cashierPassword"
                     type={showCashierPassword ? 'text' : 'password'}
-                    placeholder="Min 6 characters..."
                     {...cashierForm.register('password')}
                     className="bg-background pl-10 pr-10 h-10 rounded-xl text-xs"
                   />

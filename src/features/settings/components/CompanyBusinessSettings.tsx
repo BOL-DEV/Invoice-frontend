@@ -390,7 +390,6 @@ export function CompanyBusinessSettings() {
             </Label>
             <Input
               id="tagline"
-              placeholder="e.g. Industrial & Building Materials Suppliers"
               {...registerBusiness('tagline')}
               className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs"
             />
@@ -405,9 +404,13 @@ export function CompanyBusinessSettings() {
               </Label>
               <Input
                 id="phone"
-                placeholder="e.g. 08030000000, 08050000000"
-                {...registerBusiness('phone', { required: true })}
-                className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs"
+                {...registerBusiness('phone', {
+                  required: true,
+                  onChange: (e) => {
+                    e.target.value = e.target.value.replace(/[^0-9+, ]/g, '');
+                  },
+                })}
+                className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs font-mono"
               />
               <p className="text-[10px] text-muted-foreground">
                 Separate multiple numbers with commas
@@ -453,7 +456,6 @@ export function CompanyBusinessSettings() {
             </Label>
             <Input
               id="address"
-              placeholder="e.g. 12 Industrial Avenue, Ikeja, Lagos"
               {...registerBusiness('address', { required: true })}
               className="bg-background border-border/80 focus:border-emerald-500/60 h-10 rounded-xl text-xs"
             />
@@ -468,7 +470,6 @@ export function CompanyBusinessSettings() {
               </Label>
               <Input
                 id="receiptPrefix"
-                placeholder="e.g. INV"
                 {...registerBusiness('receiptPrefix', { required: true })}
                 className="bg-background border-border/80 focus:border-emerald-500/60 font-mono uppercase h-10 rounded-xl text-xs"
               />
@@ -481,7 +482,6 @@ export function CompanyBusinessSettings() {
               </Label>
               <Input
                 id="cacOrRegNumber"
-                placeholder="e.g. RC-123456 or BN-123456"
                 {...registerBusiness('cacOrRegNumber')}
                 className="bg-background border-border/80 focus:border-emerald-500/60 font-mono h-10 rounded-xl text-xs"
               />
@@ -494,7 +494,6 @@ export function CompanyBusinessSettings() {
               </Label>
               <Input
                 id="tin"
-                placeholder="e.g. 12345678-0001"
                 {...registerBusiness('tin')}
                 className="bg-background border-border/80 focus:border-emerald-500/60 font-mono h-10 rounded-xl text-xs"
               />

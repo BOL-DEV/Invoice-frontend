@@ -769,7 +769,6 @@ export default function TenantsAdminPage() {
                         setNewBizSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-'));
                       }
                     }}
-                    placeholder="e.g. Apex Global Logistics"
                     className="h-9 text-xs rounded-xl"
                   />
                 </div>
@@ -780,7 +779,6 @@ export default function TenantsAdminPage() {
                     required
                     value={newBizSlug}
                     onChange={(e) => setNewBizSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                    placeholder="e.g. apex-logistics"
                     className="h-9 text-xs font-mono rounded-xl"
                   />
                 </div>
@@ -794,18 +792,17 @@ export default function TenantsAdminPage() {
                     required
                     value={newBizEmail}
                     onChange={(e) => setNewBizEmail(e.target.value)}
-                    placeholder="billing@apex.com"
                     className="h-9 text-xs rounded-xl"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Official Phone *</Label>
                   <Input
+                    type="tel"
                     required
                     value={newBizPhone}
-                    onChange={(e) => setNewBizPhone(e.target.value)}
-                    placeholder="080 000 0000"
-                    className="h-9 text-xs rounded-xl"
+                    onChange={(e) => setNewBizPhone(e.target.value.replace(/[^0-9+ ]/g, ''))}
+                    className="h-9 text-xs font-mono rounded-xl"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -813,7 +810,6 @@ export default function TenantsAdminPage() {
                   <Input
                     value={newBizReceiptPrefix}
                     onChange={(e) => setNewBizReceiptPrefix(e.target.value.toUpperCase())}
-                    placeholder="APX"
                     maxLength={10}
                     className="h-9 text-xs font-mono uppercase rounded-xl"
                   />
@@ -826,7 +822,6 @@ export default function TenantsAdminPage() {
                   required
                   value={newBizAddress}
                   onChange={(e) => setNewBizAddress(e.target.value)}
-                  placeholder="Street Address, City, State"
                   className="h-9 text-xs rounded-xl"
                 />
               </div>

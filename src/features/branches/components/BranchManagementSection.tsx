@@ -486,7 +486,6 @@ export const BranchManagementSection: React.FC = () => {
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Ikeja Warehouse"
                     className="h-9 text-xs rounded-xl"
                     required
                   />
@@ -496,7 +495,6 @@ export const BranchManagementSection: React.FC = () => {
                   <Input
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
-                    placeholder="e.g. IKJ-01"
                     className="h-9 text-xs font-mono rounded-xl uppercase"
                   />
                 </div>
@@ -507,7 +505,6 @@ export const BranchManagementSection: React.FC = () => {
                 <Input
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="e.g. Plot 12 Commercial Way, Industrial Estate"
                   className="h-9 text-xs rounded-xl"
                   required
                 />
@@ -517,9 +514,9 @@ export const BranchManagementSection: React.FC = () => {
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold">Contact Phone</Label>
                   <Input
+                    type="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="e.g. +234 803 000 0000"
+                    onChange={(e) => setPhone(e.target.value.replace(/[^0-9+ ]/g, ''))}
                     className="h-9 text-xs font-mono rounded-xl"
                   />
                 </div>
@@ -529,7 +526,6 @@ export const BranchManagementSection: React.FC = () => {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="e.g. ikeja@company.com"
                     className="h-9 text-xs rounded-xl"
                   />
                 </div>

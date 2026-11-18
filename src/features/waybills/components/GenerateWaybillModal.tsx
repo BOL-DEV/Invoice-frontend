@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../components/ui/dialog';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
+import { PhoneInput } from '../../../components/forms/PhoneInput';
 import { Badge } from '../../../components/ui/badge';
 import { Invoice } from '../../../types/api';
 import { waybillService } from '../../../services/waybill.service';
@@ -223,7 +224,6 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
                 <Input
                   value={customerName}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomerName(e.target.value)}
-                  placeholder="e.g. Dangote Construction Ltd"
                   className="mt-1 h-10 rounded-xl text-sm"
                   required
                 />
@@ -231,10 +231,9 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
 
               <div>
                 <label className="text-xs font-semibold text-muted-foreground">Customer Phone (Optional)</label>
-                <Input
+                <PhoneInput
                   value={customerPhone}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomerPhone(e.target.value)}
-                  placeholder="e.g. 08034071931"
+                  onChange={setCustomerPhone}
                   className="mt-1 h-10 rounded-xl text-sm"
                 />
               </div>
@@ -244,7 +243,6 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
                 <Input
                   value={deliveryAddress}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeliveryAddress(e.target.value)}
-                  placeholder="e.g. Plot 12 Victoria Island Construction Site, Lagos"
                   className="mt-1 h-10 rounded-xl text-sm"
                 />
               </div>
@@ -264,17 +262,15 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
                 <Input
                   value={driverName}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDriverName(e.target.value)}
-                  placeholder="e.g. Kazeem Bello"
                   className="mt-1 h-10 rounded-xl text-sm bg-card"
                 />
               </div>
 
               <div>
                 <label className="text-xs font-semibold text-muted-foreground">Driver Phone Number</label>
-                <Input
+                <PhoneInput
                   value={driverPhone}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDriverPhone(e.target.value)}
-                  placeholder="e.g. 08023456789"
+                  onChange={setDriverPhone}
                   className="mt-1 h-10 rounded-xl text-sm bg-card"
                 />
               </div>
@@ -284,7 +280,6 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
                 <Input
                   value={lorryNumber}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLorryNumber(e.target.value)}
-                  placeholder="e.g. PUR-591-XB"
                   className="mt-1 h-10 rounded-xl text-sm bg-card font-mono"
                 />
               </div>
@@ -304,7 +299,6 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
                 <Input
                   value={deliveredBy}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeliveredBy(e.target.value)}
-                  placeholder="e.g. Abdulakeem Onilenla"
                   className="mt-1 h-10 rounded-xl text-sm bg-card"
                 />
               </div>
@@ -314,7 +308,6 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
                 <Input
                   value={receivedBy}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReceivedBy(e.target.value)}
-                  placeholder="Customer receiver name (if known)"
                   className="mt-1 h-10 rounded-xl text-sm bg-card"
                 />
               </div>
@@ -406,7 +399,6 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
                     <Input
                       value={lpoNumber}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLpoNumber(e.target.value)}
-                      placeholder="e.g. LPO-892"
                       className="mt-1 h-9 rounded-xl text-sm font-mono"
                     />
                   </div>
@@ -416,7 +408,6 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
                     <Input
                       value={notes}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNotes(e.target.value)}
-                      placeholder="e.g. Delivered on 10-wheeler trailer, gate pass attached"
                       className="mt-1 h-9 rounded-xl text-sm"
                     />
                   </div>

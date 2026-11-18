@@ -9,7 +9,7 @@ interface PhoneInputProps extends Omit<React.ComponentProps<'input'>, 'value' | 
 }
 
 export const PhoneInput = forwardRef(
-  ({ value, onChange, className, ...props }: PhoneInputProps, ref: ForwardedRef<HTMLInputElement>) => {
+  ({ value, onChange, className, placeholder = '', ...props }: PhoneInputProps, ref: ForwardedRef<HTMLInputElement>) => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const cleanVal = e.target.value.replace(/[^0-9+]/g, '');
       onChange(cleanVal);
@@ -22,8 +22,8 @@ export const PhoneInput = forwardRef(
         type="tel"
         value={value}
         onChange={handleChange}
-        placeholder="e.g. 08012345678"
-        className={`font-mono ${className}`}
+        placeholder={placeholder}
+        className={`font-mono ${className || ''}`}
       />
     );
   }

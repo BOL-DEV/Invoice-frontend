@@ -604,7 +604,6 @@ export default function OnboardBusinessPage() {
                 <Input
                   value={businessName}
                   onChange={(e) => handleBusinessNameChange(e.target.value)}
-                  placeholder="e.g. Acme Global Industries"
                   required
                   className="h-11 rounded-xl text-sm px-4 bg-background border-border"
                 />
@@ -619,7 +618,6 @@ export default function OnboardBusinessPage() {
                     setSlug(s);
                     setDevDomain(`${s}.localhost`);
                   }}
-                  placeholder="e.g. acme-global"
                   required
                   className={`h-11 rounded-xl text-sm font-mono px-4 bg-background ${
                     slug && RESERVED_SLUGS.includes(slug) ? 'border-rose-500 ring-1 ring-rose-500' : 'border-border'
@@ -639,7 +637,6 @@ export default function OnboardBusinessPage() {
               <Input
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="e.g. Suite 104, Commercial Avenue, Ikeja, Lagos"
                 required
                 className="h-11 rounded-xl text-sm px-4 bg-background border-border"
               />
@@ -649,9 +646,9 @@ export default function OnboardBusinessPage() {
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-foreground">Official Phone Number *</Label>
                 <Input
+                  type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="e.g. +234 803 000 0000 or 0803 000 0000"
+                  onChange={(e) => setPhone(e.target.value.replace(/[^0-9+ ]/g, ''))}
                   required
                   className={`h-11 rounded-xl text-sm px-4 bg-background ${
                     phone && !isValidPhoneNumber(phone)
@@ -672,7 +669,6 @@ export default function OnboardBusinessPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. billing@acme-global.com"
                   required
                   className="h-11 rounded-xl text-sm px-4 bg-background border-border"
                 />
@@ -685,7 +681,6 @@ export default function OnboardBusinessPage() {
                 <Input
                   value={receiptPrefix}
                   onChange={(e) => setReceiptPrefix(e.target.value.toUpperCase())}
-                  placeholder="e.g. INV"
                   className="h-10 rounded-xl text-xs font-mono uppercase px-3 bg-background border-border"
                 />
               </div>
@@ -694,7 +689,6 @@ export default function OnboardBusinessPage() {
                 <Input
                   value={quotationPrefix}
                   onChange={(e) => setQuotationPrefix(e.target.value.toUpperCase())}
-                  placeholder="e.g. QUO"
                   className="h-10 rounded-xl text-xs font-mono uppercase px-3 bg-background border-border"
                 />
               </div>
@@ -703,7 +697,6 @@ export default function OnboardBusinessPage() {
                 <Input
                   value={waybillPrefix}
                   onChange={(e) => setWaybillPrefix(e.target.value.toUpperCase())}
-                  placeholder="e.g. WAY"
                   className="h-10 rounded-xl text-xs font-mono uppercase px-3 bg-background border-border"
                 />
               </div>
@@ -712,7 +705,6 @@ export default function OnboardBusinessPage() {
                 <Input
                   value={letterPrefix}
                   onChange={(e) => setLetterPrefix(e.target.value.toUpperCase())}
-                  placeholder="e.g. LTR"
                   className="h-10 rounded-xl text-xs font-mono uppercase px-3 bg-background border-border"
                 />
               </div>
@@ -723,7 +715,6 @@ export default function OnboardBusinessPage() {
               <Input
                 value={tagline}
                 onChange={(e) => setTagline(e.target.value)}
-                placeholder="e.g. Premium Industrial & Commercial Solutions"
                 className="h-11 rounded-xl text-sm px-4 bg-background border-border"
               />
             </div>

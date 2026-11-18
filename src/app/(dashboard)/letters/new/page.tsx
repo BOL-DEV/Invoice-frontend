@@ -440,7 +440,6 @@ export default function NewLetterPage() {
                     type="text"
                     value={ourRef}
                     onChange={(e) => setOurRef(e.target.value)}
-                    placeholder="LSV/ADM/2026/01"
                     className="h-7 px-2 font-mono text-xs border border-slate-300 rounded focus:border-blue-500 focus:outline-none w-36 sm:w-44 bg-slate-50/50"
                   />
                 </div>
@@ -451,7 +450,6 @@ export default function NewLetterPage() {
                     type="text"
                     value={yourRef}
                     onChange={(e) => setYourRef(e.target.value)}
-                    placeholder="DNG/PROC/881"
                     className="h-7 px-2 font-mono text-xs border border-slate-300 rounded focus:border-blue-500 focus:outline-none w-36 sm:w-44 bg-slate-50/50"
                   />
                 </div>
@@ -478,7 +476,7 @@ export default function NewLetterPage() {
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="CLICK HERE TO TYPE LETTER SUBJECT (E.G. NOTIFICATION OF PRICE REVISION)"
+                    placeholder="Enter letter subject..."
                     className="w-full text-sm sm:text-base font-bold uppercase tracking-wide text-slate-950 focus:outline-none bg-transparent placeholder:text-slate-400 placeholder:normal-case placeholder:font-normal"
                     required
                   />
@@ -510,7 +508,6 @@ export default function NewLetterPage() {
                     type="text"
                     value={signatoryName}
                     onChange={(e) => setSignatoryName(e.target.value)}
-                    placeholder="Authorised Signatory"
                     className="mt-0.5 h-8 px-2 w-full text-xs font-semibold text-slate-900 border border-slate-300 rounded focus:border-blue-500 focus:outline-none bg-slate-50/50"
                   />
                 </div>
@@ -521,7 +518,6 @@ export default function NewLetterPage() {
                     type="text"
                     value={signatoryTitle}
                     onChange={(e) => setSignatoryTitle(e.target.value)}
-                    placeholder="Managing Director"
                     className="mt-0.5 h-8 px-2 w-full text-xs text-slate-700 border border-slate-300 rounded focus:border-blue-500 focus:outline-none bg-slate-50/50"
                   />
                 </div>

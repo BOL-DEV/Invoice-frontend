@@ -1620,7 +1620,6 @@ export default function InvoicesPage() {
                 </label>
                 <Input
                   type="text"
-                  placeholder="e.g. Please print customer receipt copy and collect balance"
                   value={shareNotes}
                   onChange={(e) => setShareNotes(e.target.value)}
                   className="h-10 text-xs bg-background rounded-xl border-border focus:ring-2 focus:ring-emerald-500/30"
