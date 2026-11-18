@@ -10,6 +10,7 @@ import { waybillService } from '../../../services/waybill.service';
 import { apiClient } from '../../../services/api/axios';
 import { downloadDocumentPDF, printDocumentPDF } from '../../../lib/document-download';
 import { useModal } from '../../../components/ui/modal-provider';
+import { useAuth } from '../../auth/context/AuthContext';
 import {
   Truck,
   Loader2,
@@ -40,6 +41,7 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
   onSuccess,
 }) => {
   const modal = useModal();
+  const { user } = useAuth();
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -68,7 +70,9 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
     setDriverName('');
     setDriverPhone('');
     setLorryNumber('');
-    setDeliveredBy(invoice.creator ? `${invoice.creator.firstName || ''} ${invoice.creator.lastName || ''}`.trim() : '');
+    const creatorName = invoice.creator ? `${invoice.creator.firstName || ''} ${invoice.creator.lastName || ''}`.trim() : '';
+    const currentUserName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '';
+    setDeliveredBy(currentUserName || creatorName || 'Abdulakeem Onilenla');
     setReceivedBy('');
     setLpoNumber('');
     setDispatchDate(new Date().toISOString().split('T')[0]);
@@ -294,6 +298,26 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
                   className="mt-1 h-10 rounded-xl text-sm bg-card"
                 />
               </div>
+
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground">Delivered By (Issuing Staff)</label>
+                <Input
+                  value={deliveredBy}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeliveredBy(e.target.value)}
+                  placeholder="e.g. Abdulakeem Onilenla"
+                  className="mt-1 h-10 rounded-xl text-sm bg-card"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground">Received By (Optional)</label>
+                <Input
+                  value={receivedBy}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReceivedBy(e.target.value)}
+                  placeholder="Customer receiver name (if known)"
+                  className="mt-1 h-10 rounded-xl text-sm bg-card"
+                />
+              </div>
             </div>
           </div>
 
@@ -378,17 +402,7 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
               <div className="p-4 sm:p-5 bg-card space-y-4 border-t border-border/80">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-muted-foreground">Delivered By (Staff Name)</label>
-                    <Input
-                      value={deliveredBy}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeliveredBy(e.target.value)}
-                      placeholder="e.g. Warehouse Officer / Abdulakeem"
-                      className="mt-1 h-9 rounded-xl text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground">LPO / Order Number</label>
+                    <label className="text-xs font-semibold text-muted-foreground">LPO / Customer Order Number</label>
                     <Input
                       value={lpoNumber}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLpoNumber(e.target.value)}
