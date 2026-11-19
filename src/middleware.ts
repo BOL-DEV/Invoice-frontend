@@ -15,6 +15,10 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/business') ||
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/invoices') ||
+    pathname.startsWith('/quotations') ||
+    pathname.startsWith('/waybills') ||
+    pathname.startsWith('/letters') ||
+    pathname.startsWith('/reports') ||
     pathname.startsWith('/settings') ||
     pathname.startsWith('/users');
 

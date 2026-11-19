@@ -1,6 +1,19 @@
 import type { NextConfig } from "next";
 
 const securityHeaders = [
+  // Content Security Policy
+  {
+    key: "Content-Security-Policy",
+    value: [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data:",
+      "connect-src 'self' http://localhost:5000 https://api.lenco.co https://api.squadco.com https://invoice-backend-murex.vercel.app",
+      "frame-ancestors 'self'",
+    ].join('; '),
+  },
   // Prevent clickjacking by forbidding embedding in foreign iframes:
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   // Prevent MIME-sniffing:
