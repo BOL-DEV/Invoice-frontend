@@ -121,12 +121,12 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
   const handleSubmit = async (action: 'download' | 'print' = 'download') => {
     if (!invoice) return;
     if (!customerName.trim()) {
-      modal.alert('Validation Error', 'Customer name is required', 'warning');
+      modal.alert('Missing Information', 'Please enter a customer name.', 'warning');
       return;
     }
     const validItems = items.filter((it) => it.quantity > 0);
     if (validItems.length === 0) {
-      modal.alert('Validation Error', 'At least one item must have a quantity greater than zero', 'warning');
+      modal.alert('Missing Information', 'Please specify a quantity greater than zero for at least one item.', 'warning');
       return;
     }
 

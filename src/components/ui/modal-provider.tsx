@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "./button";
 import { Input } from "./input";
 import { Info, CheckCircle2, AlertTriangle, AlertCircle, HelpCircle } from "lucide-react";
+import { toLaymanTitle, toLaymanMessage } from "../../lib/api-error";
 
 interface ModalOptions {
   title: string;
@@ -45,8 +46,8 @@ export const ModalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   ) => {
     return new Promise<void>((res) => {
       setOptions({
-        title,
-        message,
+        title: toLaymanTitle(title),
+        message: toLaymanMessage(message),
         type,
         confirmText: "OK",
         resolve: () => res(),
@@ -63,8 +64,8 @@ export const ModalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   ) => {
     return new Promise<boolean>((res) => {
       setOptions({
-        title,
-        message,
+        title: toLaymanTitle(title),
+        message: toLaymanMessage(message),
         type: 'confirm',
         confirmText,
         cancelText,

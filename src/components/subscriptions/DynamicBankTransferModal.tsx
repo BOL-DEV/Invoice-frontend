@@ -347,7 +347,7 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
               <div className="space-y-1">
                 <h3 className="text-xl font-bold text-white tracking-tight">Transfer Session Expired</h3>
                 <p className="text-xs text-slate-300 max-w-sm mx-auto">
-                  {failureReason || 'This dynamic virtual transfer account was valid for 30 minutes and has now expired for your protection.'}
+                  This transfer account was active for 30 minutes and has now expired.
                 </p>
               </div>
             </div>
@@ -355,10 +355,10 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
             <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2 text-xs">
               <div className="flex items-center space-x-2 text-amber-300 font-semibold">
                 <AlertTriangle className="h-4 w-4 shrink-0" />
-                <span>Do Not Transfer Funds to Expired Account</span>
+                <span>Notice</span>
               </div>
-              <p className="text-slate-300 text-[11px] leading-relaxed">
-                Sending funds to an expired dynamic account can result in bank network delays or automated reversals. Please generate a fresh virtual account to complete your payment smoothly.
+              <p className="text-slate-300 text-xs leading-relaxed">
+                Please do not send money to this expired account number. Tap below to get a fresh account number.
               </p>
             </div>
 
@@ -366,18 +366,18 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
               {onRetry && (
                 <Button
                   onClick={onRetry}
-                  className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/20 transition-all"
+                  className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
                 >
                   <RefreshCw className="h-4 w-4" />
-                  <span>Generate Fresh Transfer Account</span>
+                  <span>Try Transfer Again</span>
                 </Button>
               )}
               <Button
                 onClick={onClose}
                 variant="outline"
-                className="w-full h-10 border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs rounded-xl"
+                className="w-full h-10 border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs rounded-xl cursor-pointer"
               >
-                Cancel & Close
+                Close
               </Button>
             </div>
           </div>
@@ -391,9 +391,9 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
                 <AlertCircle className="h-7 w-7" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-xl font-bold text-white tracking-tight">Payment Transfer Rejected</h3>
+                <h3 className="text-xl font-bold text-white tracking-tight">Payment Unsuccessful</h3>
                 <p className="text-xs text-slate-300 max-w-sm mx-auto">
-                  The payment transfer could not be settled or was rejected by the banking network.
+                  Your payment transfer could not be completed.
                 </p>
               </div>
             </div>
@@ -401,13 +401,29 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
             <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-2.5 text-xs">
               <div className="flex items-center space-x-2 text-rose-400 font-semibold">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>Exact Failure Reason</span>
+                <span>Reason</span>
               </div>
-              <div className="p-3 rounded-lg bg-slate-900/90 border border-rose-500/20 font-mono text-rose-300 text-xs break-words">
-                {failureReason || 'Transfer amount mismatch or transaction rejected by sending bank.'}
+              <div className="p-3 rounded-lg bg-slate-900/80 border border-rose-500/20 text-rose-300 text-xs font-medium leading-relaxed">
+                {(() => {
+                  if (!failureReason) return 'The transfer could not be verified by your bank.';
+                  const lower = failureReason.toLowerCase();
+                  if (lower.includes('amount') || lower.includes('match') || lower.includes('expected') || lower.includes('mismatch')) {
+                    return 'The amount transferred does not match the invoice amount.';
+                  }
+                  if (lower.includes('expired')) {
+                    return 'The transfer account expired before payment arrived.';
+                  }
+                  if (lower.includes('declined') || lower.includes('rejected') || lower.includes('failed')) {
+                    return 'Your bank declined this transaction. Please check with your bank.';
+                  }
+                  if (lower.includes('insufficient')) {
+                    return 'Insufficient funds in your account.';
+                  }
+                  return failureReason.replace(/squad|lenco|nibss|api|http|null|undefined/gi, '').trim() || 'Payment could not be completed.';
+                })()}
               </div>
-              <p className="text-slate-400 text-[11px] leading-relaxed">
-                If money left your bank account, NIBSS and your bank will automatically reverse the full amount back to your sending account within normal settlement windows.
+              <p className="text-slate-300 text-[11px] leading-relaxed">
+                If money was deducted from your account, your bank will refund it to you automatically.
               </p>
             </div>
 
@@ -415,16 +431,16 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
               {onRetry && (
                 <Button
                   onClick={onRetry}
-                  className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/20 transition-all"
+                  className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
                 >
                   <RefreshCw className="h-4 w-4" />
-                  <span>Generate Fresh Transfer Account</span>
+                  <span>Try Transfer Again</span>
                 </Button>
               )}
               <Button
                 onClick={onClose}
                 variant="outline"
-                className="w-full h-10 border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs rounded-xl"
+                className="w-full h-10 border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs rounded-xl cursor-pointer"
               >
                 Close
               </Button>

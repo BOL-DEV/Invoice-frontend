@@ -576,7 +576,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
   const handleAddNewCharge = () => {
     if (!newChargeName.trim() || !newChargeAmount) {
-      modal.alert('Input Error', 'Charge name and amount must be provided.', 'warning');
+      modal.alert('Missing Information', 'Please provide both the charge description and amount.', 'warning');
       return;
     }
     addCharge(newChargeName.trim(), newChargeAmount);
@@ -589,7 +589,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     if (isSubmitting.current) return;
 
     if (!customerName.trim()) {
-      modal.alert('Input Required', 'Customer Name is required to save invoice.', 'warning');
+      modal.alert('Missing Information', 'Please enter a customer name to proceed.', 'warning');
       return;
     }
 
@@ -598,7 +598,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
     );
 
     if (filledRows.length === 0) {
-      modal.alert('Input Required', 'Please fill out at least one line item row with description, quantity, and price.', 'warning');
+      modal.alert('Missing Information', 'Please add at least one item with description, quantity, and price.', 'warning');
       return;
     }
 

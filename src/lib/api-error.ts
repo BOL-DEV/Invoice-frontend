@@ -240,11 +240,176 @@ export function normalizeApiError(error: unknown): NormalizedError {
 }
 
 /**
+ * Translates raw, technical, and developer error messages into simple, clear layman wording.
+ */
+export function toLaymanMessage(msg: string): string {
+  if (!msg || typeof msg !== 'string') return 'Something went wrong. Please try again.';
+  const lower = msg.toLowerCase();
+
+  // 1. Prisma & Database errors
+  if (lower.includes('unique constraint') || lower.includes('p2002')) {
+    if (lower.includes('invoicenumber') || lower.includes('receiptprefix')) {
+      return 'An invoice with this number already exists.';
+    }
+    if (lower.includes('quotationnumber')) {
+      return 'A quotation with this number already exists.';
+    }
+    if (lower.includes('waybillnumber')) {
+      return 'A waybill with this number already exists.';
+    }
+    if (lower.includes('letternumber')) {
+      return 'A letter with this reference number already exists.';
+    }
+    if (lower.includes('email')) {
+      return 'An account with this email address already exists.';
+    }
+    if (lower.includes('slug')) {
+      return 'This company address identifier is already taken.';
+    }
+    if (lower.includes('phone')) {
+      return 'This phone number is already registered.';
+    }
+    return 'This record already exists in the system.';
+  }
+
+  if (lower.includes('foreign key') || lower.includes('p2003')) {
+    return 'This item is linked to other records and cannot be deleted or modified.';
+  }
+
+  if (
+    lower.includes('record to update not found') ||
+    lower.includes('record to delete does not exist') ||
+    lower.includes('p2025')
+  ) {
+    return 'The requested record could not be found.';
+  }
+
+  if (lower.includes('database') || lower.includes('prisma') || lower.includes('econnrefused')) {
+    return 'Unable to reach the server. Please check your connection and try again.';
+  }
+
+  // 2. Payment & Transfer errors
+  if (
+    lower.includes('expected amount does not match') ||
+    lower.includes('amount mismatch') ||
+    lower.includes('merchant_amount')
+  ) {
+    return 'The amount transferred does not match the invoice amount.';
+  }
+  if (
+    lower.includes('virtual payment account expired') ||
+    lower.includes('account expired') ||
+    lower.includes('transfer session expired')
+  ) {
+    return 'The transfer account expired before payment arrived.';
+  }
+  if (
+    lower.includes('rejected by sending bank') ||
+    lower.includes('transaction rejected') ||
+    lower.includes('payment transfer was rejected')
+  ) {
+    return 'Your bank was unable to complete this transfer.';
+  }
+  if (lower.includes('insufficient funds') || lower.includes('insufficient balance')) {
+    return 'Insufficient funds in your account.';
+  }
+
+  // 3. Network & Connection errors
+  if (lower.includes('network error') || lower.includes('err_network')) {
+    return 'Please check your internet connection and try again.';
+  }
+  if (lower.includes('timeout') || lower.includes('econnaborted')) {
+    return 'The connection timed out. Please try again.';
+  }
+  if (lower.includes('internal server error') || lower.includes('status code 500')) {
+    return 'Something went wrong on our end. Please try again in a moment.';
+  }
+  if (lower.includes('status code 404')) {
+    return 'The requested item could not be found.';
+  }
+  if (lower.includes('status code 403')) {
+    return 'You do not have permission to perform this action.';
+  }
+  if (lower.includes('status code 401') || lower.includes('jwt expired') || lower.includes('token expired')) {
+    return 'Your session has expired. Please sign in again.';
+  }
+
+  // 4. Form validation errors
+  if (lower.includes('string must contain at least') || lower.includes('required_error')) {
+    return 'Please fill in all required fields.';
+  }
+  if (lower.includes('expected number, received string')) {
+    return 'Please enter a valid number.';
+  }
+  if (lower.includes('invalid email')) {
+    return 'Please enter a valid email address.';
+  }
+  if (lower.includes('invalid uuid') || lower.includes('invalid id')) {
+    return 'Invalid item selected.';
+  }
+
+  // 5. Clean technical error wrappers
+  const cleaned = msg
+    .replace(/^(AxiosError|Error|TypeError|ReferenceError):\s*/i, '')
+    .replace(/^Request failed with status code \d+:\s*/i, '')
+    .replace(/\[LENCO-WEBHOOK\]|\[SQUAD-WEBHOOK\]/gi, '')
+    .trim();
+
+  return cleaned || 'Something went wrong. Please try again.';
+}
+
+/**
+ * Translates raw technical modal titles into user-friendly headers.
+ */
+export function toLaymanTitle(title: string): string {
+  if (!title) return 'Notice';
+  const lower = title.toLowerCase();
+
+  if (lower === 'error') {
+    return 'Something Went Wrong';
+  }
+  if (lower.includes('network error') || lower.includes('network connection issue')) {
+    return 'Connection Problem';
+  }
+  if (lower.includes('connection timed out')) {
+    return 'Connection Timed Out';
+  }
+  if (lower.includes('validation error') || lower.includes('input error')) {
+    return 'Missing Information';
+  }
+  if (lower.includes('pdf engine execution error') || lower.includes('failed to generate test pdf')) {
+    return 'Preview Failed';
+  }
+  if (lower.includes('delete failed')) {
+    return 'Could Not Delete';
+  }
+  if (lower.includes('action failed') || lower.includes('operation failed') || lower.includes('request failed') || lower.includes('execution error')) {
+    return 'Could Not Complete';
+  }
+  if (lower.includes('update failed')) {
+    return 'Could Not Save Changes';
+  }
+  if (lower.includes('initialization failed')) {
+    return 'Setup Failed';
+  }
+  if (lower.includes('authentication failed')) {
+    return 'Sign In Failed';
+  }
+  if (lower.includes('duplicate record')) {
+    return 'Already Exists';
+  }
+  if (lower.includes('service temporarily unavailable') || lower.includes('unexpected error') || lower.includes('application error')) {
+    return 'Something Went Wrong';
+  }
+  return title;
+}
+
+/**
  * Returns a clean, user-facing error message string.
  */
 export function getErrorMessage(error: unknown, fallbackMessage: string = 'An unexpected error occurred'): string {
   const normalized = normalizeApiError(error);
-  return normalized.message || fallbackMessage;
+  return toLaymanMessage(normalized.message || fallbackMessage);
 }
 
 /**
@@ -258,8 +423,8 @@ export function getErrorDialog(
   const normalized = normalizeApiError(error);
   const variant: 'error' | 'warning' = normalized.code.startsWith('HTTP_4') || normalized.code === 'VALIDATION_ERROR' ? 'warning' : 'error';
   return {
-    title: normalized.title || defaultTitle,
-    message: normalized.message || fallbackMessage,
+    title: toLaymanTitle(normalized.title || defaultTitle),
+    message: toLaymanMessage(normalized.message || fallbackMessage),
     variant,
   };
 }
