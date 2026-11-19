@@ -13,6 +13,7 @@ import { Badge } from '../../../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../components/ui/dialog';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { useModal } from '../../../components/ui/modal-provider';
+import { ResponsiveActionMenu } from '../../../components/ui/responsive-action-menu';
 import {
   Mail,
   Plus,
@@ -220,40 +221,63 @@ export default function LettersPage() {
                       {getStatusBadge(ltr.status)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end space-x-1.5">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedLetter(ltr);
-                            setIsDetailOpen(true);
-                          }}
-                          className="h-8 w-8 p-0 rounded-lg cursor-pointer"
-                          title="View Letter"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDownload(ltr)}
-                          className="h-8 px-2 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600"
-                          title="Download Official Letter PDF"
-                        >
-                          <FileDown className="h-3.5 w-3.5" />
-                          <span>PDF</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePrint(ltr.id)}
-                          className="h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-indigo-500/10 hover:text-indigo-600"
-                          title="Print on Letterhead"
-                        >
-                          <Printer className="h-3.5 w-3.5" />
-                          <span>Print</span>
-                        </Button>
-                      </div>
+                      <ResponsiveActionMenu
+                        items={[
+                          {
+                            label: 'View Letter',
+                            icon: <Eye className="h-4 w-4" />,
+                            onClick: () => {
+                              setSelectedLetter(ltr);
+                              setIsDetailOpen(true);
+                            },
+                          },
+                          {
+                            label: 'Download PDF',
+                            icon: <FileDown className="h-4 w-4 text-emerald-500" />,
+                            onClick: () => handleDownload(ltr),
+                          },
+                          {
+                            label: 'Print on Letterhead',
+                            icon: <Printer className="h-4 w-4 text-indigo-500" />,
+                            onClick: () => handlePrint(ltr.id),
+                          },
+                        ]}
+                      >
+                        <div className="flex items-center justify-end space-x-1.5">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedLetter(ltr);
+                              setIsDetailOpen(true);
+                            }}
+                            className="h-8 w-8 p-0 rounded-lg cursor-pointer"
+                            title="View Letter"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDownload(ltr)}
+                            className="h-8 px-2 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600"
+                            title="Download Official Letter PDF"
+                          >
+                            <FileDown className="h-3.5 w-3.5" />
+                            <span>PDF</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePrint(ltr.id)}
+                            className="h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-indigo-500/10 hover:text-indigo-600"
+                            title="Print on Letterhead"
+                          >
+                            <Printer className="h-3.5 w-3.5" />
+                            <span>Print</span>
+                          </Button>
+                        </div>
+                      </ResponsiveActionMenu>
                     </TableCell>
                   </TableRow>
                 ))

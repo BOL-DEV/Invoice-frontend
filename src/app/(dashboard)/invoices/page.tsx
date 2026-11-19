@@ -25,6 +25,7 @@ import { Card } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../components/ui/dialog';
 import { Skeleton } from '../../../components/ui/skeleton';
+import { ResponsiveActionMenu } from '../../../components/ui/responsive-action-menu';
 import { apiClient } from '../../../services/api/axios';
 import { useModal } from '../../../components/ui/modal-provider';
 import {
@@ -845,91 +846,146 @@ export default function InvoicesPage() {
 
                     {/* Actions */}
                     <TableCell className="px-6 py-4 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-center space-x-1.5">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRowClick(inv.id)}
-                          className="h-8 px-2.5 rounded-xl text-xs border-border hover:bg-secondary flex items-center space-x-1 cursor-pointer"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          <span>View</span>
-                        </Button>
+                      {(() => {
+                        const isRowUnder24Hours = inv.createdAt ? Date.now() - new Date(inv.createdAt).getTime() <= 24 * 60 * 60 * 1000 : true;
+                        const hasApprovedEditRow = inv.approvalRequests?.some(
+                          (r) => r.type === 'EDIT' && r.status === 'APPROVED' && (!user?.id || r.requesterId === user.id)
+                        );
+                        const canEditRow = inv.status === 'DRAFT'
+                          ? (isAdmin || (user && inv.creatorId === user.id))
+                          : (isRowUnder24Hours && (isAdmin || hasApprovedEditRow));
+                        const canShare = isAdmin || (user && inv.creatorId === user.id);
 
-                        {(inv.status === 'FINALIZED' || inv.status === 'PRINTED') && (
-                          inv.waybills && inv.waybills.length > 0 ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              title={`Waybill #${inv.waybills[0].waybillNumber} generated - Click to Print`}
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                  await printDocumentPDF(`/api/printing/waybill/${inv.waybills![0].id}/pdf`);
-                                } catch {
-                                  window.open(`/waybills`, '_blank');
-                                }
-                              }}
-                              className="h-8 px-2.5 rounded-xl text-xs border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25 flex items-center space-x-1 cursor-pointer font-medium transition-colors"
-                            >
-                              <Truck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                              <span>#{inv.waybills[0].waybillNumber}</span>
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              title="Generate Waybill / Delivery Note"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setInvoiceForWaybill(inv);
-                                setIsWaybillModalOpen(true);
-                              }}
-                              className="h-8 px-2.5 rounded-xl text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1 cursor-pointer font-medium transition-colors"
-                            >
-                              <Truck className="h-3.5 w-3.5 text-emerald-500" />
-                              <span>Waybill</span>
-                            </Button>
-                          )
-                        )}
+                        const mobileItems = [
+                          {
+                            label: 'View Invoice',
+                            icon: <Eye className="h-4 w-4" />,
+                            onClick: () => handleRowClick(inv.id),
+                          },
+                          ...((inv.status === 'FINALIZED' || inv.status === 'PRINTED')
+                            ? [
+                                inv.waybills && inv.waybills.length > 0
+                                  ? {
+                                      label: `Print Waybill #${inv.waybills[0].waybillNumber}`,
+                                      icon: <Truck className="h-4 w-4 text-emerald-500" />,
+                                      onClick: async () => {
+                                        try {
+                                          await printDocumentPDF(`/api/printing/waybill/${inv.waybills![0].id}/pdf`);
+                                        } catch {
+                                          window.open(`/waybills`, '_blank');
+                                        }
+                                      },
+                                    }
+                                  : {
+                                      label: 'Generate Waybill',
+                                      icon: <Truck className="h-4 w-4 text-emerald-500" />,
+                                      onClick: () => {
+                                        setInvoiceForWaybill(inv);
+                                        setIsWaybillModalOpen(true);
+                                      },
+                                    },
+                              ]
+                            : []),
+                          ...(canEditRow
+                            ? [
+                                {
+                                  label: `Edit Invoice${hasApprovedEditRow ? ' (Approved)' : ''}`,
+                                  icon: <Pencil className="h-4 w-4 text-emerald-500" />,
+                                  href: `/invoices/${inv.id}`,
+                                },
+                              ]
+                            : []),
+                          ...(canShare
+                            ? [
+                                {
+                                  label: 'Share with Staff',
+                                  icon: <Share2 className="h-4 w-4 text-blue-500" />,
+                                  onClick: (e: React.MouseEvent) => openShareModal(inv, e),
+                                },
+                              ]
+                            : []),
+                        ];
 
-                        {(() => {
-                          const isRowUnder24Hours = inv.createdAt ? Date.now() - new Date(inv.createdAt).getTime() <= 24 * 60 * 60 * 1000 : true;
-                          const hasApprovedEditRow = inv.approvalRequests?.some(
-                            (r) => r.type === 'EDIT' && r.status === 'APPROVED' && (!user?.id || r.requesterId === user.id)
-                          );
-                          const canEditRow = inv.status === 'DRAFT'
-                            ? (isAdmin || (user && inv.creatorId === user.id))
-                            : (isRowUnder24Hours && (isAdmin || hasApprovedEditRow));
-                          if (!canEditRow) return null;
-                          return (
-                            <Link href={`/invoices/${inv.id}`}>
+                        return (
+                          <ResponsiveActionMenu items={mobileItems}>
+                            <div className="flex items-center justify-center space-x-1.5">
                               <Button
                                 variant="outline"
                                 size="sm"
-                                title={inv.status === 'DRAFT' ? 'Edit draft invoice' : hasApprovedEditRow ? 'Edit invoice (Approved)' : 'Edit invoice within 24h'}
-                                className="h-8 px-2.5 rounded-xl text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1 cursor-pointer font-medium transition-colors"
+                                onClick={() => handleRowClick(inv.id)}
+                                className="h-8 px-2.5 rounded-xl text-xs border-border hover:bg-secondary flex items-center space-x-1 cursor-pointer"
                               >
-                                <Pencil className="h-3.5 w-3.5 text-emerald-500" />
-                                <span>Edit{hasApprovedEditRow ? ' (Approved)' : ''}</span>
+                                <Eye className="h-3.5 w-3.5" />
+                                <span>View</span>
                               </Button>
-                            </Link>
-                          );
-                        })()}
 
-                        {(isAdmin || (user && inv.creatorId === user.id)) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            title="Share invoice with another cashier"
-                            onClick={(e) => openShareModal(inv, e)}
-                            className="h-8 px-2 rounded-xl text-xs border-border hover:bg-blue-500/10 hover:text-blue-600 hover:border-blue-500/30 flex items-center space-x-1 cursor-pointer transition-colors"
-                          >
-                            <Share2 className="h-3.5 w-3.5 text-blue-500" />
-                            <span className="hidden sm:inline">Share</span>
-                          </Button>
-                        )}
-                      </div>
+                              {(inv.status === 'FINALIZED' || inv.status === 'PRINTED') && (
+                                inv.waybills && inv.waybills.length > 0 ? (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    title={`Waybill #${inv.waybills[0].waybillNumber} generated - Click to Print`}
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      try {
+                                        await printDocumentPDF(`/api/printing/waybill/${inv.waybills![0].id}/pdf`);
+                                      } catch {
+                                        window.open(`/waybills`, '_blank');
+                                      }
+                                    }}
+                                    className="h-8 px-2.5 rounded-xl text-xs border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25 flex items-center space-x-1 cursor-pointer font-medium transition-colors"
+                                  >
+                                    <Truck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                                    <span>#{inv.waybills[0].waybillNumber}</span>
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    title="Generate Waybill / Delivery Note"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setInvoiceForWaybill(inv);
+                                      setIsWaybillModalOpen(true);
+                                    }}
+                                    className="h-8 px-2.5 rounded-xl text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1 cursor-pointer font-medium transition-colors"
+                                  >
+                                    <Truck className="h-3.5 w-3.5 text-emerald-500" />
+                                    <span>Waybill</span>
+                                  </Button>
+                                )
+                              )}
+
+                              {canEditRow && (
+                                <Link href={`/invoices/${inv.id}`}>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    title={inv.status === 'DRAFT' ? 'Edit draft invoice' : hasApprovedEditRow ? 'Edit invoice (Approved)' : 'Edit invoice within 24h'}
+                                    className="h-8 px-2.5 rounded-xl text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1 cursor-pointer font-medium transition-colors"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5 text-emerald-500" />
+                                    <span>Edit{hasApprovedEditRow ? ' (Approved)' : ''}</span>
+                                  </Button>
+                                </Link>
+                              )}
+
+                              {canShare && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  title="Share invoice with another cashier"
+                                  onClick={(e) => openShareModal(inv, e)}
+                                  className="h-8 px-2 rounded-xl text-xs border-border hover:bg-blue-500/10 hover:text-blue-600 hover:border-blue-500/30 flex items-center space-x-1 cursor-pointer transition-colors"
+                                >
+                                  <Share2 className="h-3.5 w-3.5 text-blue-500" />
+                                  <span className="hidden sm:inline">Share</span>
+                                </Button>
+                              )}
+                            </div>
+                          </ResponsiveActionMenu>
+                        );
+                      })()}
                     </TableCell>
                   </TableRow>
                 ))

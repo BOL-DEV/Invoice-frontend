@@ -25,6 +25,7 @@ import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Badge } from '../../../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui/dialog';
+import { ResponsiveActionMenu } from '../../../components/ui/responsive-action-menu';
 import {
   Plus,
   ShieldAlert,
@@ -868,43 +869,63 @@ export default function UsersPage() {
                       {isSelf || (isSubAdmin && item.role === 'ADMIN') ? (
                         <span className="text-[11px] text-muted-foreground italic">Protected</span>
                       ) : (
-                        <div className="flex items-center justify-end space-x-1.5">
-                          {isMainAdmin && hasMultiBranch && !isItemMainAdmin && (
+                        <ResponsiveActionMenu
+                          items={[
+                            ...(isMainAdmin && hasMultiBranch && !isItemMainAdmin
+                              ? [
+                                  {
+                                    label: 'Transfer Branch',
+                                    icon: <Store className="h-4 w-4 text-blue-500" />,
+                                    onClick: () => handleOpenReassign(item),
+                                  },
+                                ]
+                              : []),
+                            {
+                              label: isSuspended ? 'Reactivate User' : 'Suspend User',
+                              icon: isSuspended ? <UserCheck className="h-4 w-4 text-emerald-500" /> : <UserX className="h-4 w-4 text-amber-500" />,
+                              variant: isSuspended ? ('success' as const) : ('warning' as const),
+                              onClick: () => handleToggleSuspend(item),
+                            },
+                          ]}
+                        >
+                          <div className="flex items-center justify-end space-x-1.5">
+                            {isMainAdmin && hasMultiBranch && !isItemMainAdmin && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleOpenReassign(item)}
+                                className="h-8 px-2 text-[11px] text-muted-foreground hover:text-foreground rounded-lg"
+                                title="Reassign to another branch"
+                              >
+                                Transfer
+                              </Button>
+                            )}
+
                             <Button
                               size="sm"
-                              variant="ghost"
-                              onClick={() => handleOpenReassign(item)}
-                              className="h-8 px-2 text-[11px] text-muted-foreground hover:text-foreground rounded-lg"
-                              title="Reassign to another branch"
+                              variant="outline"
+                              onClick={() => handleToggleSuspend(item)}
+                              className={cn(
+                                'h-8 px-3 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-1.5 cursor-pointer',
+                                isSuspended
+                                  ? 'border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600 dark:text-emerald-400'
+                                  : 'border-amber-500/30 text-amber-600 hover:bg-amber-500/10 hover:text-amber-600 dark:text-amber-400'
+                              )}
                             >
-                              Transfer
+                              {isSuspended ? (
+                                <>
+                                  <UserCheck className="h-3.5 w-3.5" />
+                                  <span>Reactivate</span>
+                                </>
+                              ) : (
+                                <>
+                                  <UserX className="h-3.5 w-3.5" />
+                                  <span>Suspend</span>
+                                </>
+                              )}
                             </Button>
-                          )}
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleToggleSuspend(item)}
-                            className={cn(
-                              'h-8 px-3 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-1.5 cursor-pointer',
-                              isSuspended
-                                ? 'border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600 dark:text-emerald-400'
-                                : 'border-amber-500/30 text-amber-600 hover:bg-amber-500/10 hover:text-amber-600 dark:text-amber-400'
-                            )}
-                          >
-                            {isSuspended ? (
-                              <>
-                                <UserCheck className="h-3.5 w-3.5" />
-                                <span>Reactivate</span>
-                              </>
-                            ) : (
-                              <>
-                                <UserX className="h-3.5 w-3.5" />
-                                <span>Suspend</span>
-                              </>
-                            )}
-                          </Button>
-                        </div>
+                          </div>
+                        </ResponsiveActionMenu>
                       )}
                     </TableCell>
                   </TableRow>

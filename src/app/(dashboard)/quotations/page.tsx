@@ -13,6 +13,7 @@ import { Badge } from '../../../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../components/ui/dialog';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { useModal } from '../../../components/ui/modal-provider';
+import { ResponsiveActionMenu } from '../../../components/ui/responsive-action-menu';
 import {
   FileSpreadsheet,
   Plus,
@@ -293,74 +294,122 @@ export default function QuotationsPage() {
                       {getStatusBadge(quo.status)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end space-x-1.5">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedQuotation(quo);
-                            setIsDetailOpen(true);
-                          }}
-                          className="h-8 w-8 p-0 rounded-lg cursor-pointer hover:bg-secondary"
-                          title="View Details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                      <ResponsiveActionMenu
+                        items={[
+                          {
+                            label: 'View Details',
+                            icon: <Eye className="h-4 w-4" />,
+                            onClick: () => {
+                              setSelectedQuotation(quo);
+                              setIsDetailOpen(true);
+                            },
+                          },
+                          ...(quo.status === 'DRAFT' || quo.status === 'SENT'
+                            ? [
+                                {
+                                  label: 'Edit Quotation',
+                                  icon: <Pencil className="h-4 w-4" />,
+                                  href: `/quotations/new?edit=${quo.id}`,
+                                },
+                                {
+                                  label: 'Download PDF',
+                                  icon: <FileDown className="h-4 w-4 text-emerald-500" />,
+                                  onClick: () => handleDownload(quo),
+                                },
+                                {
+                                  label: 'Print Quotation',
+                                  icon: <Printer className="h-4 w-4 text-blue-500" />,
+                                  onClick: () => handlePrint(quo.id),
+                                },
+                              ]
+                            : []),
+                          ...(quo.status !== 'CONVERTED'
+                            ? [
+                                {
+                                  label: 'Convert to Invoice',
+                                  icon: <ArrowRightCircle className="h-4 w-4 text-emerald-500" />,
+                                  onClick: () => handleConvert(quo),
+                                  variant: 'success' as const,
+                                },
+                              ]
+                            : [
+                                {
+                                  label: `Invoice #${quo.convertedInvoice?.invoiceNumber || ''}`,
+                                  icon: <ArrowRightCircle className="h-4 w-4 text-emerald-500" />,
+                                  disabled: true,
+                                },
+                              ]),
+                        ]}
+                      >
+                        <div className="flex items-center justify-end space-x-1.5">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedQuotation(quo);
+                              setIsDetailOpen(true);
+                            }}
+                            className="h-8 w-8 p-0 rounded-lg cursor-pointer hover:bg-secondary"
+                            title="View Details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
 
-                        {(quo.status === 'DRAFT' || quo.status === 'SENT') && (
-                          <>
-                            <Link href={`/quotations/new?edit=${quo.id}`}>
+                          {(quo.status === 'DRAFT' || quo.status === 'SENT') && (
+                            <>
+                              <Link href={`/quotations/new?edit=${quo.id}`}>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-secondary"
+                                  title="Edit Quotation"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                  <span>Edit</span>
+                                </Button>
+                              </Link>
+
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-secondary"
-                                title="Edit Quotation"
+                                onClick={() => handleDownload(quo)}
+                                className="h-8 px-2 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600"
+                                title="Download Quotation PDF"
                               >
-                                <Pencil className="h-3.5 w-3.5" />
-                                <span>Edit</span>
+                                <FileDown className="h-3.5 w-3.5" />
+                                <span>PDF</span>
                               </Button>
-                            </Link>
 
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePrint(quo.id)}
+                                className="h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 cursor-pointer hover:bg-blue-500/10 hover:text-blue-600"
+                                title="Print Quotation PDF"
+                              >
+                                <Printer className="h-3.5 w-3.5" />
+                                <span>Print</span>
+                              </Button>
+                            </>
+                          )}
+
+                          {quo.status !== 'CONVERTED' ? (
                             <Button
-                              variant="outline"
                               size="sm"
-                              onClick={() => handleDownload(quo)}
-                              className="h-8 px-2 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600"
-                              title="Download Quotation PDF"
+                              onClick={() => handleConvert(quo)}
+                              className="h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                              title="Convert to Live Invoice"
                             >
-                              <FileDown className="h-3.5 w-3.5" />
-                              <span>PDF</span>
+                              <ArrowRightCircle className="h-3.5 w-3.5" />
+                              <span>Convert</span>
                             </Button>
-
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handlePrint(quo.id)}
-                              className="h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 cursor-pointer hover:bg-blue-500/10 hover:text-blue-600"
-                              title="Print Quotation PDF"
-                            >
-                              <Printer className="h-3.5 w-3.5" />
-                              <span>Print</span>
-                            </Button>
-                          </>
-                        )}
-
-                        {quo.status !== 'CONVERTED' ? (
-                          <Button
-                            size="sm"
-                            onClick={() => handleConvert(quo)}
-                            className="h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                            title="Convert to Live Invoice"
-                          >
-                            <ArrowRightCircle className="h-3.5 w-3.5" />
-                            <span>Convert</span>
-                          </Button>
-                        ) : (
-                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
-                            Invoice #{quo.convertedInvoice?.invoiceNumber || ''}
-                          </span>
-                        )}
-                      </div>
+                          ) : (
+                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
+                              Invoice #{quo.convertedInvoice?.invoiceNumber || ''}
+                            </span>
+                          )}
+                        </div>
+                      </ResponsiveActionMenu>
                     </TableCell>
                   </TableRow>
                 ))
