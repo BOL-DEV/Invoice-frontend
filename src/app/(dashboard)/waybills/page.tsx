@@ -106,13 +106,15 @@ export default function WaybillsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-xl">
-              <Truck className="h-6 w-6" />
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 bg-emerald-500/10 text-emerald-600 rounded-xl shrink-0 mt-0.5">
+              <Truck className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Waybills & Delivery Notes</h1>
-              <p className="text-sm text-muted-foreground">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground leading-tight sm:leading-normal">
+                Waybills & Delivery Notes
+              </h1>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                 Transport dispatch &amp; proof-of-delivery documents originated from invoices
               </p>
             </div>

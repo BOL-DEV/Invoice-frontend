@@ -25,6 +25,9 @@ import {
   ChevronRight,
   ArrowRightCircle,
   FileCheck2,
+  CheckCircle2,
+  Clock,
+  TrendingUp,
   Trash2,
   Loader2,
   Calendar,
@@ -35,6 +38,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { downloadDocumentPDF, printDocumentPDF } from '../../../lib/document-download';
+import { cn } from '../../../lib/utils';
 
 export default function QuotationsPage() {
   const queryClient = useQueryClient();
@@ -56,6 +60,11 @@ export default function QuotationsPage() {
         search: search.trim() || undefined,
         status: statusFilter !== 'ALL' ? (statusFilter as QuotationStatus) : undefined,
       }),
+  });
+
+  const { data: summary, isLoading: isSummaryLoading } = useQuery({
+    queryKey: ['quotations', 'summary'],
+    queryFn: () => quotationService.getSummary(),
   });
 
   const quotations = data?.quotations || [];
@@ -178,55 +187,186 @@ export default function QuotationsPage() {
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center space-x-2.5">
-          <div className="p-2 bg-blue-500/10 text-blue-600 rounded-xl">
-            <FileSpreadsheet className="h-6 w-6" />
+        <div className="flex items-start gap-3">
+          <div className="p-2.5 bg-blue-500/10 text-blue-600 rounded-xl shrink-0 mt-0.5">
+            <FileSpreadsheet className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Quotations & Estimates</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground leading-tight sm:leading-normal">
+              Quotations & Estimates
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
               Prepare price quotes for prospective clients with 1-click conversion to invoice
             </p>
           </div>
         </div>
 
-        <Link href="/quotations/new">
-          <Button className="rounded-xl font-semibold bg-primary text-primary-foreground shadow-sm hover:opacity-90 cursor-pointer">
+        <Link href="/quotations/new" className="w-full sm:w-auto">
+          <Button className="w-full sm:w-auto rounded-xl font-semibold bg-primary text-primary-foreground shadow-sm hover:opacity-90 cursor-pointer">
             <Plus className="h-4 w-4 mr-1.5" />
             <span>New Quotation</span>
           </Button>
         </Link>
       </div>
 
+      {/* Quotation Summary Metrics Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Total Quotes & Pipeline */}
+        <Card className="border-border bg-card shadow-sm rounded-2xl overflow-hidden relative group hover:border-blue-500/40 transition-all">
+          <div className="h-1 w-full bg-gradient-to-r from-blue-500 to-cyan-400" />
+          <div className="p-3.5 sm:p-4 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground truncate">
+                Total Quotations
+              </span>
+              <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 shrink-0">
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            {isSummaryLoading ? (
+              <Skeleton className="h-6 w-24 rounded-md" />
+            ) : (
+              <div className="text-base sm:text-xl font-bold font-mono tracking-tight text-foreground tabular-nums truncate">
+                {summary?.totalCount ?? 0} <span className="text-xs font-normal text-muted-foreground">quotes</span>
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground truncate">
+              {isSummaryLoading ? '...' : `₦${Number(summary?.totalValue || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })} pipeline`}
+            </p>
+          </div>
+        </Card>
+
+        {/* Converted to Invoice */}
+        <Card className="border-border bg-card shadow-sm rounded-2xl overflow-hidden relative group hover:border-emerald-500/40 transition-all">
+          <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-teal-400" />
+          <div className="p-3.5 sm:p-4 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground truncate">
+                Converted to Invoices
+              </span>
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 shrink-0">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            {isSummaryLoading ? (
+              <Skeleton className="h-6 w-24 rounded-md" />
+            ) : (
+              <div className="text-base sm:text-xl font-bold font-mono tracking-tight text-emerald-600 dark:text-emerald-400 tabular-nums truncate">
+                {summary?.convertedCount ?? 0} <span className="text-xs font-normal text-muted-foreground">invoiced</span>
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground truncate">
+              {isSummaryLoading ? '...' : `₦${Number(summary?.convertedValue || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })} billed`}
+            </p>
+          </div>
+        </Card>
+
+        {/* Pending & Sent */}
+        <Card className="border-border bg-card shadow-sm rounded-2xl overflow-hidden relative group hover:border-amber-500/40 transition-all">
+          <div className="h-1 w-full bg-gradient-to-r from-amber-500 to-orange-400" />
+          <div className="p-3.5 sm:p-4 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground truncate">
+                Active / Pending
+              </span>
+              <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
+                <Clock className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            {isSummaryLoading ? (
+              <Skeleton className="h-6 w-24 rounded-md" />
+            ) : (
+              <div className="text-base sm:text-xl font-bold font-mono tracking-tight text-foreground tabular-nums truncate">
+                {(summary?.pendingCount ?? 0) + (summary?.draftCount ?? 0)} <span className="text-xs font-normal text-muted-foreground">open</span>
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground truncate">
+              {isSummaryLoading ? '...' : `₦${Number((summary?.pendingValue || 0) + (summary?.draftValue || 0)).toLocaleString('en-NG', { minimumFractionDigits: 2 })} waiting`}
+            </p>
+          </div>
+        </Card>
+
+        {/* Conversion Rate */}
+        <Card className="border-border bg-card shadow-sm rounded-2xl overflow-hidden relative group hover:border-purple-500/40 transition-all">
+          <div className="h-1 w-full bg-gradient-to-r from-purple-500 to-indigo-400" />
+          <div className="p-3.5 sm:p-4 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground truncate">
+                Conversion Rate
+              </span>
+              <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-500 shrink-0">
+                <TrendingUp className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            {isSummaryLoading ? (
+              <Skeleton className="h-6 w-24 rounded-md" />
+            ) : (
+              <div className="text-base sm:text-xl font-bold font-mono tracking-tight text-foreground tabular-nums truncate">
+                {summary?.conversionRate ?? 0}%
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground truncate">
+              {summary ? `${summary.convertedCount} of ${summary.totalCount} converted` : 'Calculation active'}
+            </p>
+          </div>
+        </Card>
+      </div>
+
       {/* Filter and Search Bar */}
       <Card className="p-4 rounded-2xl border-border bg-card shadow-sm">
-        <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search by customer, quotation #, phone..."
-              className="pl-9 h-10 rounded-xl text-sm"
-            />
+        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto flex-1">
+            <div className="relative w-full sm:max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search by customer, quotation #, phone..."
+                className="pl-9 h-10 rounded-xl text-sm"
+              />
+            </div>
+
+            {/* Total quotations indicator */}
+            <div className="flex items-center gap-2 px-3 py-2 sm:py-1.5 rounded-xl bg-secondary/60 border border-border/60 text-xs font-semibold text-muted-foreground shrink-0 self-start sm:self-auto">
+              <FileSpreadsheet className="h-3.5 w-3.5 text-blue-500" />
+              <span>
+                <span className="text-foreground font-bold">{summary?.totalCount ?? pagination.total}</span> {((summary?.totalCount ?? pagination.total) === 1) ? 'Quotation' : 'Quotations'} Created
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-            {['ALL', 'DRAFT', 'SENT', 'CONVERTED', 'EXPIRED'].map((st) => (
+            {[
+              { id: 'ALL', label: 'All', count: summary?.totalCount ?? pagination.total },
+              { id: 'DRAFT', label: 'Draft', count: summary?.draftCount ?? 0 },
+              { id: 'SENT', label: 'Sent', count: summary?.pendingCount ?? 0 },
+              { id: 'CONVERTED', label: 'Converted', count: summary?.convertedCount ?? 0 },
+              { id: 'EXPIRED', label: 'Expired', count: summary?.expiredCount ?? 0 },
+            ].map((tab) => (
               <Button
-                key={st}
+                key={tab.id}
                 size="sm"
-                variant={statusFilter === st ? 'default' : 'outline'}
+                variant={statusFilter === tab.id ? 'default' : 'outline'}
                 onClick={() => {
-                  setStatusFilter(st);
+                  setStatusFilter(tab.id);
                   setPage(1);
                 }}
-                className="rounded-xl text-xs font-semibold h-8 cursor-pointer"
+                className="rounded-xl text-xs font-semibold h-8 cursor-pointer flex items-center space-x-1.5 shrink-0"
               >
-                {st === 'ALL' ? 'All' : st.charAt(0) + st.slice(1).toLowerCase()}
+                <span>{tab.label}</span>
+                <span
+                  className={cn(
+                    'px-1.5 py-0.5 rounded-full text-[10px] font-bold',
+                    statusFilter === tab.id
+                      ? 'bg-primary-foreground/20 text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
+                  )}
+                >
+                  {tab.count}
+                </span>
               </Button>
             ))}
           </div>

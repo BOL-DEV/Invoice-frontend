@@ -42,7 +42,29 @@ interface ListQuotationsResponse {
   };
 }
 
+export interface QuotationSummary {
+  totalCount: number;
+  totalValue: number;
+  convertedCount: number;
+  convertedValue: number;
+  pendingCount: number;
+  pendingValue: number;
+  draftCount: number;
+  draftValue: number;
+  expiredCount: number;
+  expiredValue: number;
+  conversionRate: number;
+}
+
 export const quotationService = {
+  getSummary: async (branchId?: string): Promise<QuotationSummary> => {
+    const response = await apiClient.get<ApiResponse<QuotationSummary>>(
+      API_ENDPOINTS.QUOTATIONS.SUMMARY,
+      { params: branchId ? { branchId } : undefined }
+    );
+    return response.data.data;
+  },
+
   list: async (params?: ListQuotationsParams): Promise<ListQuotationsResponse> => {
     const response = await apiClient.get<ApiResponse<ListQuotationsResponse>>(
       API_ENDPOINTS.QUOTATIONS.BASE,

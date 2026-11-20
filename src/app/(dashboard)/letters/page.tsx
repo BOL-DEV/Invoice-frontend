@@ -29,6 +29,7 @@ import {
   FileDown,
 } from 'lucide-react';
 import { downloadDocumentPDF, printDocumentPDF } from '../../../lib/document-download';
+import { cn } from '../../../lib/utils';
 
 export default function LettersPage() {
   const queryClient = useQueryClient();
@@ -106,20 +107,22 @@ export default function LettersPage() {
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center space-x-2.5">
-          <div className="p-2 bg-indigo-500/10 text-indigo-600 rounded-xl">
-            <Mail className="h-6 w-6" />
+        <div className="flex items-start gap-3">
+          <div className="p-2.5 bg-indigo-500/10 text-indigo-600 rounded-xl shrink-0 mt-0.5">
+            <Mail className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Official Letters & Correspondence</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground leading-tight sm:leading-normal">
+              Official Letters & Correspondence
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
               Draft formal business letters formatted directly onto your organization letterhead
             </p>
           </div>
         </div>
 
-        <Link href="/letters/new">
-          <Button className="rounded-xl font-semibold bg-primary text-primary-foreground shadow-sm hover:opacity-90 cursor-pointer">
+        <Link href="/letters/new" className="w-full sm:w-auto">
+          <Button className="w-full sm:w-auto rounded-xl font-semibold bg-primary text-primary-foreground shadow-sm hover:opacity-90 cursor-pointer">
             <Plus className="h-4 w-4 mr-1.5" />
             <span>Compose Letter</span>
           </Button>
@@ -128,33 +131,57 @@ export default function LettersPage() {
 
       {/* Filter and Search Bar */}
       <Card className="p-4 rounded-2xl border-border bg-card shadow-sm">
-        <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search by title, ref #, recipient..."
-              className="pl-9 h-10 rounded-xl text-sm"
-            />
+        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto flex-1">
+            <div className="relative w-full sm:max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search by title, ref #, recipient..."
+                className="pl-9 h-10 rounded-xl text-sm"
+              />
+            </div>
+
+            {/* Total letters indicator */}
+            <div className="flex items-center gap-2 px-3 py-2 sm:py-1.5 rounded-xl bg-secondary/60 border border-border/60 text-xs font-semibold text-muted-foreground shrink-0 self-start sm:self-auto">
+              <FileText className="h-3.5 w-3.5 text-indigo-500" />
+              <span>
+                <span className="text-foreground font-bold">{data?.counts?.all ?? pagination.total}</span> {((data?.counts?.all ?? pagination.total) === 1) ? 'Letter' : 'Letters'} Created
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-            {['ALL', 'DRAFT', 'FINALIZED'].map((st) => (
+            {[
+              { id: 'ALL', label: 'All', count: data?.counts?.all ?? pagination.total },
+              { id: 'DRAFT', label: 'Draft', count: data?.counts?.draft ?? 0 },
+              { id: 'FINALIZED', label: 'Finalized', count: data?.counts?.finalized ?? 0 },
+            ].map((tab) => (
               <Button
-                key={st}
+                key={tab.id}
                 size="sm"
-                variant={statusFilter === st ? 'default' : 'outline'}
+                variant={statusFilter === tab.id ? 'default' : 'outline'}
                 onClick={() => {
-                  setStatusFilter(st);
+                  setStatusFilter(tab.id);
                   setPage(1);
                 }}
-                className="rounded-xl text-xs font-semibold h-8 cursor-pointer"
+                className="rounded-xl text-xs font-semibold h-8 cursor-pointer flex items-center space-x-1.5 shrink-0"
               >
-                {st === 'ALL' ? 'All' : st.charAt(0) + st.slice(1).toLowerCase()}
+                <span>{tab.label}</span>
+                <span
+                  className={cn(
+                    'px-1.5 py-0.5 rounded-full text-[10px] font-bold',
+                    statusFilter === tab.id
+                      ? 'bg-primary-foreground/20 text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
+                  )}
+                >
+                  {tab.count}
+                </span>
               </Button>
             ))}
           </div>

@@ -26,6 +26,11 @@ interface ListLettersParams {
 
 interface ListLettersResponse {
   letters: Letter[];
+  counts?: {
+    all: number;
+    draft: number;
+    finalized: number;
+  };
   pagination: {
     total: number;
     page: number;

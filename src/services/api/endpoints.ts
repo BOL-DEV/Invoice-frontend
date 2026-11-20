@@ -22,6 +22,7 @@ export const API_ENDPOINTS = {
   QUOTATIONS: {
     BASE: '/api/quotations',
     DETAIL: (id: string) => `/api/quotations/${id}`,
+    SUMMARY: '/api/quotations/summary',
     CONVERT: (id: string) => `/api/quotations/${id}/convert`,
     PDF: (id: string) => `/api/printing/quotation/${id}/pdf`,
   },
