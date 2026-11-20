@@ -38,6 +38,7 @@ import {
   Truck,
   FileSpreadsheet,
   Mail,
+  FileStack,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
@@ -101,6 +102,185 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, label, active, is
         )}
       </motion.span>
     </Link>
+  );
+};
+
+interface SidebarDropdownSubItem {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+}
+
+interface SidebarDropdownProps {
+  label: string;
+  icon: React.ReactNode;
+  children: SidebarDropdownSubItem[];
+  pathname: string;
+  isCollapsed?: boolean;
+  onClick?: () => void;
+}
+
+const SidebarDropdown: React.FC<SidebarDropdownProps> = ({
+  label,
+  icon,
+  children,
+  pathname,
+  isCollapsed,
+  onClick,
+}) => {
+  const isAnyChildActive = children.some(
+    (c) => pathname === c.href || (c.href !== '/' && pathname.startsWith(c.href))
+  );
+
+  const [isOpen, setIsOpen] = useState(isAnyChildActive);
+  const [isFlyoutOpen, setIsFlyoutOpen] = useState(false);
+  const flyoutRef = React.useRef<HTMLDivElement>(null);
+
+  // Automatically expand if navigating to any of its children
+  useEffect(() => {
+    if (isAnyChildActive) {
+      setIsOpen(true);
+    }
+  }, [isAnyChildActive]);
+
+  // Click outside listener for collapsed mode flyout
+  useEffect(() => {
+    if (!isFlyoutOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (flyoutRef.current && !flyoutRef.current.contains(e.target as Node)) {
+        setIsFlyoutOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isFlyoutOpen]);
+
+  // Collapsed Sidebar View (Icon only + Flyout Menu)
+  if (isCollapsed) {
+    return (
+      <div className="relative" ref={flyoutRef}>
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setIsFlyoutOpen((prev) => !prev)}
+          className={`flex items-center justify-center w-full px-2 py-3 rounded-xl text-sm font-medium transition-colors cursor-pointer group ${
+            isAnyChildActive
+              ? 'bg-primary text-white shadow-sm font-semibold'
+              : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+          }`}
+          title={label}
+        >
+          <span className={`shrink-0 transition-transform duration-150 ${isAnyChildActive ? 'scale-110' : 'group-hover:scale-110'}`}>
+            {icon}
+          </span>
+        </motion.button>
+
+        {/* Floating popover menu when collapsed */}
+        <AnimatePresence>
+          {isFlyoutOpen && (
+            <motion.div
+              initial={{ opacity: 0, x: -8, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -8, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="absolute left-full top-0 ml-3 z-50 w-52 py-2 bg-card border border-border rounded-2xl shadow-xl space-y-1"
+            >
+              <div className="px-3 py-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider border-b border-border/50 mb-1 flex items-center justify-between">
+                <span>{label}</span>
+                <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded-full text-foreground/70 font-semibold">
+                  {children.length}
+                </span>
+              </div>
+              {children.map((subItem) => {
+                const active = pathname === subItem.href || (subItem.href !== '/' && pathname.startsWith(subItem.href));
+                return (
+                  <Link
+                    key={subItem.href}
+                    href={subItem.href}
+                    onClick={() => {
+                      setIsFlyoutOpen(false);
+                      onClick?.();
+                    }}
+                    className={`flex items-center space-x-2.5 px-3 py-2 mx-1.5 rounded-xl text-xs font-medium transition-colors ${
+                      active
+                        ? 'bg-primary text-white font-semibold shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                    }`}
+                  >
+                    <span className="shrink-0">{subItem.icon}</span>
+                    <span className="truncate">{subItem.label}</span>
+                  </Link>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  // Expanded Sidebar View (Collapsible Accordion)
+  return (
+    <div className="space-y-1">
+      <motion.button
+        type="button"
+        whileHover={{ scale: 1.01 }}
+        whileTap={{ scale: 0.99 }}
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors group cursor-pointer ${
+          isAnyChildActive
+            ? 'text-foreground bg-secondary/80 font-semibold'
+            : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+        }`}
+      >
+        <div className="flex items-center space-x-3 min-w-0">
+          <span className={`shrink-0 transition-transform duration-150 ${isAnyChildActive ? 'scale-110 text-primary' : 'group-hover:scale-110'}`}>
+            {icon}
+          </span>
+          <span className="font-medium whitespace-nowrap truncate">{label}</span>
+        </div>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
+            isOpen ? 'rotate-180 text-foreground' : 'text-muted-foreground group-hover:text-foreground'
+          }`}
+        />
+      </motion.button>
+
+      {/* Submenu links */}
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="overflow-hidden pl-3 pr-1 py-1 space-y-1 ml-5 border-l-2 border-border/70"
+          >
+            {children.map((subItem) => {
+              const active = pathname === subItem.href || (subItem.href !== '/' && pathname.startsWith(subItem.href));
+              return (
+                <Link
+                  key={subItem.href}
+                  href={subItem.href}
+                  onClick={onClick}
+                  className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors group ${
+                    active
+                      ? 'bg-primary text-white font-semibold shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  }`}
+                >
+                  <span className={`shrink-0 transition-transform duration-150 ${active ? 'scale-110 text-white' : 'text-muted-foreground group-hover:scale-110 group-hover:text-foreground'}`}>
+                    {subItem.icon}
+                  </span>
+                  <span className="whitespace-nowrap truncate">{subItem.label}</span>
+                </Link>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 
@@ -306,29 +486,38 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const navItems = user
     ? isSuperAdmin
       ? [
-          { href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' },
-          { href: '/admin/tenants', icon: <Building2 className="h-5 w-5" />, label: 'Tenants' },
-          { href: '/admin/onboard', icon: <UserPlus className="h-5 w-5" />, label: 'Onboard Business' },
-          { href: '/reports', icon: <BarChart3 className="h-5 w-5" />, label: 'Reports' },
-          { href: '/activity', icon: <Activity className="h-5 w-5" />, label: 'Activity Logs' },
-          { href: '/settings', icon: <SettingsIcon className="h-5 w-5" />, label: 'Settings' },
+          { type: 'link' as const, href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' },
+          { type: 'link' as const, href: '/admin/tenants', icon: <Building2 className="h-5 w-5" />, label: 'Tenants' },
+          { type: 'link' as const, href: '/admin/onboard', icon: <UserPlus className="h-5 w-5" />, label: 'Onboard Business' },
+          { type: 'link' as const, href: '/reports', icon: <BarChart3 className="h-5 w-5" />, label: 'Reports' },
+          { type: 'link' as const, href: '/activity', icon: <Activity className="h-5 w-5" />, label: 'Activity Logs' },
+          { type: 'link' as const, href: '/settings', icon: <SettingsIcon className="h-5 w-5" />, label: 'Settings' },
         ]
       : [
-          { href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' },
-          { href: '/invoices', icon: <FileText className="h-5 w-5" />, label: 'Invoices' },
-          { href: '/quotations', icon: <FileSpreadsheet className="h-5 w-5" />, label: 'Quotations' },
-          { href: '/waybills', icon: <Truck className="h-5 w-5" />, label: 'Waybills' },
-          { href: '/letters', icon: <Mail className="h-5 w-5" />, label: 'Letters' },
-          { href: '/reports', icon: <BarChart3 className="h-5 w-5" />, label: 'Reports' },
-          { href: '/approvals', icon: <CheckSquare className="h-5 w-5" />, label: 'Approvals' },
+          { type: 'link' as const, href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' },
+          {
+            type: 'dropdown' as const,
+            label: 'Documents',
+            icon: <FileStack className="h-5 w-5" />,
+            children: [
+              { href: '/invoices', icon: <FileText className="h-4 w-4" />, label: 'Invoices' },
+              { href: '/quotations', icon: <FileSpreadsheet className="h-4 w-4" />, label: 'Quotations' },
+              { href: '/waybills', icon: <Truck className="h-4 w-4" />, label: 'Waybills' },
+              { href: '/letters', icon: <Mail className="h-4 w-4" />, label: 'Letters' },
+            ],
+          },
+          { type: 'link' as const, href: '/reports', icon: <BarChart3 className="h-5 w-5" />, label: 'Reports' },
+          { type: 'link' as const, href: '/approvals', icon: <CheckSquare className="h-5 w-5" />, label: 'Approvals' },
           ...(isAdminOrSuper
             ? [
                 {
+                  type: 'link' as const,
                   href: '/users',
                   icon: showBranchesTab ? <Store className="h-5 w-5" /> : <Users className="h-5 w-5" />,
                   label: showBranchesTab ? 'Branches' : 'Cashiers',
                 },
                 {
+                  type: 'link' as const,
                   href: '/activity',
                   icon: <Activity className="h-5 w-5" />,
                   label: 'Activity Logs',
@@ -342,7 +531,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                 },
               ]
             : []),
-          { href: '/settings', icon: <SettingsIcon className="h-5 w-5" />, label: 'Settings' },
+          { type: 'link' as const, href: '/settings', icon: <SettingsIcon className="h-5 w-5" />, label: 'Settings' },
         ]
     : [];
 
@@ -369,19 +558,34 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
     return (
       <div className="space-y-1.5">
-        {navItems.map((item) => (
-          <SidebarItem
-            key={item.href}
-            href={item.href}
-            icon={item.icon}
-            label={item.label}
-            badge={(item as any).badge}
-            disabled={(item as any).disabled}
-            active={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))}
-            isCollapsed={collapsed}
-            onClick={onItemClick}
-          />
-        ))}
+        {navItems.map((item) => {
+          if (item.type === 'dropdown') {
+            return (
+              <SidebarDropdown
+                key={item.label}
+                label={item.label}
+                icon={item.icon}
+                children={item.children}
+                pathname={pathname}
+                isCollapsed={collapsed}
+                onClick={onItemClick}
+              />
+            );
+          }
+          return (
+            <SidebarItem
+              key={item.href}
+              href={item.href}
+              icon={item.icon}
+              label={item.label}
+              badge={item.badge}
+              disabled={item.disabled}
+              active={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))}
+              isCollapsed={collapsed}
+              onClick={onItemClick}
+            />
+          );
+        })}
       </div>
     );
   };
