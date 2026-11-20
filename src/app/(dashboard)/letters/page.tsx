@@ -71,9 +71,8 @@ export default function LettersPage() {
     try {
       await printDocumentPDF(`/api/printing/letter/${letterId}/pdf`);
       queryClient.invalidateQueries({ queryKey: ['letters'] });
-    } catch {
-      window.open(letterService.getPDFUrl(letterId), '_blank');
-      queryClient.invalidateQueries({ queryKey: ['letters'] });
+    } catch (err) {
+      console.error('Print error:', err);
     }
   };
 

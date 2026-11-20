@@ -149,7 +149,7 @@ export default function NewLetterPage() {
         try {
           await printDocumentPDF(`/api/printing/letter/${letter.id}/pdf`);
         } catch (printErr) {
-          window.open(letterService.getPDFUrl(letter.id), '_blank');
+          console.error('Print letter error:', printErr);
         }
       }
 

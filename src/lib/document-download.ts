@@ -19,13 +19,8 @@ export async function downloadDocumentPDF(endpoint: string, filename: string): P
 }
 
 /**
- * Prints a document PDF reliably across all desktop and mobile browsers.
- * 
- * 1. Fetches the authenticated PDF blob from the backend.
- * 2. Attempts direct iframe printing if supported by the browser engine.
- * 3. If iframe printing is blocked by out-of-process PDF sandboxes (standard modern Chrome/Safari behavior),
- *    immediately falls back to opening the printable document in a new tab/window,
- *    giving the user full access to preview and print without failing silently.
+ * Triggers the browser's native built-in print preview dialog directly
+ * on the current screen without navigating to another page or opening a new tab.
  */
 export async function printDocumentPDF(endpoint: string): Promise<void> {
   const response = await apiClient.get(endpoint, {
@@ -34,98 +29,50 @@ export async function printDocumentPDF(endpoint: string): Promise<void> {
   const blob = new Blob([response.data], { type: 'application/pdf' });
   const blobUrl = window.URL.createObjectURL(blob);
 
-  const isMobile =
-    typeof navigator !== 'undefined' &&
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  // Hidden iframe with 1px width and 100px height ensures Chromium / Firefox / Edge
+  // initializes the PDF rendering engine and presents the native print dialog on the current page.
+  const iframe = document.createElement('iframe');
+  iframe.id = `print-frame-${Date.now()}`;
+  iframe.style.position = 'fixed';
+  iframe.style.top = '0';
+  iframe.style.left = '0';
+  iframe.style.width = '1px';
+  iframe.style.height = '100px';
+  iframe.style.opacity = '0.001';
+  iframe.style.border = 'none';
+  iframe.style.margin = '0';
+  iframe.style.padding = '0';
+  iframe.style.pointerEvents = 'none';
+  iframe.style.zIndex = '-9999';
+  iframe.src = blobUrl;
 
-  if (isMobile) {
-    const printWin = window.open(blobUrl, '_blank');
-    if (!printWin) {
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = 'document.pdf';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+  document.body.appendChild(iframe);
+
+  let hasTriggered = false;
+  const triggerNativePrint = () => {
+    if (hasTriggered) return;
+    hasTriggered = true;
+    try {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    } catch (err) {
+      console.warn('Direct iframe print attempt error:', err);
     }
-    return;
-  }
+  };
 
-  let printTriggered = false;
+  iframe.onload = () => {
+    setTimeout(triggerNativePrint, 350);
+  };
 
-  try {
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
-    iframe.style.border = '0';
-    iframe.style.visibility = 'hidden';
-    iframe.src = blobUrl;
+  // Fallback in case onload is delayed
+  setTimeout(triggerNativePrint, 1000);
 
-    await new Promise<void>((resolve) => {
-      let resolved = false;
-      const done = () => {
-        if (!resolved) {
-          resolved = true;
-          resolve();
-        }
-      };
-
-      const tryPrint = () => {
-        try {
-          if (iframe.contentWindow) {
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
-            printTriggered = true;
-          }
-        } catch (err) {
-          console.warn('Iframe print access restricted by PDF viewer sandbox:', err);
-        }
-        done();
-      };
-
-      iframe.onload = () => {
-        setTimeout(tryPrint, 350);
-      };
-
-      document.body.appendChild(iframe);
-
-      // Fallback timeout in case onload doesn't fire
-      setTimeout(tryPrint, 1200);
-
-      // Cleanup iframe after print dialog interaction
-      setTimeout(() => {
-        try {
-          if (document.body.contains(iframe)) {
-            document.body.removeChild(iframe);
-          }
-        } catch {}
-      }, 60000);
-    });
-  } catch (err) {
-    console.warn('Iframe printing setup error:', err);
-  }
-
-  // If iframe print was blocked or failed to display the native dialog,
-  // open the printable PDF window directly so the user can immediately print
-  if (!printTriggered) {
-    const printWindow = window.open(blobUrl, '_blank');
-    if (!printWindow) {
-      // If popup blocker intervened, fallback to automatic download
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = 'document.pdf';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    }
-  }
-
-  // Revoke object URL after 2 minutes
+  // Keep alive during print dialog interaction, then clean up
   setTimeout(() => {
     try {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
       window.URL.revokeObjectURL(blobUrl);
     } catch {}
   }, 120000);

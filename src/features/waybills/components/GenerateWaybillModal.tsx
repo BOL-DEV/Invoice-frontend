@@ -161,7 +161,7 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
         try {
           await printDocumentPDF(`/api/printing/waybill/${waybill.id}/pdf`);
         } catch (printErr) {
-          window.open(waybillService.getPDFUrl(waybill.id), '_blank');
+          console.error('Print waybill error:', printErr);
         }
       }
 

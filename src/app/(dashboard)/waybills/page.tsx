@@ -70,9 +70,8 @@ export default function WaybillsPage() {
     try {
       await printDocumentPDF(`/api/printing/waybill/${waybillId}/pdf`);
       queryClient.invalidateQueries({ queryKey: ['waybills'] });
-    } catch {
-      window.open(waybillService.getPDFUrl(waybillId), '_blank');
-      queryClient.invalidateQueries({ queryKey: ['waybills'] });
+    } catch (err) {
+      console.error('Print error:', err);
     }
   };
 
