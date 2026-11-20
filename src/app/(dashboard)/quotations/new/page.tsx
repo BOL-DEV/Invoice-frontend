@@ -468,11 +468,11 @@ export default function NewQuotationPage() {
         try {
           await printDocumentPDF(`/api/printing/quotation/${quotation.id}/pdf`);
         } catch (printErr) {
-          window.open(quotationService.getPDFUrl(quotation.id), '_blank');
+          console.warn('Direct PDF print error:', printErr);
         }
       }
 
-      modal.alert(
+      await modal.alert(
         editId ? 'Quotation Updated' : 'Quotation Saved',
         `Quotation ${quotation.quotationNumber} has been successfully ${editId ? 'updated' : 'created'}.${action === 'download' ? ' Your PDF document has been downloaded.' : ''}`,
         'success'

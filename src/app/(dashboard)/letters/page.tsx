@@ -70,8 +70,10 @@ export default function LettersPage() {
   const handlePrint = async (letterId: string) => {
     try {
       await printDocumentPDF(`/api/printing/letter/${letterId}/pdf`);
+      queryClient.invalidateQueries({ queryKey: ['letters'] });
     } catch {
       window.open(letterService.getPDFUrl(letterId), '_blank');
+      queryClient.invalidateQueries({ queryKey: ['letters'] });
     }
   };
 
@@ -81,6 +83,7 @@ export default function LettersPage() {
         `/api/printing/letter/${letter.id}/pdf`,
         `letter_${letter.letterNumber}.pdf`
       );
+      queryClient.invalidateQueries({ queryKey: ['letters'] });
     } catch (err: any) {
       modal.alert('Download Failed', err.message || 'Failed to download letter PDF', 'error');
     }

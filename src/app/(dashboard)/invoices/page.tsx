@@ -1292,6 +1292,7 @@ export default function InvoicesPage() {
                     onClick={async () => {
                       try {
                         await printDocumentPDF(`/api/printing/${invoiceDetails.id}/pdf`);
+                        queryClient.invalidateQueries({ queryKey: ['invoices'] });
                       } catch {
                         await handleExport(invoiceDetails.id, 'pdf', invoiceDetails.invoiceNumber);
                       }

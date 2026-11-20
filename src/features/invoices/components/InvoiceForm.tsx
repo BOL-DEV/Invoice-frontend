@@ -633,7 +633,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
             localStorage.removeItem('invoice_creation_draft');
           } catch {}
           setHasRestoredDraft(false);
-          await modal.alert('Success', 'Invoice saved successfully', 'success');
           if (targetStatus === 'FINALIZED') {
             if (action === 'print') {
               try {
@@ -645,10 +644,10 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
               await handleExport(res.id, 'pdf', res.invoiceNumber);
             }
           }
+          await modal.alert('Success', 'Invoice saved successfully', 'success');
           router.push('/invoices');
         } else {
           const res = await updateMutation.mutateAsync(payload);
-          await modal.alert('Success', 'Invoice updated successfully', 'success');
           if (targetStatus === 'FINALIZED') {
             if (action === 'print') {
               try {
@@ -660,6 +659,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
               await handleExport(invoiceId || '', 'pdf', res.invoiceNumber);
             }
           }
+          await modal.alert('Success', 'Invoice updated successfully', 'success');
           router.push('/invoices');
         }
       } catch (err) {

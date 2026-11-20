@@ -69,14 +69,17 @@ export default function WaybillsPage() {
   const handlePrint = async (waybillId: string) => {
     try {
       await printDocumentPDF(`/api/printing/waybill/${waybillId}/pdf`);
+      queryClient.invalidateQueries({ queryKey: ['waybills'] });
     } catch {
       window.open(waybillService.getPDFUrl(waybillId), '_blank');
+      queryClient.invalidateQueries({ queryKey: ['waybills'] });
     }
   };
 
   const handleDownload = async (wb: Waybill) => {
     try {
       await downloadDocumentPDF(`/api/printing/waybill/${wb.id}/pdf`, `waybill_${wb.waybillNumber}.pdf`);
+      queryClient.invalidateQueries({ queryKey: ['waybills'] });
     } catch (err) {
       console.error('Download error:', err);
     }

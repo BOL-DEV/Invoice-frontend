@@ -87,6 +87,8 @@ export default function QuotationsPage() {
   const handlePrint = async (quotationId: string) => {
     try {
       await printDocumentPDF(`/api/printing/quotation/${quotationId}/pdf`);
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations', 'summary'] });
     } catch (err) {
       console.error('Print error:', err);
     }
@@ -98,6 +100,8 @@ export default function QuotationsPage() {
         `/api/printing/quotation/${quo.id}/pdf`,
         `quotation_${quo.quotationNumber}.pdf`
       );
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations', 'summary'] });
     } catch (err) {
       console.error('Download error:', err);
     }

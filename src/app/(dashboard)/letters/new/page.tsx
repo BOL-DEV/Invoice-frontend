@@ -153,7 +153,7 @@ export default function NewLetterPage() {
         }
       }
 
-      modal.alert(
+      await modal.alert(
         'Letter Saved',
         `Letter "${letter.title}" (${letter.letterNumber}) has been created successfully.${action === 'download' ? ' Your PDF document has been downloaded.' : ''}`,
         'success'
