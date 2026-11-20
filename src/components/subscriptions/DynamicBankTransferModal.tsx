@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Calendar,
   FlaskConical,
+  XCircle,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { apiClient } from '../../services/api/axios';
@@ -179,13 +180,17 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
     }
   };
 
-  const handleSimulatePayment = async () => {
+  const handleSimulatePayment = async (
+    scenario: 'SUCCESS' | 'MISMATCH' | 'EXPIRED' | 'FAILED' = 'SUCCESS',
+    amount?: number
+  ) => {
     if (isSimulating || isPaid) return;
     setIsSimulating(true);
     setFeedbackMessage(null);
     try {
       const response = await apiClient.post<ApiResponse<PaymentVerificationResult>>(
-        API_ENDPOINTS.SUBSCRIPTIONS.SIMULATE_PAYMENT(paymentData.transactionReference)
+        API_ENDPOINTS.SUBSCRIPTIONS.SIMULATE_PAYMENT(paymentData.transactionReference),
+        { scenario, amount }
       );
       const res = response.data?.data;
       if (res?.paid) {
@@ -194,6 +199,12 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
         queryClient.invalidateQueries({ queryKey: ['subscription'] });
         queryClient.invalidateQueries({ queryKey: ['business'] });
         if (onSuccess) onSuccess();
+      } else if (res?.status === 'EXPIRED') {
+        setIsExpired(true);
+        setFailureReason(res.failureReason || 'Virtual payment account session expired.');
+      } else if (res?.status === 'FAILED') {
+        setIsFailed(true);
+        setFailureReason(res.failureReason || res.message || 'Payment transfer was rejected or failed.');
       } else {
         setFeedbackMessage(res?.message || 'Simulation processed. Checking status...');
       }
@@ -551,15 +562,74 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
             {/* Action & Status */}
             <div className="pt-1 space-y-2.5">
               {paymentData.isSandbox ? (
-                <Button
-                  type="button"
-                  onClick={handleSimulatePayment}
-                  disabled={isSimulating}
-                  className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all shadow-lg shadow-emerald-500/10 cursor-pointer active:scale-[0.99]"
-                >
-                  <FlaskConical className="h-4 w-4" />
-                  <span>{isSimulating ? 'Simulating Payment via Squad...' : 'Simulate Payment (Sandbox Test)'}</span>
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    type="button"
+                    onClick={() => handleSimulatePayment('SUCCESS')}
+                    disabled={isSimulating}
+                    className="w-full h-10 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all shadow-lg shadow-emerald-500/10 cursor-pointer active:scale-[0.99]"
+                  >
+                    <FlaskConical className="h-4 w-4" />
+                    <span>{isSimulating ? 'Simulating via Squad...' : 'Simulate Success (Exact Price)'}</span>
+                  </Button>
+
+                  {/* Sandbox Error Testing Scenarios */}
+                  <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-0.5">
+                      <span className="flex items-center space-x-1 text-amber-400">
+                        <AlertTriangle className="h-3 w-3" />
+                        <span>Test Error Instances</span>
+                      </span>
+                      <span className="text-slate-500 text-[9px] lowercase font-normal">sandbox QA</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleSimulatePayment('MISMATCH', 0)}
+                        disabled={isSimulating}
+                        className="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 text-[11px] font-medium flex items-center justify-center space-x-1 transition-all cursor-pointer disabled:opacity-50"
+                        title="Simulate payment with no price / ₦0 sent"
+                      >
+                        <XCircle className="h-3.5 w-3.5 text-rose-400 shrink-0" />
+                        <span>No Price (₦0)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSimulatePayment('MISMATCH', Math.max(100, Math.floor(paymentData.amount / 2)))}
+                        disabled={isSimulating}
+                        className="p-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[11px] font-medium flex items-center justify-center space-x-1 transition-all cursor-pointer disabled:opacity-50"
+                        title="Simulate partial / wrong amount transfer"
+                      >
+                        <AlertCircle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                        <span>Wrong Amount</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSimulatePayment('EXPIRED')}
+                        disabled={isSimulating}
+                        className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-slate-300 text-[11px] font-medium flex items-center justify-center space-x-1 transition-all cursor-pointer disabled:opacity-50"
+                        title="Simulate account session expired"
+                      >
+                        <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        <span>Test Expired</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSimulatePayment('FAILED')}
+                        disabled={isSimulating}
+                        className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-slate-300 text-[11px] font-medium flex items-center justify-center space-x-1 transition-all cursor-pointer disabled:opacity-50"
+                        title="Simulate bank network rejection"
+                      >
+                        <AlertTriangle className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        <span>Bank Declined</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <Button
                   onClick={handleManualCheck}
