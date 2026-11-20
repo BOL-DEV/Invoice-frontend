@@ -109,6 +109,7 @@ interface SidebarDropdownSubItem {
   href: string;
   icon: React.ReactNode;
   label: string;
+  badge?: React.ReactNode;
 }
 
 interface SidebarDropdownProps {
@@ -202,14 +203,17 @@ const SidebarDropdown: React.FC<SidebarDropdownProps> = ({
                       setIsFlyoutOpen(false);
                       onClick?.();
                     }}
-                    className={`flex items-center space-x-2.5 px-3 py-2 mx-1.5 rounded-xl text-xs font-medium transition-colors ${
+                    className={`flex items-center justify-between space-x-2.5 px-3 py-2 mx-1.5 rounded-xl text-xs font-medium transition-colors ${
                       active
                         ? 'bg-primary text-white font-semibold shadow-sm'
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
                     }`}
                   >
-                    <span className="shrink-0">{subItem.icon}</span>
-                    <span className="truncate">{subItem.label}</span>
+                    <div className="flex items-center space-x-2.5 min-w-0">
+                      <span className="shrink-0">{subItem.icon}</span>
+                      <span className="truncate">{subItem.label}</span>
+                    </div>
+                    {subItem.badge}
                   </Link>
                 );
               })}
@@ -264,16 +268,19 @@ const SidebarDropdown: React.FC<SidebarDropdownProps> = ({
                   key={subItem.href}
                   href={subItem.href}
                   onClick={onClick}
-                  className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors group ${
+                  className={`flex items-center justify-between space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors group ${
                     active
                       ? 'bg-primary text-white font-semibold shadow-sm'
                       : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
                   }`}
                 >
-                  <span className={`shrink-0 transition-transform duration-150 ${active ? 'scale-110 text-white' : 'text-muted-foreground group-hover:scale-110 group-hover:text-foreground'}`}>
-                    {subItem.icon}
-                  </span>
-                  <span className="whitespace-nowrap truncate">{subItem.label}</span>
+                  <div className="flex items-center space-x-2.5 min-w-0">
+                    <span className={`shrink-0 transition-transform duration-150 ${active ? 'scale-110 text-white' : 'text-muted-foreground group-hover:scale-110 group-hover:text-foreground'}`}>
+                      {subItem.icon}
+                    </span>
+                    <span className="whitespace-nowrap truncate">{subItem.label}</span>
+                  </div>
+                  {subItem.badge}
                 </Link>
               );
             })}
@@ -501,9 +508,39 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             icon: <FileStack className="h-5 w-5" />,
             children: [
               { href: '/invoices', icon: <FileText className="h-4 w-4" />, label: 'Invoices' },
-              { href: '/quotations', icon: <FileSpreadsheet className="h-4 w-4" />, label: 'Quotations' },
-              { href: '/waybills', icon: <Truck className="h-4 w-4" />, label: 'Waybills' },
-              { href: '/letters', icon: <Mail className="h-4 w-4" />, label: 'Letters' },
+              {
+                href: '/quotations',
+                icon: <FileSpreadsheet className="h-4 w-4" />,
+                label: 'Quotations',
+                badge: isStarterPlan ? (
+                  <span className="flex items-center space-x-0.5 text-[9px] font-bold text-muted-foreground bg-secondary/80 dark:bg-secondary/40 px-1.5 py-0.5 rounded-md border border-border/80">
+                    <Lock className="h-2.5 w-2.5 mr-0.5 text-amber-500" />
+                    <span>LOCKED</span>
+                  </span>
+                ) : undefined,
+              },
+              {
+                href: '/waybills',
+                icon: <Truck className="h-4 w-4" />,
+                label: 'Waybills',
+                badge: isStarterPlan ? (
+                  <span className="flex items-center space-x-0.5 text-[9px] font-bold text-muted-foreground bg-secondary/80 dark:bg-secondary/40 px-1.5 py-0.5 rounded-md border border-border/80">
+                    <Lock className="h-2.5 w-2.5 mr-0.5 text-amber-500" />
+                    <span>LOCKED</span>
+                  </span>
+                ) : undefined,
+              },
+              {
+                href: '/letters',
+                icon: <Mail className="h-4 w-4" />,
+                label: 'Letters',
+                badge: isStarterPlan ? (
+                  <span className="flex items-center space-x-0.5 text-[9px] font-bold text-muted-foreground bg-secondary/80 dark:bg-secondary/40 px-1.5 py-0.5 rounded-md border border-border/80">
+                    <Lock className="h-2.5 w-2.5 mr-0.5 text-amber-500" />
+                    <span>LOCKED</span>
+                  </span>
+                ) : undefined,
+              },
             ],
           },
           { type: 'link' as const, href: '/reports', icon: <BarChart3 className="h-5 w-5" />, label: 'Reports' },

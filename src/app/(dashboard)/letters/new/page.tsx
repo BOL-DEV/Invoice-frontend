@@ -34,7 +34,10 @@ import {
   Heading1,
   Heading2,
   Pilcrow,
+  Mail,
 } from 'lucide-react';
+import { useSubscription } from '../../../../features/subscriptions/hooks/useSubscription';
+import { FeatureLockedScreen } from '../../../../components/shared/FeatureLockedScreen';
 import { downloadDocumentPDF, printDocumentPDF } from '../../../../lib/document-download';
 import { ResponsiveActionMenu } from '../../../../components/ui/responsive-action-menu';
 
@@ -42,6 +45,13 @@ export default function NewLetterPage() {
   const router = useRouter();
   const modal = useModal();
   const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const { data: subDetails } = useSubscription();
+
+  const isStarterPlan = !isSuperAdmin && (
+    subDetails?.subscription?.plan === 'STARTER' ||
+    (subDetails?.capabilities && subDetails.capabilities.letters === false)
+  );
 
   const [title, setTitle] = useState('');
   const [ourRef, setOurRef] = useState('');
@@ -155,6 +165,24 @@ export default function NewLetterPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (isStarterPlan) {
+    return (
+      <FeatureLockedScreen
+        headerTitle="Compose Letter"
+        headerDescription="Draft formal business letters formatted directly onto your organization letterhead"
+        title="Official Letters & Correspondence is Locked"
+        description="Draft, format, store, and export formal business correspondence, executive memos, and official notices directly on your branded company letterhead. Available on Business and Enterprise plans."
+        icon={<Mail className="h-6 w-6 text-indigo-500" />}
+        featureBenefits={[
+          'Draft executive business letters on automated branded letterhead',
+          'Formatted Our Ref, Your Ref, date stamps, and signatory titles',
+          'Rich WYSIWYG text editor with bullet lists and formatting controls',
+          'Instant high-resolution PDF generation and direct thermal/A4 printing',
+        ]}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

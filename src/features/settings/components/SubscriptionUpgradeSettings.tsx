@@ -427,6 +427,7 @@ export function SubscriptionUpgradeSettings() {
                 features: [
                   '5 Users (1 Admin + 4 Cashiers)',
                   '60 AI Scans / Month',
+                  'Quotations, Waybills & Letters Suite',
                   'Custom Branded Domain + Excel Export',
                   'Multi-Branch Inventory & Tracking',
                 ],
@@ -437,6 +438,7 @@ export function SubscriptionUpgradeSettings() {
                 features: [
                   '11 Users (Owner + Sub-admins + 8 Cashiers)',
                   '150 AI Scans / Month',
+                  'Quotations, Waybills & Letters Suite',
                   'Multi-Branch Real-Time Control & Audits',
                   'Custom Domain + Dedicated Priority Support',
                 ],

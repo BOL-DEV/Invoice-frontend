@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   AlertCircle,
   History,
+  FileStack,
 } from 'lucide-react';
 import { useSubscription } from '@/features/subscriptions/hooks/useSubscription';
 import { SubscriptionHistoryModal } from '@/components/subscriptions/SubscriptionHistoryModal';
@@ -62,6 +63,8 @@ export function SubscriptionPlanSettings() {
     subDetails?.capabilities?.excelExport ?? (subPlan === 'BUSINESS' || subPlan === 'ENTERPRISE');
   const activityLogsEnabled =
     subDetails?.capabilities?.activityLogs ?? (subPlan === 'BUSINESS' || subPlan === 'ENTERPRISE');
+  const documentsSuiteEnabled =
+    subDetails?.capabilities?.quotations ?? (subPlan === 'BUSINESS' || subPlan === 'ENTERPRISE');
 
   // Subscription dates & expiration calculations
   const startDate = sub?.startDate;
@@ -427,6 +430,26 @@ export function SubscriptionPlanSettings() {
                     <p className="text-[11px] text-muted-foreground mt-0.5">
                       {activityLogsEnabled
                         ? 'Active — Comprehensive audit trail of actions'
+                        : 'Available on Business & Enterprise tiers'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-border/80 flex items-start space-x-3">
+                  <div
+                    className={`p-2 rounded-lg shrink-0 ${
+                      documentsSuiteEnabled
+                        ? 'bg-emerald-500/10 text-emerald-500'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <FileStack className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">Quotations, Waybills & Letters Suite</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {documentsSuiteEnabled
+                        ? 'Active — Unlimited price estimates, delivery notes, and official letters'
                         : 'Available on Business & Enterprise tiers'}
                     </p>
                   </div>

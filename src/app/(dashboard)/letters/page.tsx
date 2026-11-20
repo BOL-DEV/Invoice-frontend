@@ -30,10 +30,22 @@ import {
 } from 'lucide-react';
 import { downloadDocumentPDF, printDocumentPDF } from '../../../lib/document-download';
 import { cn } from '../../../lib/utils';
+import { useAuth } from '../../../features/auth/context/AuthContext';
+import { useSubscription } from '../../../features/subscriptions/hooks/useSubscription';
+import { FeatureLockedScreen } from '../../../components/shared/FeatureLockedScreen';
 
 export default function LettersPage() {
   const queryClient = useQueryClient();
   const modal = useModal();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const { data: subDetails, isLoading: isSubLoading } = useSubscription();
+
+  const isStarterPlan = !isSuperAdmin && (
+    subDetails?.subscription?.plan === 'STARTER' ||
+    (subDetails?.capabilities && subDetails.capabilities.letters === false)
+  );
+
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -42,6 +54,7 @@ export default function LettersPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['letters', page, search, statusFilter],
+    enabled: isSuperAdmin || (!isStarterPlan && !isSubLoading),
     queryFn: () =>
       letterService.list({
         page,
@@ -102,6 +115,24 @@ export default function LettersPage() {
         return <Badge variant="outline" className="text-xs">{status}</Badge>;
     }
   };
+
+  if (isStarterPlan) {
+    return (
+      <FeatureLockedScreen
+        headerTitle="Official Letters & Correspondence"
+        headerDescription="Draft formal business letters formatted directly onto your organization letterhead"
+        title="Official Letters & Correspondence is Locked"
+        description="Draft, format, store, and export formal business correspondence, executive memos, and official notices directly on your branded company letterhead. Available on Business and Enterprise plans."
+        icon={<Mail className="h-6 w-6 text-indigo-500" />}
+        featureBenefits={[
+          'Draft executive business letters on automated branded letterhead',
+          'Formatted Our Ref, Your Ref, date stamps, and signatory titles',
+          'Rich WYSIWYG text editor with bullet lists and formatting controls',
+          'Instant high-resolution PDF generation and direct thermal/A4 printing',
+        ]}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

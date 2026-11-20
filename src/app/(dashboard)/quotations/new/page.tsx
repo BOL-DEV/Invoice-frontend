@@ -21,6 +21,8 @@ import { BasicCalculator } from '../../../../components/forms/BasicCalculator';
 import { WeightCalculator } from '../../../../components/forms/WeightCalculator';
 import { DocumentImportModal } from '../../../../features/invoices/components/DocumentImportModal';
 import { useSubscription } from '../../../../features/subscriptions/hooks/useSubscription';
+import { useAuth } from '../../../../features/auth/context/AuthContext';
+import { FeatureLockedScreen } from '../../../../components/shared/FeatureLockedScreen';
 import { ExtractedInvoiceData } from '../../../../types/api';
 import { numberToNairaWords } from '../../../../features/invoices/utils/numberToWords';
 import {
@@ -40,6 +42,7 @@ import {
   Scale,
   Sparkles,
   FileDown,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 interface FormItem {
@@ -56,9 +59,15 @@ export default function NewQuotationPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const modal = useModal();
+  const { user } = useAuth();
   const editId = searchParams.get('edit') || searchParams.get('id');
 
   const { data: subDetails } = useSubscription();
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isStarterPlan = !isSuperAdmin && (
+    subDetails?.subscription?.plan === 'STARTER' ||
+    (subDetails?.capabilities && subDetails.capabilities.quotations === false)
+  );
 
   const { data: existingQuotation } = useQuery({
     queryKey: ['quotation', editId],
@@ -475,6 +484,24 @@ export default function NewQuotationPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (isStarterPlan) {
+    return (
+      <FeatureLockedScreen
+        headerTitle={editId ? 'Edit Quotation' : 'Create New Quotation'}
+        headerDescription="Prepare price quotes for prospective clients with 1-click conversion to invoice"
+        title="Quotations & Estimates are Locked"
+        description="Create formal price estimates, share with clients, and convert directly to invoices with a single click. Available on Business and Enterprise plans."
+        icon={<FileSpreadsheet className="h-6 w-6 text-blue-500" />}
+        featureBenefits={[
+          'Create unlimited quotes and price estimates for prospective buyers',
+          '1-Click automated conversion from approved quotes directly to invoices',
+          'Custom quote numbers, expiration deadlines, and formal terms',
+          'Professional PDF download and thermal print formats',
+        ]}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

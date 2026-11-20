@@ -93,6 +93,25 @@ export default function InvoicesPage() {
   const [isWaybillModalOpen, setIsWaybillModalOpen] = useState(false);
   const [invoiceForWaybill, setInvoiceForWaybill] = useState<Invoice | null>(null);
 
+  const isStarterTier = user?.role !== 'SUPER_ADMIN' && (
+    subDetails?.subscription?.plan === 'STARTER' ||
+    (subDetails?.capabilities && subDetails.capabilities.waybills === false)
+  );
+
+  const openWaybillModal = (invoice: Invoice, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (isStarterTier) {
+      modal.alert(
+        'Feature Locked on Starter Plan',
+        'Waybills & Delivery Notes is an exclusive feature for Business and Enterprise tiers. Please upgrade your subscription to generate transport waybills.',
+        'warning'
+      );
+      return;
+    }
+    setInvoiceForWaybill(invoice);
+    setIsWaybillModalOpen(true);
+  };
+
   const getEligibleRecipients = (invoice: Invoice | null) => {
     if (!invoice) return [];
     return staffList.filter(
@@ -879,10 +898,7 @@ export default function InvoicesPage() {
                                   : {
                                       label: 'Generate Waybill',
                                       icon: <Truck className="h-4 w-4 text-emerald-500" />,
-                                      onClick: () => {
-                                        setInvoiceForWaybill(inv);
-                                        setIsWaybillModalOpen(true);
-                                      },
+                                      onClick: () => openWaybillModal(inv),
                                     },
                               ]
                             : []),
@@ -943,11 +959,7 @@ export default function InvoicesPage() {
                                     variant="outline"
                                     size="sm"
                                     title="Generate Waybill / Delivery Note"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setInvoiceForWaybill(inv);
-                                      setIsWaybillModalOpen(true);
-                                    }}
+                                    onClick={(e) => openWaybillModal(inv, e)}
                                     className="h-8 px-2.5 rounded-xl text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1 cursor-pointer font-medium transition-colors"
                                   >
                                     <Truck className="h-3.5 w-3.5 text-emerald-500" />
@@ -1203,10 +1215,7 @@ export default function InvoicesPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          setInvoiceForWaybill(invoiceDetails);
-                          setIsWaybillModalOpen(true);
-                        }}
+                        onClick={() => openWaybillModal(invoiceDetails)}
                         className="h-9 text-xs rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center space-x-1.5 cursor-pointer"
                       >
                         <Truck className="h-3.5 w-3.5 text-emerald-500" />

@@ -37,6 +37,9 @@ import {
   Pencil,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../../../features/auth/context/AuthContext';
+import { useSubscription } from '../../../features/subscriptions/hooks/useSubscription';
+import { FeatureLockedScreen } from '../../../components/shared/FeatureLockedScreen';
 import { downloadDocumentPDF, printDocumentPDF } from '../../../lib/document-download';
 import { cn } from '../../../lib/utils';
 
@@ -44,6 +47,15 @@ export default function QuotationsPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const modal = useModal();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const { data: subDetails, isLoading: isSubLoading } = useSubscription();
+
+  const isStarterPlan = !isSuperAdmin && (
+    subDetails?.subscription?.plan === 'STARTER' ||
+    (subDetails?.capabilities && subDetails.capabilities.quotations === false)
+  );
+
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -53,6 +65,7 @@ export default function QuotationsPage() {
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['quotations', page, search, statusFilter],
+    enabled: isSuperAdmin || (!isStarterPlan && !isSubLoading),
     queryFn: () =>
       quotationService.list({
         page,
@@ -64,6 +77,7 @@ export default function QuotationsPage() {
 
   const { data: summary, isLoading: isSummaryLoading } = useQuery({
     queryKey: ['quotations', 'summary'],
+    enabled: isSuperAdmin || (!isStarterPlan && !isSubLoading),
     queryFn: () => quotationService.getSummary(),
   });
 
@@ -182,6 +196,24 @@ export default function QuotationsPage() {
         return <Badge variant="outline" className="text-xs font-semibold">Draft</Badge>;
     }
   };
+
+  if (isStarterPlan) {
+    return (
+      <FeatureLockedScreen
+        headerTitle="Quotations & Estimates"
+        headerDescription="Prepare price quotes for prospective clients with 1-click conversion to invoice"
+        title="Quotations & Estimates are Locked"
+        description="Create formal price estimates, share with clients, and convert directly to invoices with a single click. Available on Business and Enterprise plans."
+        icon={<FileSpreadsheet className="h-6 w-6 text-blue-500" />}
+        featureBenefits={[
+          'Create unlimited quotes and price estimates for prospective buyers',
+          '1-Click automated conversion from approved quotes directly to invoices',
+          'Custom quote numbers, expiration deadlines, and formal terms',
+          'Professional PDF download and thermal print formats',
+        ]}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

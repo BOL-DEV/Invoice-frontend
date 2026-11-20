@@ -31,10 +31,22 @@ import {
   FileDown,
 } from 'lucide-react';
 import { printDocumentPDF, downloadDocumentPDF } from '../../../lib/document-download';
+import { useAuth } from '../../../features/auth/context/AuthContext';
+import { useSubscription } from '../../../features/subscriptions/hooks/useSubscription';
+import { FeatureLockedScreen } from '../../../components/shared/FeatureLockedScreen';
 
 export default function WaybillsPage() {
   const queryClient = useQueryClient();
   const modal = useModal();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const { data: subDetails, isLoading: isSubLoading } = useSubscription();
+
+  const isStarterPlan = !isSuperAdmin && (
+    subDetails?.subscription?.plan === 'STARTER' ||
+    (subDetails?.capabilities && subDetails.capabilities.waybills === false)
+  );
+
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [selectedWaybill, setSelectedWaybill] = useState<Waybill | null>(null);
@@ -42,6 +54,7 @@ export default function WaybillsPage() {
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['waybills', page, search],
+    enabled: isSuperAdmin || (!isStarterPlan && !isSubLoading),
     queryFn: () =>
       waybillService.list({
         page,
@@ -100,6 +113,24 @@ export default function WaybillsPage() {
       </Badge>
     );
   };
+
+  if (isStarterPlan) {
+    return (
+      <FeatureLockedScreen
+        headerTitle="Waybills & Delivery Notes"
+        headerDescription="Transport dispatch & proof-of-delivery documents originated from invoices"
+        title="Waybills & Delivery Notes are Locked"
+        description="Generate official dispatch consignment notes, track drivers, lorries, and delivery consignments directly from customer invoices. Available on Business and Enterprise plans."
+        icon={<Truck className="h-6 w-6 text-emerald-500" />}
+        featureBenefits={[
+          'Generate official dispatch consignment notes directly from invoices',
+          'Driver name, vehicle registration (lorry #), and phone tracking',
+          'Good delivery condition acknowledgments and recipient signatures',
+          'Thermal receipt and standard multi-copy delivery sheet printing',
+        ]}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

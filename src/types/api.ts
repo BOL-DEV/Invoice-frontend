@@ -307,6 +307,9 @@ export interface SubscriptionDetails {
     customDomain: boolean;
     multipleBranches: boolean;
     advancedReports: boolean;
+    quotations?: boolean;
+    waybills?: boolean;
+    letters?: boolean;
   };
   payments?: SubscriptionPaymentRecord[];
 }
