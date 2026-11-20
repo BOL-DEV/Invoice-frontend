@@ -22,58 +22,77 @@ export async function downloadDocumentPDF(endpoint: string, filename: string): P
  * Triggers the browser's native built-in print preview dialog directly
  * on the current screen without navigating to another page or opening a new tab.
  */
-export async function printDocumentPDF(endpoint: string): Promise<void> {
-  const response = await apiClient.get(endpoint, {
-    responseType: 'blob',
-  });
-  const blob = new Blob([response.data], { type: 'application/pdf' });
-  const blobUrl = window.URL.createObjectURL(blob);
-
-  // Hidden iframe with 1px width and 100px height ensures Chromium / Firefox / Edge
-  // initializes the PDF rendering engine and presents the native print dialog on the current page.
-  const iframe = document.createElement('iframe');
-  iframe.id = `print-frame-${Date.now()}`;
-  iframe.style.position = 'fixed';
-  iframe.style.top = '0';
-  iframe.style.left = '0';
-  iframe.style.width = '1px';
-  iframe.style.height = '100px';
-  iframe.style.opacity = '0.001';
-  iframe.style.border = 'none';
-  iframe.style.margin = '0';
-  iframe.style.padding = '0';
-  iframe.style.pointerEvents = 'none';
-  iframe.style.zIndex = '-9999';
-  iframe.src = blobUrl;
-
-  document.body.appendChild(iframe);
-
-  let hasTriggered = false;
-  const triggerNativePrint = () => {
-    if (hasTriggered) return;
-    hasTriggered = true;
+export function printDocumentPDF(endpoint: string): Promise<void> {
+  return new Promise(async (resolve, reject) => {
     try {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-    } catch (err) {
-      console.warn('Direct iframe print attempt error:', err);
-    }
-  };
+      const response = await apiClient.get(endpoint, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const blobUrl = window.URL.createObjectURL(blob);
 
-  iframe.onload = () => {
-    setTimeout(triggerNativePrint, 350);
-  };
-
-  // Fallback in case onload is delayed
-  setTimeout(triggerNativePrint, 1000);
-
-  // Keep alive during print dialog interaction, then clean up
-  setTimeout(() => {
-    try {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe);
+      const frameId = `print_frame_${Date.now()}`;
+      const existingFrame = document.getElementById(frameId);
+      if (existingFrame) {
+        existingFrame.remove();
       }
-      window.URL.revokeObjectURL(blobUrl);
-    } catch {}
-  }, 120000);
+
+      // Create an offscreen iframe with real layout dimensions so Chromium/Edge/Firefox
+      // does NOT throttle or defer initializing the native PDF viewer engine.
+      const iframe = document.createElement('iframe');
+      iframe.id = frameId;
+      iframe.setAttribute(
+        'style',
+        'position: fixed; right: -9999px; bottom: -9999px; width: 600px; height: 800px; border: 0; opacity: 0;'
+      );
+
+      let hasTriggered = false;
+      const triggerNativePrint = () => {
+        if (hasTriggered) return;
+        hasTriggered = true;
+        try {
+          iframe.focus();
+          if (iframe.contentWindow) {
+            iframe.contentWindow.focus();
+            try {
+              (iframe.contentWindow as any).document?.execCommand('print', false, null);
+            } catch {
+              iframe.contentWindow.print();
+            }
+          }
+          resolve();
+        } catch (err) {
+          console.warn('Direct iframe print attempt error:', err);
+          try {
+            iframe.contentWindow?.print();
+          } catch {}
+          resolve();
+        }
+      };
+
+      iframe.onload = () => {
+        // Wait 600ms for Chromium PDFium plugin to decode and mount the PDF document
+        setTimeout(triggerNativePrint, 600);
+      };
+
+      // Fallback timer in case onload is suppressed by the PDF plugin
+      setTimeout(triggerNativePrint, 1400);
+
+      // Append iframe to DOM BEFORE assigning src to ensure reliable event binding
+      document.body.appendChild(iframe);
+      iframe.src = blobUrl;
+
+      // Keep alive for 2 minutes during print dialog interaction, then clean up
+      setTimeout(() => {
+        try {
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+          window.URL.revokeObjectURL(blobUrl);
+        } catch {}
+      }, 120000);
+    } catch (err) {
+      reject(err);
+    }
+  });
 }

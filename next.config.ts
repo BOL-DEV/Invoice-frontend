@@ -11,6 +11,7 @@ const securityHeaders = [
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
       "connect-src 'self' http://localhost:5000 https://api.lenco.co https://api.squadco.com https://invoice-backend-murex.vercel.app",
+      "frame-src 'self' blob:",
       "frame-ancestors 'self'",
     ].join('; '),
   },

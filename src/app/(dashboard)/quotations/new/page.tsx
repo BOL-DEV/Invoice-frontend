@@ -464,20 +464,27 @@ export default function NewQuotationPage() {
         } catch (downloadErr) {
           console.warn('Direct PDF download fallback:', downloadErr);
         }
+        await modal.alert(
+          editId ? 'Quotation Updated' : 'Quotation Saved',
+          `Quotation ${quotation.quotationNumber} has been successfully ${editId ? 'updated' : 'created'}. Your PDF document has been downloaded.`,
+          'success'
+        );
+        router.push('/quotations');
       } else if (action === 'print') {
         try {
           await printDocumentPDF(`/api/printing/quotation/${quotation.id}/pdf`);
         } catch (printErr) {
           console.warn('Direct PDF print error:', printErr);
         }
+        router.push('/quotations');
+      } else {
+        await modal.alert(
+          editId ? 'Quotation Updated' : 'Quotation Saved',
+          `Quotation ${quotation.quotationNumber} has been successfully ${editId ? 'updated' : 'created'}.`,
+          'success'
+        );
+        router.push('/quotations');
       }
-
-      await modal.alert(
-        editId ? 'Quotation Updated' : 'Quotation Saved',
-        `Quotation ${quotation.quotationNumber} has been successfully ${editId ? 'updated' : 'created'}.${action === 'download' ? ' Your PDF document has been downloaded.' : ''}`,
-        'success'
-      );
-      router.push('/quotations');
     } catch (err: any) {
       modal.alert('Creation Failed', err.response?.data?.message || err.message || 'Failed to create quotation', 'error');
     } finally {

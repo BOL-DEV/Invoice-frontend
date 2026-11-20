@@ -145,20 +145,27 @@ export default function NewLetterPage() {
         } catch (downloadErr) {
           console.warn('Letter direct download fallback:', downloadErr);
         }
+        await modal.alert(
+          'Letter Saved',
+          `Letter "${letter.title}" (${letter.letterNumber}) has been created successfully. Your PDF document has been downloaded.`,
+          'success'
+        );
+        router.push('/letters');
       } else if (action === 'print') {
         try {
           await printDocumentPDF(`/api/printing/letter/${letter.id}/pdf`);
         } catch (printErr) {
           console.error('Print letter error:', printErr);
         }
+        router.push('/letters');
+      } else {
+        await modal.alert(
+          'Letter Saved',
+          `Letter "${letter.title}" (${letter.letterNumber}) has been created successfully as a draft.`,
+          'success'
+        );
+        router.push('/letters');
       }
-
-      await modal.alert(
-        'Letter Saved',
-        `Letter "${letter.title}" (${letter.letterNumber}) has been created successfully.${action === 'download' ? ' Your PDF document has been downloaded.' : ''}`,
-        'success'
-      );
-      router.push('/letters');
     } catch (err: any) {
       modal.alert('Error', err.response?.data?.message || err.message || 'Failed to save letter', 'error');
     } finally {

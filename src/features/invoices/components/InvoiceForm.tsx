@@ -640,12 +640,16 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
               } catch {
                 await handleExport(res.id, 'pdf', res.invoiceNumber);
               }
+              router.push('/invoices');
             } else {
               await handleExport(res.id, 'pdf', res.invoiceNumber);
+              await modal.alert('Success', 'Invoice saved successfully', 'success');
+              router.push('/invoices');
             }
+          } else {
+            await modal.alert('Success', 'Invoice saved successfully', 'success');
+            router.push('/invoices');
           }
-          await modal.alert('Success', 'Invoice saved successfully', 'success');
-          router.push('/invoices');
         } else {
           const res = await updateMutation.mutateAsync(payload);
           if (targetStatus === 'FINALIZED') {
@@ -655,12 +659,16 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
               } catch {
                 await handleExport(invoiceId || '', 'pdf', res.invoiceNumber);
               }
+              router.push('/invoices');
             } else {
               await handleExport(invoiceId || '', 'pdf', res.invoiceNumber);
+              await modal.alert('Success', 'Invoice updated successfully', 'success');
+              router.push('/invoices');
             }
+          } else {
+            await modal.alert('Success', 'Invoice updated successfully', 'success');
+            router.push('/invoices');
           }
-          await modal.alert('Success', 'Invoice updated successfully', 'success');
-          router.push('/invoices');
         }
       } catch (err) {
         const { title, message, variant } = getErrorDialog(err, 'Operation Failed', 'Failed to save invoice ledger');
