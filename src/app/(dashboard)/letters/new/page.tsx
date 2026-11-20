@@ -185,7 +185,7 @@ export default function NewLetterPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="space-y-4 sm:space-y-6 max-w-5xl mx-auto px-2 sm:px-6 lg:px-8 py-3 sm:py-6">
       {/* Top Navigation & Action Controls */}
       <div className="flex items-center justify-between gap-2">
         <Link
@@ -197,8 +197,8 @@ export default function NewLetterPage() {
           <span className="xs:hidden">Back</span>
         </Link>
 
-        {/* Mobile View: Primary Button + 3-dots Menu (MoreVertical) */}
-        <div className="flex sm:hidden items-center space-x-1.5 shrink-0">
+        {/* Mobile / Tablet (< md) View: Primary Button + 3-dots Menu (MoreVertical) */}
+        <div className="flex md:hidden items-center space-x-1.5 shrink-0">
           <Button
             type="button"
             size="sm"
@@ -234,14 +234,14 @@ export default function NewLetterPage() {
           />
         </div>
 
-        {/* Desktop View: Full Actions Row */}
-        <div className="hidden sm:flex items-center space-x-2">
+        {/* Desktop View (>= md): Full Actions Row */}
+        <div className="hidden md:flex items-center space-x-2 shrink-0">
           <Button
             type="button"
             variant="outline"
             onClick={() => router.push('/letters')}
             disabled={isSubmitting}
-            className="rounded-xl h-9 px-4 text-xs font-semibold cursor-pointer"
+            className="rounded-xl h-9 px-3.5 text-xs font-semibold cursor-pointer"
           >
             Cancel
           </Button>
@@ -251,7 +251,7 @@ export default function NewLetterPage() {
             variant="secondary"
             onClick={() => handleSubmit('draft')}
             disabled={isSubmitting}
-            className="rounded-xl h-9 px-4 text-xs font-semibold cursor-pointer"
+            className="rounded-xl h-9 px-3.5 text-xs font-semibold cursor-pointer"
           >
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Check className="h-4 w-4 mr-1.5" />}
             <span>Save Draft</span>
@@ -496,7 +496,7 @@ export default function NewLetterPage() {
         {/* The Document Canvas Desk - Expands white space to fully fill the container */}
         <div className="w-full bg-white flex justify-center">
           {/* Authentic White Document Sheet filling the full container */}
-          <div className={`bg-white text-slate-900 w-full min-h-[850px] sm:min-h-[960px] p-4 sm:p-8 md:p-12 relative flex flex-col justify-between space-y-6 ${fontStyleClass}`}>
+          <div className={`bg-white text-slate-900 w-full min-h-[850px] sm:min-h-[960px] p-3 sm:p-8 md:p-12 relative flex flex-col justify-between space-y-6 ${fontStyleClass}`}>
             
             {/* Top Sheet Header & References */}
             <div className="space-y-4">

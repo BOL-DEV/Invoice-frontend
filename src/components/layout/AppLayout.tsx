@@ -502,47 +502,28 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
         ]
       : [
           { type: 'link' as const, href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, label: 'Dashboard' },
-          {
-            type: 'dropdown' as const,
-            label: 'Documents',
-            icon: <FileStack className="h-5 w-5" />,
-            children: [
-              { href: '/invoices', icon: <FileText className="h-4 w-4" />, label: 'Invoices' },
-              {
-                href: '/quotations',
-                icon: <FileSpreadsheet className="h-4 w-4" />,
-                label: 'Quotations',
-                badge: isStarterPlan ? (
-                  <span className="flex items-center space-x-0.5 text-[9px] font-bold text-muted-foreground bg-secondary/80 dark:bg-secondary/40 px-1.5 py-0.5 rounded-md border border-border/80">
-                    <Lock className="h-2.5 w-2.5 mr-0.5 text-amber-500" />
-                    <span>LOCKED</span>
-                  </span>
-                ) : undefined,
-              },
-              {
-                href: '/waybills',
-                icon: <Truck className="h-4 w-4" />,
-                label: 'Waybills',
-                badge: isStarterPlan ? (
-                  <span className="flex items-center space-x-0.5 text-[9px] font-bold text-muted-foreground bg-secondary/80 dark:bg-secondary/40 px-1.5 py-0.5 rounded-md border border-border/80">
-                    <Lock className="h-2.5 w-2.5 mr-0.5 text-amber-500" />
-                    <span>LOCKED</span>
-                  </span>
-                ) : undefined,
-              },
-              {
-                href: '/letters',
-                icon: <Mail className="h-4 w-4" />,
-                label: 'Letters',
-                badge: isStarterPlan ? (
-                  <span className="flex items-center space-x-0.5 text-[9px] font-bold text-muted-foreground bg-secondary/80 dark:bg-secondary/40 px-1.5 py-0.5 rounded-md border border-border/80">
-                    <Lock className="h-2.5 w-2.5 mr-0.5 text-amber-500" />
-                    <span>LOCKED</span>
-                  </span>
-                ) : undefined,
-              },
-            ],
-          },
+          ...(isStarterPlan
+            ? [
+                {
+                  type: 'link' as const,
+                  href: '/invoices',
+                  icon: <FileText className="h-5 w-5" />,
+                  label: 'Invoices',
+                },
+              ]
+            : [
+                {
+                  type: 'dropdown' as const,
+                  label: 'Documents',
+                  icon: <FileStack className="h-5 w-5" />,
+                  children: [
+                    { href: '/invoices', icon: <FileText className="h-4 w-4" />, label: 'Invoices' },
+                    { href: '/quotations', icon: <FileSpreadsheet className="h-4 w-4" />, label: 'Quotations' },
+                    { href: '/waybills', icon: <Truck className="h-4 w-4" />, label: 'Waybills' },
+                    { href: '/letters', icon: <Mail className="h-4 w-4" />, label: 'Letters' },
+                  ],
+                },
+              ]),
           { type: 'link' as const, href: '/reports', icon: <BarChart3 className="h-5 w-5" />, label: 'Reports' },
           { type: 'link' as const, href: '/approvals', icon: <CheckSquare className="h-5 w-5" />, label: 'Approvals' },
           ...(isAdminOrSuper
