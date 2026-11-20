@@ -36,6 +36,7 @@ import {
   Pilcrow,
 } from 'lucide-react';
 import { downloadDocumentPDF, printDocumentPDF } from '../../../../lib/document-download';
+import { ResponsiveActionMenu } from '../../../../components/ui/responsive-action-menu';
 
 export default function NewLetterPage() {
   const router = useRouter();
@@ -158,16 +159,55 @@ export default function NewLetterPage() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Top Navigation & Action Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-2">
         <Link
           href="/letters"
-          className="inline-flex items-center space-x-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center space-x-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors shrink-0"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>Back to Letters</span>
+          <span className="hidden xs:inline">Back to Letters</span>
+          <span className="xs:hidden">Back</span>
         </Link>
 
-        <div className="flex items-center space-x-2">
+        {/* Mobile View: Primary Button + 3-dots Menu (MoreVertical) */}
+        <div className="flex sm:hidden items-center space-x-1.5 shrink-0">
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => handleSubmit('download')}
+            disabled={isSubmitting}
+            className="rounded-xl h-8 px-3 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm cursor-pointer flex items-center space-x-1"
+          >
+            {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+            <span>Download</span>
+          </Button>
+
+          <ResponsiveActionMenu
+            items={[
+              {
+                label: 'Print Letter',
+                icon: <Printer className="h-4 w-4 text-slate-500" />,
+                onClick: () => handleSubmit('print'),
+                disabled: isSubmitting,
+              },
+              {
+                label: 'Save as Draft',
+                icon: <Check className="h-4 w-4 text-emerald-500" />,
+                onClick: () => handleSubmit('draft'),
+                disabled: isSubmitting,
+              },
+              {
+                label: 'Cancel',
+                onClick: () => router.push('/letters'),
+                disabled: isSubmitting,
+                variant: 'danger',
+              },
+            ]}
+          />
+        </div>
+
+        {/* Desktop View: Full Actions Row */}
+        <div className="hidden sm:flex items-center space-x-2">
           <Button
             type="button"
             variant="outline"
@@ -213,7 +253,7 @@ export default function NewLetterPage() {
       </div>
 
       {/* Document Suite Container */}
-      <div className="rounded-2xl border border-slate-300 dark:border-slate-800 shadow-xl overflow-hidden bg-slate-200/70 dark:bg-slate-900/80">
+      <div className="rounded-2xl border border-slate-300 dark:border-slate-800 shadow-xl overflow-hidden bg-white dark:bg-slate-900">
         {/* Document Title Bar */}
         <div className="bg-[#2b579a] text-white px-4 py-2 flex items-center justify-between text-xs font-medium">
           <div className="flex items-center space-x-2">
@@ -227,7 +267,7 @@ export default function NewLetterPage() {
         </div>
 
         {/* Word Ribbon Toolbar */}
-        <div className="bg-white dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 p-2 sm:px-4 flex flex-wrap items-center gap-1 sm:gap-2 shadow-sm text-slate-700 dark:text-slate-200">
+        <div className="bg-white dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 p-2 sm:px-4 flex items-center gap-1 sm:gap-2 shadow-sm text-slate-700 dark:text-slate-200 overflow-x-auto scrollbar-thin">
           {/* History Controls: Undo & Redo */}
           <div className="flex items-center space-x-1 border-r border-slate-300 dark:border-slate-700 pr-2">
             <button
@@ -425,42 +465,42 @@ export default function NewLetterPage() {
           </div>
         </div>
 
-        {/* The Document Canvas Desk */}
-        <div className="p-4 sm:p-10 flex justify-center overflow-x-auto min-h-[800px]">
-          {/* Authentic White A4 Paper Sheet */}
-          <div className={`bg-white text-slate-900 w-full max-w-[820px] min-h-[960px] p-8 sm:p-14 shadow-2xl rounded-sm border border-slate-300 relative flex flex-col justify-between space-y-6 ${fontStyleClass}`}>
+        {/* The Document Canvas Desk - Expands white space to fully fill the container */}
+        <div className="w-full bg-white flex justify-center">
+          {/* Authentic White Document Sheet filling the full container */}
+          <div className={`bg-white text-slate-900 w-full min-h-[850px] sm:min-h-[960px] p-4 sm:p-8 md:p-12 relative flex flex-col justify-between space-y-6 ${fontStyleClass}`}>
             
             {/* Top Sheet Header & References */}
             <div className="space-y-4">
               {/* Reference Metadata Row */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-700 border-b border-slate-200 pb-3">
-                <div className="flex items-center space-x-2">
-                  <span className="font-bold text-slate-900">Our Ref:</span>
+                <div className="flex items-center space-x-2 w-full sm:w-auto">
+                  <span className="font-bold text-slate-900 shrink-0">Our Ref:</span>
                   <input
                     type="text"
                     value={ourRef}
                     onChange={(e) => setOurRef(e.target.value)}
-                    className="h-7 px-2 font-mono text-xs border border-slate-300 rounded focus:border-blue-500 focus:outline-none w-36 sm:w-44 bg-slate-50/50"
+                    className="h-8 px-2.5 font-mono text-xs border border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none flex-1 sm:w-44 bg-slate-50/50"
                   />
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <span className="font-bold text-slate-900">Your Ref:</span>
+                <div className="flex items-center space-x-2 w-full sm:w-auto">
+                  <span className="font-bold text-slate-900 shrink-0">Your Ref:</span>
                   <input
                     type="text"
                     value={yourRef}
                     onChange={(e) => setYourRef(e.target.value)}
-                    className="h-7 px-2 font-mono text-xs border border-slate-300 rounded focus:border-blue-500 focus:outline-none w-36 sm:w-44 bg-slate-50/50"
+                    className="h-8 px-2.5 font-mono text-xs border border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none flex-1 sm:w-44 bg-slate-50/50"
                   />
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <span className="font-bold text-slate-900">Date:</span>
+                <div className="flex items-center space-x-2 w-full sm:w-auto">
+                  <span className="font-bold text-slate-900 shrink-0">Date:</span>
                   <input
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="h-7 px-2 text-xs border border-slate-300 rounded focus:border-blue-500 focus:outline-none bg-slate-50/50"
+                    className="h-8 px-2.5 text-xs border border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none flex-1 sm:w-auto bg-slate-50/50"
                   />
                 </div>
               </div>
