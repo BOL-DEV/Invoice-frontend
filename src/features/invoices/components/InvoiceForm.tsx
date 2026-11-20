@@ -32,7 +32,7 @@ import { apiClient } from '../../../services/api/axios';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { DocumentImportModal } from './DocumentImportModal';
 import { useSubscription } from '../../subscriptions/hooks/useSubscription';
-import { printDocumentPDF } from '../../../lib/document-download';
+import { printDocumentPDF, formatDocumentFilename } from '../../../lib/document-download';
 import {
   Trash2,
   X,
@@ -690,9 +690,10 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       
       const blob = new Blob([response.data], { type: contentType });
       const url = window.URL.createObjectURL(blob);
+      const filename = formatDocumentFilename(businessSettings?.businessName, 'Invoice', invoiceNumber, extension);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `invoice_${invoiceNumber}.${extension}`);
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.remove();

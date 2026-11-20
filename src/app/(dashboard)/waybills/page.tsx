@@ -30,8 +30,9 @@ import {
   Loader2,
   FileDown,
 } from 'lucide-react';
-import { printDocumentPDF, downloadDocumentPDF } from '../../../lib/document-download';
+import { printDocumentPDF, downloadDocumentPDF, formatDocumentFilename } from '../../../lib/document-download';
 import { useAuth } from '../../../features/auth/context/AuthContext';
+import { useBusinessSettings } from '../../../features/business/hooks/useBusinessSettings';
 import { useSubscription } from '../../../features/subscriptions/hooks/useSubscription';
 import { FeatureLockedScreen } from '../../../components/shared/FeatureLockedScreen';
 
@@ -39,6 +40,7 @@ export default function WaybillsPage() {
   const queryClient = useQueryClient();
   const modal = useModal();
   const { user } = useAuth();
+  const { data: businessSettings } = useBusinessSettings();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const { data: subDetails, isLoading: isSubLoading } = useSubscription();
 
@@ -77,7 +79,8 @@ export default function WaybillsPage() {
 
   const handleDownload = async (wb: Waybill) => {
     try {
-      await downloadDocumentPDF(`/api/printing/waybill/${wb.id}/pdf`, `waybill_${wb.waybillNumber}.pdf`);
+      const filename = formatDocumentFilename(businessSettings?.businessName, 'Waybill', wb.waybillNumber);
+      await downloadDocumentPDF(`/api/printing/waybill/${wb.id}/pdf`, filename);
       queryClient.invalidateQueries({ queryKey: ['waybills'] });
     } catch (err) {
       console.error('Download error:', err);

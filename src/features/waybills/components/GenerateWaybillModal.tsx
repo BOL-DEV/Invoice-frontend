@@ -9,9 +9,10 @@ import { Badge } from '../../../components/ui/badge';
 import { Invoice } from '../../../types/api';
 import { waybillService } from '../../../services/waybill.service';
 import { apiClient } from '../../../services/api/axios';
-import { downloadDocumentPDF, printDocumentPDF } from '../../../lib/document-download';
+import { downloadDocumentPDF, printDocumentPDF, formatDocumentFilename } from '../../../lib/document-download';
 import { useModal } from '../../../components/ui/modal-provider';
 import { useAuth } from '../../auth/context/AuthContext';
+import { useBusinessSettings } from '../../business/hooks/useBusinessSettings';
 import {
   Truck,
   Loader2,
@@ -43,6 +44,7 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
 }) => {
   const modal = useModal();
   const { user } = useAuth();
+  const { data: businessSettings } = useBusinessSettings();
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -150,9 +152,10 @@ export const GenerateWaybillModal: React.FC<GenerateWaybillModalProps> = ({
 
       if (action === 'download') {
         try {
+          const filename = formatDocumentFilename(businessSettings?.businessName, 'Waybill', waybill.waybillNumber);
           await downloadDocumentPDF(
             `/api/printing/waybill/${waybill.id}/pdf`,
-            `waybill_${waybill.waybillNumber}.pdf`
+            filename
           );
         } catch (downloadErr) {
           console.warn('Direct PDF download fallback:', downloadErr);

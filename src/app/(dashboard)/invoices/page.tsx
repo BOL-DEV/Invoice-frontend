@@ -56,13 +56,15 @@ import {
 } from 'lucide-react';
 import { useBranches } from '../../../features/branches';
 import { GenerateWaybillModal } from '../../../features/waybills/components/GenerateWaybillModal';
-import { printDocumentPDF } from '../../../lib/document-download';
+import { printDocumentPDF, formatDocumentFilename } from '../../../lib/document-download';
+import { useBusinessSettings } from '../../../features/business/hooks/useBusinessSettings';
 
 export default function InvoicesPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { isAdmin } = usePermission();
   const { data: subDetails } = useSubscription();
+  const { data: businessSettings } = useBusinessSettings();
   const modal = useModal();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -282,9 +284,10 @@ export default function InvoicesPage() {
       
       const blob = new Blob([response.data], { type: contentType });
       const url = window.URL.createObjectURL(blob);
+      const filename = formatDocumentFilename(businessSettings?.businessName, 'Invoice', invoiceNumber, extension);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `invoice_${invoiceNumber}.${extension}`);
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.remove();

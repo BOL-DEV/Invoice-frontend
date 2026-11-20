@@ -12,7 +12,8 @@ import { Textarea } from '../../../../components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table';
 import { useModal } from '../../../../components/ui/modal-provider';
-import { printDocumentPDF, downloadDocumentPDF } from '../../../../lib/document-download';
+import { printDocumentPDF, downloadDocumentPDF, formatDocumentFilename } from '../../../../lib/document-download';
+import { useBusinessSettings } from '../../../../features/business/hooks/useBusinessSettings';
 import { CustomerSearchInput } from '../../../../components/forms/CustomerSearchInput';
 import { PhoneInput } from '../../../../components/forms/PhoneInput';
 import { QuantityInput } from '../../../../components/forms/QuantityInput';
@@ -60,6 +61,7 @@ export default function NewQuotationPage() {
   const queryClient = useQueryClient();
   const modal = useModal();
   const { user } = useAuth();
+  const { data: businessSettings } = useBusinessSettings();
   const editId = searchParams.get('edit') || searchParams.get('id');
 
   const { data: subDetails } = useSubscription();
@@ -457,9 +459,10 @@ export default function NewQuotationPage() {
 
       if (action === 'download') {
         try {
+          const filename = formatDocumentFilename(businessSettings?.businessName, 'Quotation', quotation.quotationNumber);
           await downloadDocumentPDF(
             `/api/printing/quotation/${quotation.id}/pdf`,
-            `quotation_${quotation.quotationNumber}.pdf`
+            filename
           );
         } catch (downloadErr) {
           console.warn('Direct PDF download fallback:', downloadErr);

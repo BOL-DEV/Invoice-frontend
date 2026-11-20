@@ -40,7 +40,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../features/auth/context/AuthContext';
 import { useSubscription } from '../../../features/subscriptions/hooks/useSubscription';
 import { FeatureLockedScreen } from '../../../components/shared/FeatureLockedScreen';
-import { downloadDocumentPDF, printDocumentPDF } from '../../../lib/document-download';
+import { downloadDocumentPDF, printDocumentPDF, formatDocumentFilename } from '../../../lib/document-download';
+import { useBusinessSettings } from '../../../features/business/hooks/useBusinessSettings';
 import { cn } from '../../../lib/utils';
 
 export default function QuotationsPage() {
@@ -48,6 +49,7 @@ export default function QuotationsPage() {
   const router = useRouter();
   const modal = useModal();
   const { user } = useAuth();
+  const { data: businessSettings } = useBusinessSettings();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const { data: subDetails, isLoading: isSubLoading } = useSubscription();
 
@@ -96,9 +98,10 @@ export default function QuotationsPage() {
 
   const handleDownload = async (quo: Quotation) => {
     try {
+      const filename = formatDocumentFilename(businessSettings?.businessName, 'Quotation', quo.quotationNumber);
       await downloadDocumentPDF(
         `/api/printing/quotation/${quo.id}/pdf`,
-        `quotation_${quo.quotationNumber}.pdf`
+        filename
       );
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
       queryClient.invalidateQueries({ queryKey: ['quotations', 'summary'] });

@@ -1,17 +1,60 @@
 import { apiClient } from '../services/api/axios';
 
 /**
- * Downloads a document PDF directly to the user's machine (matches the Invoice PDF download flow).
+ * Formats a clean, professional, and consistent document filename aligned with the business:
+ * e.g., "Habeeb_Tech_Invoice_INV-0001.pdf", "Habeeb_Tech_Quotation_QUO00001.pdf"
  */
-export async function downloadDocumentPDF(endpoint: string, filename: string): Promise<void> {
+export function formatDocumentFilename(
+  businessName: string | undefined | null,
+  docType: 'Invoice' | 'Quotation' | 'Waybill' | 'Letter',
+  docNumber?: string | null,
+  extension = 'pdf'
+): string {
+  const cleanExt = extension.replace(/^\./, '');
+  const cleanNumber = docNumber?.trim().replace(/[^a-zA-Z0-9_-]/g, '_') || '';
+
+  // Sanitize business name: replace spaces and special chars with underscores, collapse multiples
+  const cleanBusiness = businessName
+    ? businessName.trim().replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '')
+    : '';
+
+  const parts: string[] = [];
+  if (cleanBusiness) parts.push(cleanBusiness);
+  parts.push(docType);
+  if (cleanNumber) parts.push(cleanNumber);
+
+  return `${parts.join('_')}.${cleanExt}`;
+}
+
+/**
+ * Downloads a document PDF directly to the user's machine (matches the Invoice PDF download flow).
+ * If a custom filename is not passed, it reads the Content-Disposition header from the backend.
+ */
+export async function downloadDocumentPDF(endpoint: string, filename?: string): Promise<void> {
   const response = await apiClient.get(endpoint, {
     responseType: 'blob',
   });
+
+  let targetFilename = filename;
+  if (!targetFilename) {
+    const disposition = response.headers?.['content-disposition'];
+    if (disposition) {
+      const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      if (match && match[1]) {
+        targetFilename = match[1].replace(/['"]/g, '');
+      }
+    }
+  }
+
+  if (!targetFilename) {
+    targetFilename = 'document.pdf';
+  }
+
   const blob = new Blob([response.data], { type: 'application/pdf' });
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.setAttribute('download', filename.endsWith('.pdf') ? filename : `${filename}.pdf`);
+  link.setAttribute('download', targetFilename.endsWith('.pdf') ? targetFilename : `${targetFilename}.pdf`);
   document.body.appendChild(link);
   link.click();
   link.remove();

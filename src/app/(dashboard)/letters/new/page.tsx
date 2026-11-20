@@ -38,13 +38,15 @@ import {
 } from 'lucide-react';
 import { useSubscription } from '../../../../features/subscriptions/hooks/useSubscription';
 import { FeatureLockedScreen } from '../../../../components/shared/FeatureLockedScreen';
-import { downloadDocumentPDF, printDocumentPDF } from '../../../../lib/document-download';
+import { downloadDocumentPDF, printDocumentPDF, formatDocumentFilename } from '../../../../lib/document-download';
+import { useBusinessSettings } from '../../../../features/business/hooks/useBusinessSettings';
 import { ResponsiveActionMenu } from '../../../../components/ui/responsive-action-menu';
 
 export default function NewLetterPage() {
   const router = useRouter();
   const modal = useModal();
   const { user } = useAuth();
+  const { data: businessSettings } = useBusinessSettings();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const { data: subDetails } = useSubscription();
 
@@ -138,9 +140,10 @@ export default function NewLetterPage() {
 
       if (action === 'download') {
         try {
+          const filename = formatDocumentFilename(businessSettings?.businessName, 'Letter', letter.letterNumber);
           await downloadDocumentPDF(
             `/api/printing/letter/${letter.id}/pdf`,
-            `letter_${letter.letterNumber}.pdf`
+            filename
           );
         } catch (downloadErr) {
           console.warn('Letter direct download fallback:', downloadErr);
