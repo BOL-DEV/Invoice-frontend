@@ -49,7 +49,7 @@ export default function LandingPage() {
       icon: FileText,
       badge: 'SERIALIZED RECEIPT',
       title: 'Every sale leaves a verifiable paper & digital trail.',
-      body: 'Every sale must be issued with an authentic, serialized thermal slip or A4 PDF. Customers demand the receipt, leaving cashiers zero room for unrecorded sales.',
+      body: 'Every sale must be issued with an authentic, serialized 58mm/80mm thermal slip or A4 PDF with custom tax rates (7.5% VAT, 2% WHT) and customer debt tracking. Customers demand the receipt, leaving cashiers zero room for unrecorded sales.',
     },
     {
       tabTitle: 'Locked Invoices & Voids',
@@ -57,7 +57,7 @@ export default function LandingPage() {
       icon: ShieldCheck,
       badge: 'MANAGER APPROVAL',
       title: 'Finalized invoices are locked against silent edits.',
-      body: 'Once an invoice is finalized, cashiers cannot edit prices, change quantities, or void records. Any reprint or cancellation requires manager approval.',
+      body: 'Once an invoice is finalized or printed, cashiers cannot edit prices, change quantities, or void records. Any reprint, void, or unauthorized price drop pauses for manager authorization.',
     },
     {
       tabTitle: 'Live Branch Visibility',
@@ -65,7 +65,7 @@ export default function LandingPage() {
       icon: Building2,
       badge: 'REAL-TIME SYNC',
       title: 'Live branch collections from anywhere on your phone.',
-      body: 'Never wait for "end of day reports" or rough phone estimates again. See what every branch cashier has collected live on your phone.',
+      body: 'Never wait for "end of day reports" or rough phone estimates again. Watch what every branch cashier has collected live on your phone, complete with cashier shift logs, timestamps, and IP tracking.',
     },
   ];
 
@@ -75,30 +75,30 @@ export default function LandingPage() {
   const capabilities = [
     {
       icon: Printer,
-      title: 'Thermal Receipt & A4 Invoices',
-      desc: 'Connects with standard 58mm/80mm thermal receipt printers for quick customer slips, or downloads official A4 PDF invoices with custom tax breakdowns.',
-      tag: '58mm · 80mm · A4',
+      title: 'Thermal Receipts (58/80mm) & Official A4 Invoices',
+      desc: 'Instant direct printing to standard 58mm and 80mm thermal receipt printers for fast checkout, or download official A4 PDF invoices with custom tax breakdowns (7.5% VAT, 2% WHT) and customer balance tracking.',
+      tag: '58mm · 80mm · A4 PDF',
       tagColor: 'text-light-primary dark:text-dark-primary',
     },
     {
-      icon: Clock,
-      title: 'Immutable Cashier Audit Trails',
-      desc: 'Every action—from invoice creation to payment verification and reprints—is permanently logged with exact cashier name and timestamp.',
-      tag: 'TAMPER-PROOF LOG',
-      tagColor: 'text-light-primary dark:text-dark-primary',
-    },
-    {
-      icon: Building2,
-      title: 'Multi-Branch Depot Management',
-      desc: 'Assign sub-admins to supervise branch cashiers while you keep complete company-wide consolidated sales control from a single owner dashboard.',
-      tag: 'CONSOLIDATED SYNC',
+      icon: FileText,
+      title: 'Quotation Conversion & Goods Delivery Waybills',
+      desc: 'Issue verified commercial quotes with validity date ranges and convert accepted quotes to invoices in 1 click. Dispatch goods with official delivery waybills including driver, vehicle plate, and receiver sign-off.',
+      tag: 'QUOTES & WAYBILLS',
       tagColor: 'text-light-secondary dark:text-dark-secondary',
     },
     {
+      icon: Clock,
+      title: 'Cashier Shift Logs & Approval Gatekeeper',
+      desc: 'Every action—from invoice issuance to payments, reprints, and voids—is permanently logged with cashier identity, shift, and timestamp. Risky actions pause until the owner or manager approves.',
+      tag: 'TAMPER-PROOF AUDIT',
+      tagColor: 'text-light-primary dark:text-dark-primary',
+    },
+    {
       icon: ScanLine,
-      title: 'Smart Paper Slip Scanning (OCR)',
-      desc: 'Take a quick photo of handwritten order notes, supplier bills, or delivery slips to automatically extract line items into the invoice system in seconds.',
-      tag: 'INSTANT OCR',
+      title: 'Smart AI Paper Slip Scanning (Gemini OCR)',
+      desc: 'Take a quick smartphone photo of handwritten order notes, supplier bills, or delivery slips. Gemini AI automatically extracts line items, quantities, and prices straight into the invoice system in seconds.',
+      tag: 'GEMINI AI OCR',
       tagColor: 'text-light-primary dark:text-dark-primary',
     },
   ];
@@ -122,7 +122,7 @@ export default function LandingPage() {
     const text = planName
       ? encodeURIComponent(`Hello BOLXolve Team, I would like to get started on the ${planName} plan with free guided onboarding.`)
       : encodeURIComponent('Hello BOLXolve Team, I would like to learn more about BOLXolve Invoice and get onboarded.');
-    return `https://wa.me/2348000000000?text=${text}`;
+    return `https://wa.me/2347087035189?text=${text}`;
   };
 
   return (
@@ -346,6 +346,7 @@ export default function LandingPage() {
               </div>
               <div className="flex flex-wrap items-center gap-gutter-lg text-light-on-surface-variant dark:text-dark-on-surface-variant">
                 <span className="font-mono text-mono-sm">Thermal slip &amp; A4 PDF</span>
+                <span className="font-mono text-mono-sm">Quotes &amp; Delivery Waybills</span>
                 <span className="font-mono text-mono-sm">Tamper-proof audit log</span>
                 <span className="font-mono text-mono-sm text-light-primary dark:text-dark-primary font-medium">
                   Multi-branch sync
@@ -515,7 +516,7 @@ export default function LandingPage() {
                 {/* Sectors Covered */}
                 <div className="pt-gutter-lg border-t border-light-outline-variant/40 dark:border-dark-outline-variant/40 flex flex-col gap-gutter-sm">
                   <span className="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">
-                    Trusted across Nigerian trade &amp; retail
+                    Trusted across Nigerian trade &amp; wholesale
                   </span>
                   <div className="flex flex-wrap items-center gap-gutter-sm">
                     {['Building Materials', 'Supermarkets & Retail', 'Wholesale Depots', 'Auto Spare Parts', 'Multi-Branch Outlets'].map((sector) => (
@@ -686,7 +687,7 @@ export default function LandingPage() {
                     <li className="flex items-start gap-gutter-sm">
                       <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
-                        Unlimited Thermal &amp; PDF Receipts
+                        Unlimited Thermal (58/80mm) &amp; A4 Invoices
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
@@ -698,7 +699,13 @@ export default function LandingPage() {
                     <li className="flex items-start gap-gutter-sm">
                       <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
-                        10 Smart OCR scans/month
+                        10 Smart AI OCR scans/month
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-gutter-sm">
+                      <X className="h-4 w-4 text-light-on-surface-variant dark:text-dark-on-surface-variant shrink-0 mt-0.5" aria-hidden="true" />
+                      <span className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant line-through">
+                        Quotations &amp; Delivery Waybills
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
@@ -775,25 +782,31 @@ export default function LandingPage() {
                     <li className="flex items-start gap-gutter-sm">
                       <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
-                        <strong>Excel (.xlsx) Export</strong> included
+                        <strong>Quotations + 1-Click Convert</strong> included
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
                       <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
-                        <strong>Activity &amp; Audit Logs</strong> included
+                        <strong>Goods Delivery Waybills &amp; Letters</strong> included
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
                       <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
-                        Cashier Approvals &amp; Shift Verification
+                        <strong>Custom Domain</strong> (portal.yourcompany.com)
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
                       <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
-                        60 Smart OCR scans/month
+                        <strong>Excel Export &amp; Shift Audit Logs</strong>
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-gutter-sm">
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
+                      <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
+                        60 Smart AI OCR scans/month
                       </span>
                     </li>
                   </ul>
@@ -853,31 +866,37 @@ export default function LandingPage() {
                     <li className="flex items-start gap-gutter-sm">
                       <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
-                        <strong>2 Physical Branches Included</strong>
+                        <strong>2 Physical Branches / Depots Included</strong>
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
                       <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
-                        PDF &amp; Excel Export Unlocked
+                        Full Suite: Invoices, Quotes, Waybills &amp; Letters
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
                       <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
-                        Enterprise Audit History &amp; Logs
+                        Custom White-Label Domain &amp; Logo Branding
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
                       <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
-                        150 Smart OCR scans/month
+                        Enterprise Audit History &amp; Real-Time Consolidation
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
                       <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
-                        Priority Onboarding &amp; Staff Training
+                        150 Smart AI OCR scans/month
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-gutter-sm">
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
+                      <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
+                        Priority Dedicated Onboarding &amp; Cashier Training
                       </span>
                     </li>
                   </ul>
@@ -919,7 +938,7 @@ export default function LandingPage() {
                 Ready to stop revenue theft in your business?
               </h2>
               <p className="font-body text-body-lg text-light-on-surface-variant dark:text-dark-on-surface-variant text-pretty">
-                Get started with BOLXolve Invoice today. Fast 24-hour onboarding for businesses and branches across Nigeria with ₦0 setup fee.
+                Get started with BOLXolve Invoice today. Fast 24-hour onboarding for businesses and wholesale depots across Nigeria with ₦0 setup fee.
               </p>
 
               <div className="flex flex-wrap items-center gap-gutter-md pt-gutter-xs">
@@ -932,7 +951,7 @@ export default function LandingPage() {
                   className="inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-3 rounded bg-light-primary dark:bg-dark-primary text-light-on-primary dark:text-dark-on-primary hover:bg-light-primary-container dark:hover:bg-dark-primary-container transition-all whitespace-nowrap font-label text-label-lg shadow-sm"
                 >
                   <MessageCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  <span>Chat with Onboarding</span>
+                  <span>Chat on WhatsApp (+234 708 703 5189)</span>
                 </motion.a>
 
                 <motion.div whileTap={{ scale: 0.98 }}>
@@ -963,19 +982,31 @@ export default function LandingPage() {
                     <ChevronDown className="h-5 w-5 text-light-primary dark:text-dark-primary transition-transform duration-200 group-open:rotate-180 shrink-0" aria-hidden="true" />
                   </summary>
                   <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant pt-gutter-md text-pretty">
-                    Once an invoice is finalized and marked paid or printed, cashiers cannot edit the amounts, delete records, or issue secret discounts behind the owner&#39;s back. Any reprint or cancellation requires an authorized manager or owner approval. Every action is recorded in a tamper-proof audit log.
+                    Once an invoice is finalized and marked paid or printed, cashiers cannot edit the amounts, delete records, or issue secret discounts behind the owner&#39;s back. Any reprint or cancellation requires an authorized manager or owner approval. Every action is recorded in a tamper-proof audit log with exact cashier identity, timestamp, and device info.
                   </p>
                 </details>
 
                 <details name="faq-group" className="group py-gutter-lg">
                   <summary className="flex items-center justify-between gap-gutter-md cursor-pointer list-none select-none">
                     <span className="font-title text-title-lg text-light-on-surface dark:text-dark-on-surface">
-                      Can I monitor my branches without visiting in person?
+                      Can I create Quotations and Delivery Waybills too?
                     </span>
                     <ChevronDown className="h-5 w-5 text-light-primary dark:text-dark-primary transition-transform duration-200 group-open:rotate-180 shrink-0" aria-hidden="true" />
                   </summary>
                   <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant pt-gutter-md text-pretty">
-                    Yes. Every depot and outlet syncs in real time to your owner dashboard, giving you live revenue totals, cashier activity logs, and mobile approval controls from anywhere.
+                    Yes! BOLXolve Invoice includes a complete 4-in-1 document suite: Invoices, Quotations, Goods Delivery Waybills, and Formal Business Letters. You can create a quotation with validity terms and convert it directly to a paid invoice and delivery waybill in 1 click.
+                  </p>
+                </details>
+
+                <details name="faq-group" className="group py-gutter-lg">
+                  <summary className="flex items-center justify-between gap-gutter-md cursor-pointer list-none select-none">
+                    <span className="font-title text-title-lg text-light-on-surface dark:text-dark-on-surface">
+                      Can I connect our custom domain (e.g. portal.mycompany.com)?
+                    </span>
+                    <ChevronDown className="h-5 w-5 text-light-primary dark:text-dark-primary transition-transform duration-200 group-open:rotate-180 shrink-0" aria-hidden="true" />
+                  </summary>
+                  <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant pt-gutter-md text-pretty">
+                    Yes. Both Business and Enterprise plans include custom white-label domain mapping. Your cashiers and customers will log into your own portal with your company name, custom logo, and branded receipts.
                   </p>
                 </details>
 
@@ -987,31 +1018,19 @@ export default function LandingPage() {
                     <ChevronDown className="h-5 w-5 text-light-primary dark:text-dark-primary transition-transform duration-200 group-open:rotate-180 shrink-0" aria-hidden="true" />
                   </summary>
                   <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant pt-gutter-md text-pretty">
-                    Yes. BOLXolve Invoice works directly with standard 58mm and 80mm thermal receipt printers as well as regular A4 PDF office printers.
-                  </p>
-                </details>
-
-                <details name="faq-group" className="group py-gutter-lg">
-                  <summary className="flex items-center justify-between gap-gutter-md cursor-pointer list-none select-none">
-                    <span className="font-title text-title-lg text-light-on-surface dark:text-dark-on-surface">
-                      Are there any hidden setup or onboarding charges?
-                    </span>
-                    <ChevronDown className="h-5 w-5 text-light-primary dark:text-dark-primary transition-transform duration-200 group-open:rotate-180 shrink-0" aria-hidden="true" />
-                  </summary>
-                  <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant pt-gutter-md text-pretty">
-                    No. Every plan includes ₦0 setup fee and free guided onboarding within 24 hours so your cashiers and managers can start issuing verified invoices immediately.
+                    Yes. BOLXolve Invoice connects directly with standard 58mm and 80mm thermal receipt printers without proprietary hardware, as well as regular A4 office laser printers.
                   </p>
                 </details>
 
                 <details name="faq-group" className="group py-gutter-lg border-b border-light-outline-variant/50 dark:border-dark-outline-variant/50">
                   <summary className="flex items-center justify-between gap-gutter-md cursor-pointer list-none select-none">
                     <span className="font-title text-title-lg text-light-on-surface dark:text-dark-on-surface">
-                      Can we connect custom domain or add extra branches?
+                      How do payments work and how fast is activation?
                     </span>
                     <ChevronDown className="h-5 w-5 text-light-primary dark:text-dark-primary transition-transform duration-200 group-open:rotate-180 shrink-0" aria-hidden="true" />
                   </summary>
                   <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant pt-gutter-md text-pretty">
-                    Yes. Enterprise accounts include 2 physical branches out of the box and support adding extra depots or custom company branding on request.
+                    You can pay in Naira via instant automated bank transfer powered by Squad (GTCO) and Lenco Virtual Accounts. Once your transfer is sent, your account and staff quotas activate automatically within seconds with ₦0 setup fee.
                   </p>
                 </details>
               </div>
@@ -1055,6 +1074,17 @@ export default function LandingPage() {
               <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant max-w-sm text-pretty leading-relaxed">
                 The tamper-proof invoice pipeline and revenue assurance platform built for Nigerian business owners. Eliminate cashier fraud, track branch revenue, and secure every transaction in real-time.
               </p>
+              <div className="pt-1 flex items-center gap-2 text-xs font-mono text-light-on-surface-variant dark:text-dark-on-surface-variant">
+                <span>WhatsApp:</span>
+                <a
+                  href="https://wa.me/2347087035189"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-light-primary dark:text-dark-primary hover:underline font-semibold"
+                >
+                  +234 708 703 5189
+                </a>
+              </div>
             </div>
 
             {/* Product Column */}
@@ -1067,8 +1097,9 @@ export default function LandingPage() {
                   { label: 'How It Works', href: '#pipeline' },
                   { label: 'Anti-Theft Approvals', href: '#anti-theft' },
                   { label: 'Multi-Branch Sync', href: '#capabilities' },
+                  { label: 'Quotations & Waybills', href: '#capabilities' },
                   { label: 'Thermal & A4 Invoices', href: '#capabilities' },
-                  { label: 'Smart Slip OCR', href: '#capabilities' },
+                  { label: 'Smart AI Slip OCR', href: '#capabilities' },
                 ].map((item) => (
                   <li key={item.label}>
                     <a
