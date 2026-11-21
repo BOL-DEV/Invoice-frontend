@@ -338,7 +338,7 @@ export default function LandingPage() {
                 </p>
               </div>
               <p className="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant shrink-0">
-                Built for Nigerian trade &amp; wholesale
+                Built for modern trade &amp; wholesale
               </p>
             </div>
 
@@ -409,7 +409,7 @@ export default function LandingPage() {
                 {/* Sectors Covered */}
                 <div className="pt-gutter-lg border-t border-light-outline-variant/40 dark:border-dark-outline-variant/40 flex flex-col gap-gutter-sm">
                   <span className="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">
-                    Trusted across Nigerian trade &amp; wholesale
+                    Trusted across modern commerce &amp; wholesale
                   </span>
                   <div className="flex flex-wrap items-center gap-gutter-sm">
                     {['Building Materials', 'Supermarkets & Retail', 'Wholesale Depots', 'Auto Spare Parts', 'Multi-Branch Outlets'].map((sector) => (
@@ -437,7 +437,7 @@ export default function LandingPage() {
               Everything you need to run your invoice pipeline.
             </h2>
             <p className="font-body text-body-lg text-light-on-surface-variant dark:text-dark-on-surface-variant text-pretty">
-              Reliable, straightforward tools tailored for Nigerian wholesale, trade, and retail businesses.
+              Reliable, straightforward tools tailored for fast-growing wholesale, trade, and retail businesses.
             </p>
           </div>
 
@@ -914,7 +914,7 @@ export default function LandingPage() {
                 Ready to stop revenue theft in your business?
               </h2>
               <p className="font-body text-body-lg text-light-on-surface-variant dark:text-dark-on-surface-variant text-pretty">
-                Get started with BOLXolve Invoice today. Fast 24-hour onboarding for businesses and wholesale depots across Nigeria with ₦0 setup fee.
+                Get started with BOLXolve Invoice today. Fast 24-hour onboarding for businesses and wholesale depots with ₦0 setup fee.
               </p>
 
               <div className="flex flex-wrap items-center gap-gutter-md pt-gutter-xs">
@@ -1018,7 +1018,7 @@ export default function LandingPage() {
                     <ChevronDown className="h-5 w-5 text-light-primary dark:text-dark-primary transition-transform duration-200 group-open:rotate-180 shrink-0" aria-hidden="true" />
                   </summary>
                   <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant pt-gutter-md text-pretty">
-                    You can pay in Naira via instant automated bank transfer powered by Squad (GTCO) and Lenco Virtual Accounts. Once your transfer is sent, your account and staff quotas activate automatically within seconds with ₦0 setup fee.
+                    You can pay securely via instant automated bank transfer or online payment. Once your payment is sent, your account and staff quotas activate automatically within seconds with ₦0 setup fee.
                   </p>
                 </details>
               </div>
@@ -1060,7 +1060,7 @@ export default function LandingPage() {
                 </span>
               </Link>
               <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant max-w-sm text-pretty leading-relaxed">
-                The tamper-proof invoice pipeline and revenue assurance platform built for Nigerian business owners. Eliminate cashier fraud, track branch revenue, and secure every transaction in real-time.
+                The tamper-proof invoice pipeline and revenue assurance platform built for ambitious business owners. Eliminate cashier fraud, track branch revenue, and secure every transaction in real-time.
               </p>
               <div className="pt-1 flex items-center gap-2 text-xs font-mono text-light-on-surface-variant dark:text-dark-on-surface-variant">
                 <span>WhatsApp:</span>
