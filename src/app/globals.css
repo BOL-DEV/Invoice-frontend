@@ -38,7 +38,124 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
+
+  /* Landing Architectural Design Tokens */
+  --color-light-primary: #006948;
+  --color-light-on-primary: #FFFFFF;
+  --color-light-primary-container: #00855D;
+  --color-light-on-primary-container: #F5FFF7;
+  --color-light-secondary: #0051D5;
+  --color-light-on-secondary: #FFFFFF;
+  --color-light-secondary-container: #316BF3;
+  --color-light-on-secondary-container: #FEFCFF;
+  --color-light-tertiary: #9B3E3B;
+  --color-light-on-tertiary: #FFFFFF;
+  --color-light-tertiary-container: #BA5551;
+  --color-light-on-tertiary-container: #FFFBFF;
+  --color-light-error: #BA1A1A;
+  --color-light-on-error: #FFFFFF;
+  --color-light-error-container: #FFDAD6;
+  --color-light-on-error-container: #93000A;
+  --color-light-background: #FAF8FF;
+  --color-light-on-background: #131B2E;
+  --color-light-surface: #FAF8FF;
+  --color-light-surface-dim: #D2D9F4;
+  --color-light-surface-bright: #FAF8FF;
+  --color-light-surface-container-lowest: #FFFFFF;
+  --color-light-surface-container-low: #F2F3FF;
+  --color-light-surface-container: #EAEDFF;
+  --color-light-surface-container-high: #E2E7FF;
+  --color-light-surface-container-highest: #DAE2FD;
+  --color-light-on-surface: #131B2E;
+  --color-light-surface-variant: #D8E6DC;
+  --color-light-on-surface-variant: #3D4A42;
+  --color-light-outline: #6D7A72;
+  --color-light-outline-variant: #BCCAC0;
+  --color-light-inverse-surface: #283044;
+  --color-light-inverse-on-surface: #EEF0FF;
+  --color-light-inverse-primary: #68DBA9;
+
+  --color-dark-primary: #68DBA9;
+  --color-dark-on-primary: #003825;
+  --color-dark-primary-container: #25A475;
+  --color-dark-on-primary-container: #002114;
+  --color-dark-secondary: #B4C5FF;
+  --color-dark-on-secondary: #002A78;
+  --color-dark-secondary-container: #0053DB;
+  --color-dark-on-secondary-container: #CDD7FF;
+  --color-dark-tertiary: #FFB3AE;
+  --color-dark-on-tertiary: #601214;
+  --color-dark-tertiary-container: #DD706B;
+  --color-dark-on-tertiary-container: #420004;
+  --color-dark-error: #FFB4AB;
+  --color-dark-on-error: #690005;
+  --color-dark-error-container: #93000A;
+  --color-dark-on-error-container: #FFDAD6;
+  --color-dark-background: #0B1326;
+  --color-dark-on-background: #DAE2FD;
+  --color-dark-surface: #0B1326;
+  --color-dark-surface-dim: #0B1326;
+  --color-dark-surface-bright: #31394D;
+  --color-dark-surface-container-lowest: #060E20;
+  --color-dark-surface-container-low: #131B2E;
+  --color-dark-surface-container: #171F33;
+  --color-dark-surface-container-high: #222A3D;
+  --color-dark-surface-container-highest: #2D3449;
+  --color-dark-on-surface: #DAE2FD;
+  --color-dark-surface-variant: #3D4A42;
+  --color-dark-on-surface-variant: #BCCAC0;
+  --color-dark-outline: #87948B;
+  --color-dark-outline-variant: #3D4A42;
+  --color-dark-inverse-surface: #DAE2FD;
+  --color-dark-inverse-on-surface: #283044;
+  --color-dark-inverse-primary: #006C4A;
+
+  --spacing-gutter-xs: 4px;
+  --spacing-gutter-sm: 8px;
+  --spacing-gutter-md: 16px;
+  --spacing-gutter-lg: 24px;
+  --spacing-gutter-xl: 32px;
+  --spacing-section-sm: 48px;
+  --spacing-section-md: 72px;
+  --spacing-section-lg: 96px;
+  --spacing-page-margin: 32px;
+
+  --font-display: 'Mulish', sans-serif;
+  --font-headline: 'Mulish', sans-serif;
+  --font-title: 'Instrument Sans', sans-serif;
+  --font-body: 'Instrument Sans', sans-serif;
+  --font-label: 'Instrument Sans', sans-serif;
+  --font-mono: 'Spline Sans Mono', monospace;
 }
+
+.material-symbols-outlined {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  line-height: 1 !important;
+  box-sizing: content-box;
+  overflow: hidden;
+  white-space: nowrap;
+  direction: ltr;
+  vertical-align: middle;
+}
+
+/* Landing Typography Scale */
+.text-display-lg { font-size: 56px; line-height: 62px; letter-spacing: -1.2px; font-weight: 800; }
+.text-display-lg-mobile { font-size: 32px; line-height: 38px; letter-spacing: -0.6px; font-weight: 800; }
+.text-headline-lg { font-size: 40px; line-height: 46px; letter-spacing: -0.8px; font-weight: 700; }
+.text-headline-lg-mobile { font-size: 28px; line-height: 34px; letter-spacing: -0.4px; font-weight: 700; }
+.text-headline-md { font-size: 28px; line-height: 34px; letter-spacing: -0.4px; font-weight: 700; }
+.text-headline-sm { font-size: 20px; line-height: 26px; letter-spacing: -0.2px; font-weight: 700; }
+.text-title-lg { font-size: 18px; line-height: 26px; letter-spacing: -0.1px; font-weight: 600; }
+.text-body-lg { font-size: 18px; line-height: 28px; letter-spacing: 0px; font-weight: 400; }
+.text-body-md { font-size: 15px; line-height: 24px; letter-spacing: 0px; font-weight: 400; }
+.text-label-lg { font-size: 14px; line-height: 20px; letter-spacing: 0px; font-weight: 600; }
+.text-label-sm { font-size: 12px; line-height: 16px; letter-spacing: 0.4px; font-weight: 600; }
+.text-mono-lg { font-size: 36px; line-height: 42px; letter-spacing: -0.5px; font-weight: 700; }
+.text-mono-lg-mobile { font-size: 28px; line-height: 34px; letter-spacing: -0.4px; font-weight: 700; }
+.text-mono-sm { font-size: 12px; line-height: 16px; letter-spacing: 0.2px; font-weight: 500; }
+summary::-webkit-details-marker { display: none; }
 
 :root {
   --background: #F8FAFC;
