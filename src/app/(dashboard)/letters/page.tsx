@@ -71,8 +71,18 @@ export default function LettersPage() {
 
   const handlePrint = async (letterId: string) => {
     try {
+      // Optimistically update letter status to FINALIZED in cache
+      queryClient.setQueriesData({ queryKey: ['letters'] }, (old: any) => {
+        if (!old || !old.letters) return old;
+        return {
+          ...old,
+          letters: old.letters.map((l: any) =>
+            l.id === letterId && l.status === 'DRAFT' ? { ...l, status: 'FINALIZED' } : l
+          ),
+        };
+      });
       await printDocumentPDF(`/api/printing/letter/${letterId}/pdf`);
-      queryClient.invalidateQueries({ queryKey: ['letters'] });
+      await queryClient.invalidateQueries({ queryKey: ['letters'] });
     } catch (err) {
       console.error('Print error:', err);
     }
@@ -80,12 +90,22 @@ export default function LettersPage() {
 
   const handleDownload = async (letter: Letter) => {
     try {
+      // Optimistically update letter status to FINALIZED in cache
+      queryClient.setQueriesData({ queryKey: ['letters'] }, (old: any) => {
+        if (!old || !old.letters) return old;
+        return {
+          ...old,
+          letters: old.letters.map((l: any) =>
+            l.id === letter.id && l.status === 'DRAFT' ? { ...l, status: 'FINALIZED' } : l
+          ),
+        };
+      });
       const filename = formatDocumentFilename(businessSettings?.businessName, 'Letter', letter.letterNumber);
       await downloadDocumentPDF(
         `/api/printing/letter/${letter.id}/pdf`,
         filename
       );
-      queryClient.invalidateQueries({ queryKey: ['letters'] });
+      await queryClient.invalidateQueries({ queryKey: ['letters'] });
     } catch (err: any) {
       modal.alert('Download Failed', err.message || 'Failed to download letter PDF', 'error');
     }

@@ -293,15 +293,24 @@ export default function InvoicesPage() {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      // Transition status to PRINTED if it was FINALIZED
+      // Transition status to PRINTED if it was FINALIZED or DRAFT
       const returnedStatus = response.headers ? response.headers['x-invoice-status'] : undefined;
-      const willBePrinted = returnedStatus === 'PRINTED' || invoiceDetails?.status === 'FINALIZED';
+      const willBePrinted = returnedStatus === 'PRINTED' || invoiceDetails?.status === 'FINALIZED' || invoiceDetails?.status === 'DRAFT';
 
-      if (invoiceDetails?.status === 'FINALIZED' || willBePrinted) {
+      if (invoiceDetails?.status === 'FINALIZED' || invoiceDetails?.status === 'DRAFT' || willBePrinted) {
         // Optimistically update invoiceDetails query cache so UI reflects PRINTED immediately
         queryClient.setQueryData(['invoices', 'details', invoiceId], (prev: any) => {
           if (!prev) return prev;
           return { ...prev, status: 'PRINTED' };
+        });
+        queryClient.setQueriesData({ queryKey: ['invoices'] }, (old: any) => {
+          if (!old || !old.invoices) return old;
+          return {
+            ...old,
+            invoices: old.invoices.map((i: any) =>
+              i.id === invoiceId ? { ...i, status: 'PRINTED' } : i
+            ),
+          };
         });
       }
 
@@ -1294,8 +1303,22 @@ export default function InvoicesPage() {
                     size="sm"
                     onClick={async () => {
                       try {
+                        queryClient.setQueryData(['invoices', 'details', invoiceDetails.id], (prev: any) => {
+                          if (!prev) return prev;
+                          return { ...prev, status: 'PRINTED' };
+                        });
+                        queryClient.setQueriesData({ queryKey: ['invoices'] }, (old: any) => {
+                          if (!old || !old.invoices) return old;
+                          return {
+                            ...old,
+                            invoices: old.invoices.map((i: any) =>
+                              i.id === invoiceDetails.id ? { ...i, status: 'PRINTED' } : i
+                            ),
+                          };
+                        });
                         await printDocumentPDF(`/api/printing/${invoiceDetails.id}/pdf`);
-                        queryClient.invalidateQueries({ queryKey: ['invoices'] });
+                        await queryClient.invalidateQueries({ queryKey: ['invoices'] });
+                        await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
                       } catch {
                         await handleExport(invoiceDetails.id, 'pdf', invoiceDetails.invoiceNumber);
                       }

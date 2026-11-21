@@ -417,11 +417,14 @@ export default function NewQuotationPage() {
       }
 
       let quotation: Quotation;
+      const targetStatus = action === 'draft' ? 'DRAFT' : 'SENT';
+
       if (editId) {
         quotation = await quotationService.update(editId, {
           customerName: customerName.trim(),
           customerPhone: customerPhone.trim() || null,
           customerSignature: currentCustomerSig || null,
+          status: action === 'draft' ? (existingQuotation?.status || 'DRAFT') : 'SENT',
           notes: notes.trim() || null,
           subtotal,
           total: grandTotal,
@@ -441,7 +444,7 @@ export default function NewQuotationPage() {
           customerName: customerName.trim(),
           customerPhone: customerPhone.trim() || null,
           customerSignature: currentCustomerSig || null,
-          status: 'DRAFT',
+          status: targetStatus,
           notes: notes.trim() || null,
           subtotal,
           total: grandTotal,
@@ -464,6 +467,7 @@ export default function NewQuotationPage() {
             `/api/printing/quotation/${quotation.id}/pdf`,
             filename
           );
+          queryClient.invalidateQueries({ queryKey: ['quotations'] });
         } catch (downloadErr) {
           console.warn('Direct PDF download fallback:', downloadErr);
         }
@@ -476,6 +480,7 @@ export default function NewQuotationPage() {
       } else if (action === 'print') {
         try {
           await printDocumentPDF(`/api/printing/quotation/${quotation.id}/pdf`);
+          queryClient.invalidateQueries({ queryKey: ['quotations'] });
         } catch (printErr) {
           console.warn('Direct PDF print error:', printErr);
         }

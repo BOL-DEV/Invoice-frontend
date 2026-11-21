@@ -70,8 +70,17 @@ export default function WaybillsPage() {
 
   const handlePrint = async (waybillId: string) => {
     try {
+      queryClient.setQueriesData({ queryKey: ['waybills'] }, (old: any) => {
+        if (!old || !old.waybills) return old;
+        return {
+          ...old,
+          waybills: old.waybills.map((w: any) =>
+            w.id === waybillId && w.status === 'DRAFT' ? { ...w, status: 'DISPATCHED' } : w
+          ),
+        };
+      });
       await printDocumentPDF(`/api/printing/waybill/${waybillId}/pdf`);
-      queryClient.invalidateQueries({ queryKey: ['waybills'] });
+      await queryClient.invalidateQueries({ queryKey: ['waybills'] });
     } catch (err) {
       console.error('Print error:', err);
     }
@@ -79,9 +88,18 @@ export default function WaybillsPage() {
 
   const handleDownload = async (wb: Waybill) => {
     try {
+      queryClient.setQueriesData({ queryKey: ['waybills'] }, (old: any) => {
+        if (!old || !old.waybills) return old;
+        return {
+          ...old,
+          waybills: old.waybills.map((w: any) =>
+            w.id === wb.id && w.status === 'DRAFT' ? { ...w, status: 'DISPATCHED' } : w
+          ),
+        };
+      });
       const filename = formatDocumentFilename(businessSettings?.businessName, 'Waybill', wb.waybillNumber);
       await downloadDocumentPDF(`/api/printing/waybill/${wb.id}/pdf`, filename);
-      queryClient.invalidateQueries({ queryKey: ['waybills'] });
+      await queryClient.invalidateQueries({ queryKey: ['waybills'] });
     } catch (err) {
       console.error('Download error:', err);
     }
@@ -105,18 +123,38 @@ export default function WaybillsPage() {
   };
 
   const getStatusBadge = (status: WaybillStatus) => {
-    if (status === 'CANCELED') {
-      return (
-        <Badge className="bg-red-500/10 text-red-500 border-red-500/20 text-xs font-medium">
-          Canceled
-        </Badge>
-      );
+    switch (status) {
+      case 'DRAFT':
+        return (
+          <Badge variant="outline" className="text-xs font-semibold">
+            Draft
+          </Badge>
+        );
+      case 'DISPATCHED':
+        return (
+          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs font-medium">
+            Dispatched
+          </Badge>
+        );
+      case 'DELIVERED':
+        return (
+          <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 text-xs font-medium">
+            Delivered
+          </Badge>
+        );
+      case 'CANCELED':
+        return (
+          <Badge className="bg-red-500/10 text-red-500 border-red-500/20 text-xs font-medium">
+            Canceled
+          </Badge>
+        );
+      default:
+        return (
+          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs font-medium">
+            {status}
+          </Badge>
+        );
     }
-    return (
-      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs font-medium">
-        Created
-      </Badge>
-    );
   };
 
   if (isStarterPlan) {

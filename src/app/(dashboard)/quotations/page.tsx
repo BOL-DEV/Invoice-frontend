@@ -88,9 +88,20 @@ export default function QuotationsPage() {
 
   const handlePrint = async (quotationId: string) => {
     try {
+      // Optimistically update quotation status to SENT in the cache
+      queryClient.setQueriesData({ queryKey: ['quotations'] }, (old: any) => {
+        if (!old || !old.quotations) return old;
+        return {
+          ...old,
+          quotations: old.quotations.map((q: any) =>
+            q.id === quotationId && q.status === 'DRAFT' ? { ...q, status: 'SENT' } : q
+          ),
+        };
+      });
       await printDocumentPDF(`/api/printing/quotation/${quotationId}/pdf`);
-      queryClient.invalidateQueries({ queryKey: ['quotations'] });
-      queryClient.invalidateQueries({ queryKey: ['quotations', 'summary'] });
+      await queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      await queryClient.invalidateQueries({ queryKey: ['quotations', 'summary'] });
+      refetch();
     } catch (err) {
       console.error('Print error:', err);
     }
@@ -98,13 +109,24 @@ export default function QuotationsPage() {
 
   const handleDownload = async (quo: Quotation) => {
     try {
+      // Optimistically update quotation status to SENT in the cache
+      queryClient.setQueriesData({ queryKey: ['quotations'] }, (old: any) => {
+        if (!old || !old.quotations) return old;
+        return {
+          ...old,
+          quotations: old.quotations.map((q: any) =>
+            q.id === quo.id && q.status === 'DRAFT' ? { ...q, status: 'SENT' } : q
+          ),
+        };
+      });
       const filename = formatDocumentFilename(businessSettings?.businessName, 'Quotation', quo.quotationNumber);
       await downloadDocumentPDF(
         `/api/printing/quotation/${quo.id}/pdf`,
         filename
       );
-      queryClient.invalidateQueries({ queryKey: ['quotations'] });
-      queryClient.invalidateQueries({ queryKey: ['quotations', 'summary'] });
+      await queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      await queryClient.invalidateQueries({ queryKey: ['quotations', 'summary'] });
+      refetch();
     } catch (err) {
       console.error('Download error:', err);
     }
