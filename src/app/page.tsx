@@ -2,8 +2,27 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useTheme } from 'next-themes';
 import { useAuth } from '../features/auth/context/AuthContext';
+import {
+  Sun,
+  Moon,
+  ArrowRight,
+  MessageCircle,
+  Activity,
+  FileText,
+  Lock,
+  ShieldCheck,
+  Printer,
+  Clock,
+  Building2,
+  ScanLine,
+  Check,
+  X,
+  ChevronDown,
+  Circle,
+} from 'lucide-react';
 
 export default function LandingPage() {
   const { user } = useAuth();
@@ -24,19 +43,19 @@ export default function LandingPage() {
 
   const controlData = [
     {
-      icon: 'receipt_long',
+      icon: FileText,
       badge: 'SERIALIZED RECEIPT',
       title: 'Every sale leaves a verifiable paper & digital trail.',
       body: 'Every sale must be issued with an authentic, serialized thermal slip or A4 PDF. Customers demand the receipt, leaving cashiers zero room for unrecorded sales.',
     },
     {
-      icon: 'verified_user',
+      icon: ShieldCheck,
       badge: 'MANAGER APPROVAL',
       title: 'Finalized invoices are locked against silent edits.',
       body: 'Once an invoice is finalized, cashiers cannot edit prices, change quantities, or void records. Any reprint or cancellation requires manager approval.',
     },
     {
-      icon: 'storefront',
+      icon: Building2,
       badge: 'REAL-TIME SYNC',
       title: 'Live branch collections from anywhere on your phone.',
       body: 'Never wait for "end of day reports" or rough phone estimates again. See what every branch cashier has collected live on your phone.',
@@ -44,6 +63,7 @@ export default function LandingPage() {
   ];
 
   const currentControl = controlData[activeControlTab];
+  const CurrentControlIcon = currentControl.icon;
 
   const prices = {
     monthly: {
@@ -80,10 +100,10 @@ export default function LandingPage() {
           </div>
           <Link
             href="/invoices"
-            className="font-semibold text-light-primary dark:text-dark-primary hover:underline flex items-center space-x-1"
+            className="font-semibold text-light-primary dark:text-dark-primary hover:underline flex items-center space-x-1.5"
           >
             <span>Go to Dashboard</span>
-            <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
         </div>
       )}
@@ -96,18 +116,14 @@ export default function LandingPage() {
             href="/"
             className="flex items-center gap-3 shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-light-primary dark:focus-visible:outline-dark-primary rounded-sm"
           >
-            <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true" className="shrink-0">
-              <path d="M16 2L28 9L16 16L4 9L16 2Z" className="fill-light-primary dark:fill-dark-primary"></path>
-              <path
-                d="M4 9L16 16V30L4 23V9Z"
-                className="fill-light-secondary dark:fill-dark-secondary"
-                fillOpacity="0.85"
-              ></path>
-              <path
-                d="M28 9L16 16V30L28 23V9Z"
-                className="fill-light-primary-container dark:fill-dark-primary-container"
-              ></path>
-            </svg>
+            <Image
+              src="/platform-logo.svg"
+              alt="BOLXolve Logo"
+              width={34}
+              height={36}
+              className="h-8 w-auto object-contain shrink-0"
+              priority
+            />
             <div className="flex items-baseline gap-1.5">
               <span className="font-headline text-headline-sm text-light-on-surface dark:text-dark-on-surface tracking-tight">
                 BOLXolve
@@ -161,9 +177,11 @@ export default function LandingPage() {
               aria-label="Switch between dark and light theme"
               className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-light-surface-container-lowest dark:bg-dark-surface-container-low text-light-on-surface dark:text-dark-on-surface border border-light-outline-variant dark:border-dark-outline-variant hover:bg-light-surface-container-low dark:hover:bg-dark-surface-container transition-colors cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
-                {isDark ? 'light_mode' : 'dark_mode'}
-              </span>
+              {isDark ? (
+                <Sun className="h-5 w-5 text-dark-primary" aria-hidden="true" />
+              ) : (
+                <Moon className="h-5 w-5 text-light-on-surface" aria-hidden="true" />
+              )}
             </button>
 
             {user ? (
@@ -218,9 +236,7 @@ export default function LandingPage() {
                 className="inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-3 rounded bg-light-primary dark:bg-dark-primary text-light-on-primary dark:text-dark-on-primary hover:bg-light-primary-container dark:hover:bg-dark-primary-container transition-colors"
               >
                 <span className="font-label text-label-lg">View Subscription Plans</span>
-                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
-                  arrow_forward
-                </span>
+                <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
               </a>
 
               <a
@@ -229,9 +245,7 @@ export default function LandingPage() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-3 rounded bg-light-surface-container-lowest dark:bg-dark-surface-container-low text-light-on-surface dark:text-dark-on-surface border border-light-outline-variant dark:border-dark-outline-variant hover:bg-light-surface-container-low dark:hover:bg-dark-surface-container transition-colors"
               >
-                <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary" aria-hidden="true">
-                  chat
-                </span>
+                <MessageCircle className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true" />
                 <span className="font-label text-label-lg">Talk to Us on WhatsApp</span>
               </a>
             </div>
@@ -242,9 +256,7 @@ export default function LandingPage() {
             {/* Stage Header Bar */}
             <div className="px-gutter-lg md:px-gutter-xl py-gutter-md border-b border-light-outline-variant/40 dark:border-dark-outline-variant/40 flex flex-wrap items-center justify-between gap-gutter-md">
               <div className="flex items-center gap-gutter-sm">
-                <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary" aria-hidden="true">
-                  monitoring
-                </span>
+                <Activity className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true" />
                 <span className="font-label text-label-lg text-light-on-surface dark:text-dark-on-surface">
                   Live Assurance Flow
                 </span>
@@ -265,9 +277,7 @@ export default function LandingPage() {
                     <span className="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">
                       01 · Cashier Desk
                     </span>
-                    <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary" aria-hidden="true">
-                      receipt_long
-                    </span>
+                    <FileText className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true" />
                   </div>
                   <h2 className="font-headline text-headline-sm text-light-on-surface dark:text-dark-on-surface">
                     Serialized Slip Issued
@@ -289,9 +299,7 @@ export default function LandingPage() {
                     <span className="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">
                       02 · Owner Mobile
                     </span>
-                    <span className="material-symbols-outlined text-[18px] text-light-secondary dark:text-dark-secondary" aria-hidden="true">
-                      lock
-                    </span>
+                    <Lock className="h-4 w-4 text-light-secondary dark:text-dark-secondary shrink-0" aria-hidden="true" />
                   </div>
                   <h2 className="font-headline text-headline-sm text-light-on-surface dark:text-dark-on-surface">
                     Approval Gatekeeper
@@ -313,9 +321,7 @@ export default function LandingPage() {
                     <span className="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">
                       03 · Owner Dashboard
                     </span>
-                    <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary" aria-hidden="true">
-                      verified_user
-                    </span>
+                    <ShieldCheck className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true" />
                   </div>
                   <h2 className="font-headline text-headline-sm text-light-on-surface dark:text-dark-on-surface">
                     All Depots Synced
@@ -413,9 +419,7 @@ export default function LandingPage() {
                 <div className="flex flex-col gap-gutter-md">
                   <div className="flex items-center justify-between gap-gutter-md">
                     <div className="w-11 h-11 rounded bg-light-surface-variant dark:bg-dark-surface-container-high flex items-center justify-center text-light-primary dark:text-dark-primary">
-                      <span className="material-symbols-outlined text-[22px]" aria-hidden="true">
-                        {currentControl.icon}
-                      </span>
+                      <CurrentControlIcon className="h-6 w-6" aria-hidden="true" />
                     </div>
                     <span className="font-mono text-mono-sm px-gutter-sm py-1 rounded bg-light-surface-container-low dark:bg-dark-surface-container text-light-primary dark:text-dark-primary font-semibold">
                       {currentControl.badge}
@@ -477,9 +481,7 @@ export default function LandingPage() {
             {/* Row 1 */}
             <div className="py-gutter-xl grid grid-cols-1 md:grid-cols-12 gap-gutter-md md:gap-gutter-xl items-start md:items-center">
               <div className="md:col-span-4 flex items-center gap-gutter-md">
-                <span className="material-symbols-outlined text-[22px] text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true">
-                  print
-                </span>
+                <Printer className="h-5 w-5 text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true" />
                 <h3 className="font-headline text-headline-sm text-light-on-surface dark:text-dark-on-surface">
                   Thermal Receipt &amp; A4 Invoices
                 </h3>
@@ -497,9 +499,7 @@ export default function LandingPage() {
             {/* Row 2 */}
             <div className="py-gutter-xl grid grid-cols-1 md:grid-cols-12 gap-gutter-md md:gap-gutter-xl items-start md:items-center">
               <div className="md:col-span-4 flex items-center gap-gutter-md">
-                <span className="material-symbols-outlined text-[22px] text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true">
-                  history
-                </span>
+                <Clock className="h-5 w-5 text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true" />
                 <h3 className="font-headline text-headline-sm text-light-on-surface dark:text-dark-on-surface">
                   Immutable Cashier Audit Trails
                 </h3>
@@ -517,9 +517,7 @@ export default function LandingPage() {
             {/* Row 3 */}
             <div className="py-gutter-xl grid grid-cols-1 md:grid-cols-12 gap-gutter-md md:gap-gutter-xl items-start md:items-center">
               <div className="md:col-span-4 flex items-center gap-gutter-md">
-                <span className="material-symbols-outlined text-[22px] text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true">
-                  storefront
-                </span>
+                <Building2 className="h-5 w-5 text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true" />
                 <h3 className="font-headline text-headline-sm text-light-on-surface dark:text-dark-on-surface">
                   Multi-Branch Depot Management
                 </h3>
@@ -537,9 +535,7 @@ export default function LandingPage() {
             {/* Row 4 */}
             <div className="py-gutter-xl grid grid-cols-1 md:grid-cols-12 gap-gutter-md md:gap-gutter-xl items-start md:items-center">
               <div className="md:col-span-4 flex items-center gap-gutter-md">
-                <span className="material-symbols-outlined text-[22px] text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true">
-                  document_scanner
-                </span>
+                <ScanLine className="h-5 w-5 text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true" />
                 <h3 className="font-headline text-headline-sm text-light-on-surface dark:text-dark-on-surface">
                   Smart Paper Slip Scanning (OCR)
                 </h3>
@@ -624,41 +620,31 @@ export default function LandingPage() {
 
                   <ul className="flex flex-col gap-gutter-md">
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true">
-                        check
-                      </span>
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
                         <strong>3 Users:</strong> 1 Admin + 2 Cashiers
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true">
-                        check
-                      </span>
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
                         Unlimited Thermal &amp; PDF Receipts
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true">
-                        check
-                      </span>
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
                         Cashier Reprint &amp; Void Approvals
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true">
-                        check
-                      </span>
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
                         10 Smart OCR scans/month
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-on-surface-variant dark:text-dark-on-surface-variant shrink-0 mt-0.5" aria-hidden="true">
-                        close
-                      </span>
+                      <X className="h-4 w-4 text-light-on-surface-variant dark:text-dark-on-surface-variant shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant line-through">
                         Excel Export &amp; Activity Logs
                       </span>
@@ -708,49 +694,37 @@ export default function LandingPage() {
 
                   <ul className="flex flex-col gap-gutter-md">
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true">
-                        check
-                      </span>
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
                         <strong>5 Users:</strong> 1 Admin + 4 Cashiers
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true">
-                        check
-                      </span>
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
                         Thermal Slip &amp; A4 Invoices
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true">
-                        check
-                      </span>
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
                         <strong>Excel (.xlsx) Export</strong> included
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true">
-                        check
-                      </span>
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
                         <strong>Activity &amp; Audit Logs</strong> included
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true">
-                        check
-                      </span>
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
                         Cashier Approvals &amp; Shift Verification
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true">
-                        check
-                      </span>
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
                         60 Smart OCR scans/month
                       </span>
@@ -795,49 +769,37 @@ export default function LandingPage() {
 
                   <ul className="flex flex-col gap-gutter-md">
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true">
-                        check
-                      </span>
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
                         <strong>11 Users:</strong> 1 Owner + 2 Managers + 8 Cashiers
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true">
-                        check
-                      </span>
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
                         <strong>2 Physical Branches Included</strong>
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true">
-                        check
-                      </span>
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
                         PDF &amp; Excel Export Unlocked
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true">
-                        check
-                      </span>
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
                         Enterprise Audit History &amp; Logs
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true">
-                        check
-                      </span>
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
                         150 Smart OCR scans/month
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
-                      <span className="material-symbols-outlined text-[18px] text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true">
-                        check
-                      </span>
+                      <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
                         Priority Onboarding &amp; Staff Training
                       </span>
@@ -882,9 +844,7 @@ export default function LandingPage() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-3 rounded bg-light-primary dark:bg-dark-primary text-light-on-primary dark:text-dark-on-primary hover:bg-light-primary-container dark:hover:bg-dark-primary-container transition-colors whitespace-nowrap font-label text-label-lg"
                 >
-                  <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
-                    chat
-                  </span>
+                  <MessageCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <span>Chat with Onboarding</span>
                 </a>
 
@@ -911,9 +871,7 @@ export default function LandingPage() {
                     <span className="font-title text-title-lg text-light-on-surface dark:text-dark-on-surface">
                       How does BOLXolve Invoice prevent cashier fraud?
                     </span>
-                    <span className="material-symbols-outlined text-[20px] text-light-primary dark:text-dark-primary transition-transform duration-150 group-open:rotate-180 shrink-0" aria-hidden="true">
-                      expand_more
-                    </span>
+                    <ChevronDown className="h-5 w-5 text-light-primary dark:text-dark-primary transition-transform duration-150 group-open:rotate-180 shrink-0" aria-hidden="true" />
                   </summary>
                   <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant pt-gutter-md text-pretty">
                     Once an invoice is finalized and marked paid or printed, cashiers cannot edit the amounts, delete records, or issue secret discounts behind the owner&#39;s back. Any reprint or cancellation requires an authorized manager or owner approval. Every action is recorded in a tamper-proof audit log.
@@ -925,9 +883,7 @@ export default function LandingPage() {
                     <span className="font-title text-title-lg text-light-on-surface dark:text-dark-on-surface">
                       Can I monitor my branches without visiting in person?
                     </span>
-                    <span className="material-symbols-outlined text-[20px] text-light-primary dark:text-dark-primary transition-transform duration-150 group-open:rotate-180 shrink-0" aria-hidden="true">
-                      expand_more
-                    </span>
+                    <ChevronDown className="h-5 w-5 text-light-primary dark:text-dark-primary transition-transform duration-150 group-open:rotate-180 shrink-0" aria-hidden="true" />
                   </summary>
                   <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant pt-gutter-md text-pretty">
                     Yes. Every depot and outlet syncs in real time to your owner dashboard, giving you live revenue totals, cashier activity logs, and mobile approval controls from anywhere.
@@ -939,9 +895,7 @@ export default function LandingPage() {
                     <span className="font-title text-title-lg text-light-on-surface dark:text-dark-on-surface">
                       Can we use our existing thermal receipt printer?
                     </span>
-                    <span className="material-symbols-outlined text-[20px] text-light-primary dark:text-dark-primary transition-transform duration-150 group-open:rotate-180 shrink-0" aria-hidden="true">
-                      expand_more
-                    </span>
+                    <ChevronDown className="h-5 w-5 text-light-primary dark:text-dark-primary transition-transform duration-150 group-open:rotate-180 shrink-0" aria-hidden="true" />
                   </summary>
                   <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant pt-gutter-md text-pretty">
                     Yes. BOLXolve Invoice works directly with standard 58mm and 80mm thermal receipt printers as well as regular A4 PDF office printers.
@@ -953,9 +907,7 @@ export default function LandingPage() {
                     <span className="font-title text-title-lg text-light-on-surface dark:text-dark-on-surface">
                       Are there any hidden setup or onboarding charges?
                     </span>
-                    <span className="material-symbols-outlined text-[20px] text-light-primary dark:text-dark-primary transition-transform duration-150 group-open:rotate-180 shrink-0" aria-hidden="true">
-                      expand_more
-                    </span>
+                    <ChevronDown className="h-5 w-5 text-light-primary dark:text-dark-primary transition-transform duration-150 group-open:rotate-180 shrink-0" aria-hidden="true" />
                   </summary>
                   <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant pt-gutter-md text-pretty">
                     No. Every plan includes ₦0 setup fee and free guided onboarding within 24 hours so your cashiers and managers can start issuing verified invoices immediately.
@@ -967,9 +919,7 @@ export default function LandingPage() {
                     <span className="font-title text-title-lg text-light-on-surface dark:text-dark-on-surface">
                       Can we connect custom domain or add extra branches?
                     </span>
-                    <span className="material-symbols-outlined text-[20px] text-light-primary dark:text-dark-primary transition-transform duration-150 group-open:rotate-180 shrink-0" aria-hidden="true">
-                      expand_more
-                    </span>
+                    <ChevronDown className="h-5 w-5 text-light-primary dark:text-dark-primary transition-transform duration-150 group-open:rotate-180 shrink-0" aria-hidden="true" />
                   </summary>
                   <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant pt-gutter-md text-pretty">
                     Yes. Enterprise accounts include 2 physical branches out of the box and support adding extra depots or custom company branding on request.
@@ -987,18 +937,13 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-gutter-xl">
             <div className="md:col-span-5 flex flex-col items-start gap-gutter-md">
               <div className="flex items-center gap-3">
-                <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                  <path d="M16 2L28 9L16 16L4 9L16 2Z" className="fill-light-primary dark:fill-dark-primary"></path>
-                  <path
-                    d="M4 9L16 16V30L4 23V9Z"
-                    className="fill-light-secondary dark:fill-dark-secondary"
-                    fillOpacity="0.85"
-                  ></path>
-                  <path
-                    d="M28 9L16 16V30L28 23V9Z"
-                    className="fill-light-primary-container dark:fill-dark-primary-container"
-                  ></path>
-                </svg>
+                <Image
+                  src="/platform-logo.svg"
+                  alt="BOLXolve Logo"
+                  width={30}
+                  height={32}
+                  className="h-7 w-auto object-contain shrink-0"
+                />
                 <span className="font-headline text-headline-sm text-light-on-surface dark:text-dark-on-surface">
                   BOLXolve <span className="text-light-primary dark:text-dark-primary">Invoice</span>
                 </span>
@@ -1116,13 +1061,7 @@ export default function LandingPage() {
               © 2026 BOLXolve Technologies. All rights reserved.
             </span>
             <div className="flex items-center gap-gutter-xs">
-              <span
-                className="material-symbols-outlined text-[14px] text-light-primary dark:text-dark-primary"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-                aria-hidden="true"
-              >
-                circle
-              </span>
+              <Circle className="h-2.5 w-2.5 fill-light-primary dark:fill-dark-primary text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true" />
               <span className="font-label text-label-sm text-light-on-surface-variant dark:text-dark-on-surface-variant">
                 Platform Service: All Systems Operational
               </span>
