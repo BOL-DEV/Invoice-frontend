@@ -21,7 +21,6 @@ import {
   Check,
   X,
   ChevronDown,
-  Circle,
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -1058,17 +1057,16 @@ export default function LandingPage() {
 
           <div className="pt-gutter-lg border-t border-light-outline-variant/40 dark:border-dark-outline-variant/40 flex flex-col sm:flex-row items-center justify-between gap-gutter-md">
             <span className="font-label text-label-sm text-light-on-surface-variant dark:text-dark-on-surface-variant">
-              © 2026 BOLXolve Technologies. All rights reserved.
+              © 2026 BOLXOLVE LTD (RC: 9940684). All rights reserved.
             </span>
-            <div className="flex items-center gap-gutter-xs">
-              <Circle className="h-2.5 w-2.5 fill-light-primary dark:fill-dark-primary text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true" />
-              <span className="font-label text-label-sm text-light-on-surface-variant dark:text-dark-on-surface-variant">
-                Platform Service: All Systems Operational
-              </span>
-            </div>
-            <span className="font-mono text-mono-sm text-light-on-surface-variant dark:text-dark-on-surface-variant">
-              invoice.bolxolve.com
-            </span>
+            <a
+              href="https://bolxolve.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-mono-sm text-light-on-surface-variant dark:text-dark-on-surface-variant hover:text-light-primary dark:hover:text-dark-primary transition-colors hover:underline underline-offset-4"
+            >
+              bolxolve.com
+            </a>
           </div>
         </div>
       </footer>
