@@ -12,9 +12,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   MessageCircle,
-  Activity,
   FileText,
-  Lock,
   ShieldCheck,
   Printer,
   Clock,
@@ -96,9 +94,9 @@ export default function LandingPage() {
     },
     {
       icon: ScanLine,
-      title: 'Smart AI Paper Slip Scanning (Gemini OCR)',
-      desc: 'Take a quick smartphone photo of handwritten order notes, supplier bills, or delivery slips. Gemini AI automatically extracts line items, quantities, and prices straight into the invoice system in seconds.',
-      tag: 'GEMINI AI OCR',
+      title: 'Smart AI Paper Slip Scanning (OCR)',
+      desc: 'Take a quick smartphone photo of handwritten order notes, supplier bills, or delivery slips. Intelligent vision AI automatically extracts line items, quantities, and prices straight into the invoice system in seconds.',
+      tag: 'SMART AI OCR',
       tagColor: 'text-light-primary dark:text-dark-primary',
     },
   ];
@@ -183,12 +181,6 @@ export default function LandingPage() {
           {/* Minimal Nav */}
           <nav aria-label="Primary Navigation" className="hidden md:flex items-center gap-gutter-xl">
             <a
-              href="#pipeline"
-              className="font-label text-label-lg text-light-on-surface-variant dark:text-dark-on-surface-variant hover:text-light-on-surface dark:hover:text-dark-on-surface transition-colors"
-            >
-              Pipeline
-            </a>
-            <a
               href="#anti-theft"
               className="font-label text-label-lg text-light-on-surface-variant dark:text-dark-on-surface-variant hover:text-light-on-surface dark:hover:text-dark-on-surface transition-colors"
             >
@@ -260,10 +252,10 @@ export default function LandingPage() {
       </header>
 
       <main>
-        {/* Hero: Centered Editorial Statement + Panoramic 3-Stage Pipeline Strip */}
+        {/* Hero: Focused Editorial Statement + Direct Action */}
         <section
-          id="pipeline"
-          className="max-w-7xl mx-auto px-gutter-lg md:px-page-margin pt-section-md pb-section-md md:pt-section-lg md:pb-section-lg flex flex-col gap-section-sm"
+          id="hero"
+          className="max-w-7xl mx-auto px-gutter-lg md:px-page-margin pt-section-md pb-section-md md:pt-section-lg md:pb-section-md flex flex-col gap-section-sm"
         >
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -327,105 +319,6 @@ export default function LandingPage() {
                 <span className="font-label text-label-lg">Talk to Us on WhatsApp</span>
               </motion.a>
             </motion.div>
-          </motion.div>
-
-          {/* Panoramic 3-Stage Revenue Assurance Architecture */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            className="rounded-xl bg-light-surface-container-lowest dark:bg-dark-surface-container-low border border-light-outline-variant dark:border-dark-outline-variant overflow-hidden shadow-sm"
-          >
-            {/* Stage Header Bar */}
-            <div className="px-gutter-lg md:px-gutter-xl py-gutter-md border-b border-light-outline-variant/40 dark:border-dark-outline-variant/40 flex flex-wrap items-center justify-between gap-gutter-md bg-light-surface-container-low/30 dark:bg-dark-surface-container/20">
-              <div className="flex items-center gap-gutter-sm">
-                <Activity className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true" />
-                <span className="font-label text-label-lg text-light-on-surface dark:text-dark-on-surface font-semibold">
-                  Live Assurance Flow
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-gutter-lg text-light-on-surface-variant dark:text-dark-on-surface-variant">
-                <span className="font-mono text-mono-sm">Thermal slip &amp; A4 PDF</span>
-                <span className="font-mono text-mono-sm">Quotes &amp; Delivery Waybills</span>
-                <span className="font-mono text-mono-sm">Tamper-proof audit log</span>
-                <span className="font-mono text-mono-sm text-light-primary dark:text-dark-primary font-medium">
-                  Multi-branch sync
-                </span>
-              </div>
-            </div>
-
-            {/* 3-Column Horizontal Pipeline */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-light-outline-variant/40 dark:divide-dark-outline-variant/40">
-              {/* Stage 1: Cashier Desk */}
-              <div className="p-gutter-lg md:p-gutter-xl flex flex-col justify-between gap-gutter-lg hover:bg-light-surface-container-low/50 dark:hover:bg-dark-surface-container/30 hover:-translate-y-0.5 transition-all duration-300">
-                <div className="flex flex-col gap-gutter-sm">
-                  <div className="flex items-center justify-between gap-gutter-sm">
-                    <span className="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">
-                      01 · Cashier Desk
-                    </span>
-                    <FileText className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true" />
-                  </div>
-                  <h2 className="font-headline text-headline-sm text-light-on-surface dark:text-dark-on-surface">
-                    Serialized Slip Issued
-                  </h2>
-                  <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant">
-                    Every sale locks immediately on print—no silent edits, price drops, or pocketed cash.
-                  </p>
-                </div>
-                <div className="p-gutter-md rounded-md bg-light-surface-container-low dark:bg-dark-surface-container flex items-center justify-between gap-gutter-sm border border-light-outline-variant/30 dark:border-dark-outline-variant/30">
-                  <span className="font-mono text-mono-sm text-light-on-surface dark:text-dark-on-surface">#INV-0482 · 80mm</span>
-                  <span className="font-mono text-mono-sm text-light-primary dark:text-dark-primary font-semibold">
-                    LOCKED
-                  </span>
-                </div>
-              </div>
-
-              {/* Stage 2: Owner Approval */}
-              <div className="p-gutter-lg md:p-gutter-xl flex flex-col justify-between gap-gutter-lg hover:bg-light-surface-container-low/50 dark:hover:bg-dark-surface-container/30 hover:-translate-y-0.5 transition-all duration-300">
-                <div className="flex flex-col gap-gutter-sm">
-                  <div className="flex items-center justify-between gap-gutter-sm">
-                    <span className="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">
-                      02 · Owner Mobile
-                    </span>
-                    <Lock className="h-4 w-4 text-light-secondary dark:text-dark-secondary shrink-0" aria-hidden="true" />
-                  </div>
-                  <h2 className="font-headline text-headline-sm text-light-on-surface dark:text-dark-on-surface">
-                    Approval Gatekeeper
-                  </h2>
-                  <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant">
-                    Reprints, discounts, or voids pause for your one-tap authorization from anywhere.
-                  </p>
-                </div>
-                <div className="p-gutter-md rounded-md bg-light-surface-container-low dark:bg-dark-surface-container flex items-center justify-between gap-gutter-sm border border-light-outline-variant/30 dark:border-dark-outline-variant/30">
-                  <span className="font-mono text-mono-sm text-light-on-surface dark:text-dark-on-surface">Reprint · ₦42,500</span>
-                  <span className="font-mono text-mono-sm text-light-secondary dark:text-dark-secondary font-semibold">
-                    PENDING
-                  </span>
-                </div>
-              </div>
-
-              {/* Stage 3: Consolidated Ledger */}
-              <div className="p-gutter-lg md:p-gutter-xl flex flex-col justify-between gap-gutter-lg hover:bg-light-surface-container-low/50 dark:hover:bg-dark-surface-container/30 hover:-translate-y-0.5 transition-all duration-300">
-                <div className="flex flex-col gap-gutter-sm">
-                  <div className="flex items-center justify-between gap-gutter-sm">
-                    <span className="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">
-                      03 · Owner Dashboard
-                    </span>
-                    <ShieldCheck className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true" />
-                  </div>
-                  <h2 className="font-headline text-headline-sm text-light-on-surface dark:text-dark-on-surface">
-                    All Depots Synced
-                  </h2>
-                  <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant">
-                    Real-time consolidated revenue across every physical branch and cashier shift.
-                  </p>
-                </div>
-                <div className="p-gutter-md rounded-md bg-light-surface-container-low dark:bg-dark-surface-container flex items-center justify-between gap-gutter-sm border border-light-outline-variant/30 dark:border-dark-outline-variant/30">
-                  <span className="font-mono text-mono-sm text-light-on-surface-variant dark:text-dark-on-surface-variant">30D Total</span>
-                  <span className="font-mono text-mono-sm tabular-nums text-light-primary dark:text-dark-primary font-bold">₦17,510,675.00</span>
-                </div>
-              </div>
-            </div>
           </motion.div>
         </section>
 
@@ -582,7 +475,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Section 3: Transparent Subscription Plans */}
+        {/* Section 3: Transparent Subscription Plans & Modular Add-ons */}
         <section
           id="pricing"
           className="border-t border-light-outline-variant/40 dark:border-dark-outline-variant/40 bg-light-surface-container-low/40 dark:bg-dark-surface-container-lowest/40"
@@ -878,7 +771,7 @@ export default function LandingPage() {
                     <li className="flex items-start gap-gutter-sm">
                       <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
-                        Custom White-Label Domain &amp; Logo Branding
+                        Custom White-Label Domain &amp; Company Branding
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
@@ -918,6 +811,89 @@ export default function LandingPage() {
                   </motion.div>
                 </footer>
               </motion.article>
+            </div>
+
+            {/* Modular Add-ons & Top-ups Section */}
+            <div className="mt-gutter-xl pt-gutter-xl border-t border-light-outline-variant/40 dark:border-dark-outline-variant/40 flex flex-col gap-gutter-md">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-gutter-sm">
+                <div>
+                  <span className="font-label text-label-sm uppercase tracking-wider text-light-primary dark:text-dark-primary font-bold">
+                    Flexible Scaling
+                  </span>
+                  <h3 className="font-headline text-headline-sm text-light-on-surface dark:text-dark-on-surface">
+                    Optional Add-ons &amp; Quota Top-ups
+                  </h3>
+                </div>
+                <p className="font-body text-body-sm text-light-on-surface-variant dark:text-dark-on-surface-variant">
+                  Add extra capacity to any plan at any time without upgrading your entire tier.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter-md">
+                {/* Add-on 1: Extra Cashier */}
+                <div className="p-gutter-lg rounded-lg bg-light-surface-container-lowest dark:bg-dark-surface-container-low border border-light-outline-variant dark:border-dark-outline-variant flex flex-col justify-between gap-gutter-sm shadow-xs">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-label text-label-md font-bold text-light-on-surface dark:text-dark-on-surface">
+                      Extra Cashier Seat
+                    </span>
+                    <span className="font-body text-body-sm text-light-on-surface-variant dark:text-dark-on-surface-variant">
+                      Add additional cashier or operator login accounts as your staff expands.
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-light-outline-variant/30 dark:border-dark-outline-variant/30 flex items-baseline gap-1">
+                    <span className="font-mono text-mono-md font-bold text-light-primary dark:text-dark-primary">₦2,000</span>
+                    <span className="font-body text-body-xs text-light-on-surface-variant dark:text-dark-on-surface-variant">/ user / mo</span>
+                  </div>
+                </div>
+
+                {/* Add-on 2: Extra Branch */}
+                <div className="p-gutter-lg rounded-lg bg-light-surface-container-lowest dark:bg-dark-surface-container-low border border-light-outline-variant dark:border-dark-outline-variant flex flex-col justify-between gap-gutter-sm shadow-xs">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-label text-label-md font-bold text-light-on-surface dark:text-dark-on-surface">
+                      Extra Depot / Branch
+                    </span>
+                    <span className="font-body text-body-sm text-light-on-surface-variant dark:text-dark-on-surface-variant">
+                      Connect additional retail branch or depot with real-time syncing.
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-light-outline-variant/30 dark:border-dark-outline-variant/30 flex items-baseline gap-1">
+                    <span className="font-mono text-mono-md font-bold text-light-primary dark:text-dark-primary">₦5,000</span>
+                    <span className="font-body text-body-xs text-light-on-surface-variant dark:text-dark-on-surface-variant">/ branch / mo</span>
+                  </div>
+                </div>
+
+                {/* Add-on 3: Extra AI Scans */}
+                <div className="p-gutter-lg rounded-lg bg-light-surface-container-lowest dark:bg-dark-surface-container-low border border-light-outline-variant dark:border-dark-outline-variant flex flex-col justify-between gap-gutter-sm shadow-xs">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-label text-label-md font-bold text-light-on-surface dark:text-dark-on-surface">
+                      AI Document Scans Pack
+                    </span>
+                    <span className="font-body text-body-sm text-light-on-surface-variant dark:text-dark-on-surface-variant">
+                      Top up 100 extra smart OCR scans for handwritten order notes and bills.
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-light-outline-variant/30 dark:border-dark-outline-variant/30 flex items-baseline gap-1">
+                    <span className="font-mono text-mono-md font-bold text-light-primary dark:text-dark-primary">₦5,000</span>
+                    <span className="font-body text-body-xs text-light-on-surface-variant dark:text-dark-on-surface-variant">/ 100 scans pack</span>
+                  </div>
+                </div>
+
+                {/* Add-on 4: Custom Domain */}
+                <div className="p-gutter-lg rounded-lg bg-light-surface-container-lowest dark:bg-dark-surface-container-low border border-light-outline-variant dark:border-dark-outline-variant flex flex-col justify-between gap-gutter-sm shadow-xs">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-label text-label-md font-bold text-light-on-surface dark:text-dark-on-surface">
+                      Custom White-Label Domain
+                    </span>
+                    <span className="font-body text-body-sm text-light-on-surface-variant dark:text-dark-on-surface-variant">
+                      portal.yourbiz.com (Free &amp; included on Business &amp; Enterprise).
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-light-outline-variant/30 dark:border-dark-outline-variant/30 flex items-baseline gap-1">
+                    <span className="font-mono text-mono-md font-bold text-light-primary dark:text-dark-primary">₦10,000</span>
+                    <span className="font-body text-body-xs text-light-on-surface-variant dark:text-dark-on-surface-variant">one-time setup</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -995,6 +971,18 @@ export default function LandingPage() {
                   </summary>
                   <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant pt-gutter-md text-pretty">
                     Yes! BOLXolve Invoice includes a complete 4-in-1 document suite: Invoices, Quotations, Goods Delivery Waybills, and Formal Business Letters. You can create a quotation with validity terms and convert it directly to a paid invoice and delivery waybill in 1 click.
+                  </p>
+                </details>
+
+                <details name="faq-group" className="group py-gutter-lg">
+                  <summary className="flex items-center justify-between gap-gutter-md cursor-pointer list-none select-none">
+                    <span className="font-title text-title-lg text-light-on-surface dark:text-dark-on-surface">
+                      Can I buy extra cashier seats, branches, or AI scans without changing plans?
+                    </span>
+                    <ChevronDown className="h-5 w-5 text-light-primary dark:text-dark-primary transition-transform duration-200 group-open:rotate-180 shrink-0" aria-hidden="true" />
+                  </summary>
+                  <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant pt-gutter-md text-pretty">
+                    Yes. You can add extra cashier seats at ₦2,000/month, additional physical branches at ₦5,000/month, or top up 100 extra AI document scans for ₦5,000 directly from your management dashboard or via our support team.
                   </p>
                 </details>
 
@@ -1094,9 +1082,8 @@ export default function LandingPage() {
               </h3>
               <ul className="flex flex-col gap-2.5 text-light-on-surface-variant dark:text-dark-on-surface-variant text-sm">
                 {[
-                  { label: 'How It Works', href: '#pipeline' },
                   { label: 'Anti-Theft Approvals', href: '#anti-theft' },
-                  { label: 'Multi-Branch Sync', href: '#capabilities' },
+                  { label: 'Capabilities', href: '#capabilities' },
                   { label: 'Quotations & Waybills', href: '#capabilities' },
                   { label: 'Thermal & A4 Invoices', href: '#capabilities' },
                   { label: 'Smart AI Slip OCR', href: '#capabilities' },
