@@ -10,6 +10,7 @@ import {
   Sun,
   Moon,
   ArrowRight,
+  ArrowUpRight,
   MessageCircle,
   Activity,
   FileText,
@@ -136,7 +137,7 @@ export default function LandingPage() {
       {user && (
         <div className="bg-light-surface-container-high dark:bg-dark-surface-container border-b border-light-outline-variant/30 dark:border-dark-outline-variant/30 text-light-on-surface dark:text-dark-on-surface py-2 px-gutter-md md:px-page-margin text-xs flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <span className="h-2 w-2 rounded-full bg-light-primary dark:bg-dark-primary animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-light-primary dark:bg-dark-primary" />
             <span>
               Signed in as <strong>{user.firstName || 'User'}</strong> ({user.role})
             </span>
@@ -338,7 +339,7 @@ export default function LandingPage() {
             {/* Stage Header Bar */}
             <div className="px-gutter-lg md:px-gutter-xl py-gutter-md border-b border-light-outline-variant/40 dark:border-dark-outline-variant/40 flex flex-wrap items-center justify-between gap-gutter-md bg-light-surface-container-low/30 dark:bg-dark-surface-container/20">
               <div className="flex items-center gap-gutter-sm">
-                <Activity className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 animate-pulse" aria-hidden="true" />
+                <Activity className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0" aria-hidden="true" />
                 <span className="font-label text-label-lg text-light-on-surface dark:text-dark-on-surface font-semibold">
                   Live Assurance Flow
                 </span>
@@ -346,8 +347,7 @@ export default function LandingPage() {
               <div className="flex flex-wrap items-center gap-gutter-lg text-light-on-surface-variant dark:text-dark-on-surface-variant">
                 <span className="font-mono text-mono-sm">Thermal slip &amp; A4 PDF</span>
                 <span className="font-mono text-mono-sm">Tamper-proof audit log</span>
-                <span className="font-mono text-mono-sm text-light-primary dark:text-dark-primary font-medium flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-light-primary dark:bg-dark-primary animate-ping" />
+                <span className="font-mono text-mono-sm text-light-primary dark:text-dark-primary font-medium">
                   Multi-branch sync
                 </span>
               </div>
@@ -356,7 +356,7 @@ export default function LandingPage() {
             {/* 3-Column Horizontal Pipeline */}
             <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-light-outline-variant/40 dark:divide-dark-outline-variant/40">
               {/* Stage 1: Cashier Desk */}
-              <div className="p-gutter-lg md:p-gutter-xl flex flex-col justify-between gap-gutter-lg hover:bg-light-surface-container-low/40 dark:hover:bg-dark-surface-container/30 transition-colors duration-200">
+              <div className="p-gutter-lg md:p-gutter-xl flex flex-col justify-between gap-gutter-lg hover:bg-light-surface-container-low/50 dark:hover:bg-dark-surface-container/30 hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex flex-col gap-gutter-sm">
                   <div className="flex items-center justify-between gap-gutter-sm">
                     <span className="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">
@@ -373,15 +373,14 @@ export default function LandingPage() {
                 </div>
                 <div className="p-gutter-md rounded-md bg-light-surface-container-low dark:bg-dark-surface-container flex items-center justify-between gap-gutter-sm border border-light-outline-variant/30 dark:border-dark-outline-variant/30">
                   <span className="font-mono text-mono-sm text-light-on-surface dark:text-dark-on-surface">#INV-0482 · 80mm</span>
-                  <span className="font-mono text-mono-sm text-light-primary dark:text-dark-primary flex items-center gap-1.5 font-semibold">
-                    <span className="h-2 w-2 rounded-full bg-light-primary dark:bg-dark-primary animate-pulse" />
+                  <span className="font-mono text-mono-sm text-light-primary dark:text-dark-primary font-semibold">
                     LOCKED
                   </span>
                 </div>
               </div>
 
               {/* Stage 2: Owner Approval */}
-              <div className="p-gutter-lg md:p-gutter-xl flex flex-col justify-between gap-gutter-lg hover:bg-light-surface-container-low/40 dark:hover:bg-dark-surface-container/30 transition-colors duration-200">
+              <div className="p-gutter-lg md:p-gutter-xl flex flex-col justify-between gap-gutter-lg hover:bg-light-surface-container-low/50 dark:hover:bg-dark-surface-container/30 hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex flex-col gap-gutter-sm">
                   <div className="flex items-center justify-between gap-gutter-sm">
                     <span className="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">
@@ -398,15 +397,14 @@ export default function LandingPage() {
                 </div>
                 <div className="p-gutter-md rounded-md bg-light-surface-container-low dark:bg-dark-surface-container flex items-center justify-between gap-gutter-sm border border-light-outline-variant/30 dark:border-dark-outline-variant/30">
                   <span className="font-mono text-mono-sm text-light-on-surface dark:text-dark-on-surface">Reprint · ₦42,500</span>
-                  <span className="font-mono text-mono-sm text-light-secondary dark:text-dark-secondary flex items-center gap-1.5 font-semibold">
-                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+                  <span className="font-mono text-mono-sm text-light-secondary dark:text-dark-secondary font-semibold">
                     PENDING
                   </span>
                 </div>
               </div>
 
               {/* Stage 3: Consolidated Ledger */}
-              <div className="p-gutter-lg md:p-gutter-xl flex flex-col justify-between gap-gutter-lg hover:bg-light-surface-container-low/40 dark:hover:bg-dark-surface-container/30 transition-colors duration-200">
+              <div className="p-gutter-lg md:p-gutter-xl flex flex-col justify-between gap-gutter-lg hover:bg-light-surface-container-low/50 dark:hover:bg-dark-surface-container/30 hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex flex-col gap-gutter-sm">
                   <div className="flex items-center justify-between gap-gutter-sm">
                     <span className="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">
@@ -559,7 +557,7 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-30px' }}
                   transition={{ duration: 0.45, delay: i * 0.08, ease: 'easeOut' }}
-                  className="group py-gutter-xl grid grid-cols-1 md:grid-cols-12 gap-gutter-md md:gap-gutter-xl items-start md:items-center px-gutter-md -mx-gutter-md rounded-lg hover:bg-light-surface-container-low/40 dark:hover:bg-dark-surface-container/20 transition-all duration-200"
+                  className="group py-gutter-xl grid grid-cols-1 md:grid-cols-12 gap-gutter-md md:gap-gutter-xl items-start md:items-center px-gutter-md -mx-gutter-md rounded-lg hover:bg-light-surface-container-low/50 dark:hover:bg-dark-surface-container/30 transition-all duration-200"
                 >
                   <div className="md:col-span-4 flex items-center gap-gutter-md">
                     <div className="w-10 h-10 rounded-md bg-light-surface-variant/60 dark:bg-dark-surface-container flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200 border border-light-outline-variant/20 dark:border-dark-outline-variant/20">
@@ -656,8 +654,9 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                whileHover={{ y: -6, transition: { duration: 0.25, ease: 'easeOut' } }}
-                className="h-full p-gutter-xl rounded-lg bg-light-surface-container-lowest dark:bg-dark-surface-container-low border border-light-outline-variant dark:border-dark-outline-variant flex flex-col justify-between gap-gutter-xl shadow-sm hover:shadow-md transition-shadow"
+                whileHover={{ y: -8, scale: 1.01 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="h-full p-gutter-xl rounded-lg bg-light-surface-container-lowest dark:bg-dark-surface-container-low border border-light-outline-variant dark:border-dark-outline-variant flex flex-col justify-between gap-gutter-xl shadow-sm hover:shadow-xl transition-shadow"
               >
                 <div className="flex flex-col gap-gutter-lg">
                   <header className="flex flex-col gap-gutter-sm">
@@ -734,8 +733,8 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.1 }}
-                whileHover={{ y: -6, transition: { duration: 0.25, ease: 'easeOut' } }}
-                className="h-full p-gutter-xl rounded-lg bg-light-surface-container-lowest dark:bg-dark-surface-container-low border-2 border-light-primary dark:border-dark-primary flex flex-col justify-between gap-gutter-xl shadow-md relative"
+                whileHover={{ y: -8, scale: 1.01 }}
+                className="h-full p-gutter-xl rounded-lg bg-light-surface-container-lowest dark:bg-dark-surface-container-low border-2 border-light-primary dark:border-dark-primary flex flex-col justify-between gap-gutter-xl shadow-md hover:shadow-2xl transition-shadow relative"
               >
                 <div className="flex flex-col gap-gutter-lg">
                   <header className="flex flex-col gap-gutter-sm">
@@ -743,7 +742,7 @@ export default function LandingPage() {
                       <span className="font-label text-label-sm uppercase tracking-wider text-light-primary dark:text-dark-primary font-bold">
                         Business
                       </span>
-                      <span className="font-label text-label-sm px-gutter-sm py-0.5 rounded-full bg-light-primary dark:bg-dark-primary text-light-on-primary dark:text-dark-on-primary font-semibold">
+                      <span className="font-label text-label-sm px-gutter-sm py-0.5 rounded-full bg-light-primary dark:bg-dark-primary text-light-on-primary dark:text-dark-on-primary font-semibold shadow-xs">
                         Most Popular
                       </span>
                     </div>
@@ -823,8 +822,8 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.2 }}
-                whileHover={{ y: -6, transition: { duration: 0.25, ease: 'easeOut' } }}
-                className="h-full p-gutter-xl rounded-lg bg-light-surface-container-lowest dark:bg-dark-surface-container-low border border-light-outline-variant dark:border-dark-outline-variant flex flex-col justify-between gap-gutter-xl shadow-sm hover:shadow-md transition-shadow"
+                whileHover={{ y: -8, scale: 1.01 }}
+                className="h-full p-gutter-xl rounded-lg bg-light-surface-container-lowest dark:bg-dark-surface-container-low border border-light-outline-variant dark:border-dark-outline-variant flex flex-col justify-between gap-gutter-xl shadow-sm hover:shadow-xl transition-shadow"
               >
                 <div className="flex flex-col gap-gutter-lg">
                   <header className="flex flex-col gap-gutter-sm">
@@ -905,7 +904,14 @@ export default function LandingPage() {
         </section>
 
         {/* Section 4: Unified Closing Split (Left CTA + Right Hairline FAQ) */}
-        <section id="faq" className="max-w-7xl mx-auto px-gutter-lg md:px-page-margin py-section-md md:py-section-lg">
+        <motion.section
+          id="faq"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-40px' }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="max-w-7xl mx-auto px-gutter-lg md:px-page-margin py-section-md md:py-section-lg"
+        >
           <div id="closing" className="grid grid-cols-1 lg:grid-cols-12 gap-gutter-xl lg:gap-section-sm items-start">
             {/* Left Conversion Column (5 cols) */}
             <div className="lg:col-span-5 flex flex-col gap-gutter-lg">
@@ -1011,149 +1017,166 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-        </section>
+        </motion.section>
       </main>
 
-      {/* Minimal Architectural Footer */}
-      <footer className="border-t border-light-outline-variant/40 dark:border-dark-outline-variant/40 bg-light-surface-container-low/40 dark:bg-dark-surface-container-lowest">
+      {/* Enhanced Architectural Footer with Noticeable Micro-Interactions */}
+      <motion.footer
+        initial={{ opacity: 0, y: 35 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-30px' }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="border-t border-light-outline-variant/40 dark:border-dark-outline-variant/40 bg-light-surface-container-low/50 dark:bg-dark-surface-container-lowest relative overflow-hidden"
+      >
+        {/* Subtle Bottom Ambient Glow */}
+        <div
+          className="absolute bottom-0 right-1/4 w-96 h-48 bg-gradient-to-t from-light-primary/5 dark:from-dark-primary/10 to-transparent blur-3xl pointer-events-none -z-10"
+          aria-hidden="true"
+        />
+
         <div className="max-w-7xl mx-auto px-gutter-lg md:px-page-margin py-section-sm md:py-section-md flex flex-col gap-section-sm">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-gutter-xl">
+            {/* Brand Statement */}
             <div className="md:col-span-5 flex flex-col items-start gap-gutter-md">
-              <div className="flex items-center gap-3">
-                <Image
-                  src="/platform-logo.svg"
-                  alt="BOLXolve Logo"
-                  width={30}
-                  height={32}
-                  className="h-7 w-auto object-contain shrink-0"
-                />
+              <Link href="/" className="flex items-center gap-3 group">
+                <div className="transition-transform duration-300 group-hover:scale-105 group-hover:rotate-3">
+                  <Image
+                    src="/platform-logo.svg"
+                    alt="BOLXolve Logo"
+                    width={32}
+                    height={34}
+                    className="h-8 w-auto object-contain shrink-0"
+                  />
+                </div>
                 <span className="font-headline text-headline-sm text-light-on-surface dark:text-dark-on-surface">
                   BOLXolve <span className="text-light-primary dark:text-dark-primary">Invoice</span>
                 </span>
-              </div>
-              <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant max-w-sm text-pretty">
+              </Link>
+              <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant max-w-sm text-pretty leading-relaxed">
                 The tamper-proof invoice pipeline and revenue assurance platform built for Nigerian business owners. Eliminate cashier fraud, track branch revenue, and secure every transaction in real-time.
               </p>
             </div>
 
+            {/* Product Column */}
             <div className="md:col-span-2 flex flex-col gap-gutter-sm">
               <h3 className="font-label text-label-sm uppercase tracking-wider text-light-on-surface dark:text-dark-on-surface font-bold">
                 Product
               </h3>
-              <ul className="flex flex-col gap-gutter-xs text-light-on-surface-variant dark:text-dark-on-surface-variant text-sm">
-                <li>
-                  <a href="#pipeline" className="hover:text-light-on-surface dark:hover:text-dark-on-surface transition-colors">
-                    How It Works
-                  </a>
-                </li>
-                <li>
-                  <a href="#anti-theft" className="hover:text-light-on-surface dark:hover:text-dark-on-surface transition-colors">
-                    Anti-Theft Approvals
-                  </a>
-                </li>
-                <li>
-                  <a href="#capabilities" className="hover:text-light-on-surface dark:hover:text-dark-on-surface transition-colors">
-                    Multi-Branch Sync
-                  </a>
-                </li>
-                <li>
-                  <a href="#capabilities" className="hover:text-light-on-surface dark:hover:text-dark-on-surface transition-colors">
-                    Thermal &amp; A4 Invoices
-                  </a>
-                </li>
-                <li>
-                  <a href="#capabilities" className="hover:text-light-on-surface dark:hover:text-dark-on-surface transition-colors">
-                    Smart Slip OCR
-                  </a>
-                </li>
+              <ul className="flex flex-col gap-2.5 text-light-on-surface-variant dark:text-dark-on-surface-variant text-sm">
+                {[
+                  { label: 'How It Works', href: '#pipeline' },
+                  { label: 'Anti-Theft Approvals', href: '#anti-theft' },
+                  { label: 'Multi-Branch Sync', href: '#capabilities' },
+                  { label: 'Thermal & A4 Invoices', href: '#capabilities' },
+                  { label: 'Smart Slip OCR', href: '#capabilities' },
+                ].map((item) => (
+                  <li key={item.label}>
+                    <a
+                      href={item.href}
+                      className="inline-flex items-center transition-all duration-200 hover:translate-x-1.5 hover:text-light-primary dark:hover:text-dark-primary"
+                    >
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
 
+            {/* Businesses Column */}
             <div className="md:col-span-2 flex flex-col gap-gutter-sm">
               <h3 className="font-label text-label-sm uppercase tracking-wider text-light-on-surface dark:text-dark-on-surface font-bold">
                 Businesses
               </h3>
-              <ul className="flex flex-col gap-gutter-xs text-light-on-surface-variant dark:text-dark-on-surface-variant text-sm">
-                <li>
-                  <a href="#anti-theft" className="hover:text-light-on-surface dark:hover:text-dark-on-surface transition-colors">
-                    Building Materials
-                  </a>
-                </li>
-                <li>
-                  <a href="#anti-theft" className="hover:text-light-on-surface dark:hover:text-dark-on-surface transition-colors">
-                    Supermarkets &amp; Retail
-                  </a>
-                </li>
-                <li>
-                  <a href="#anti-theft" className="hover:text-light-on-surface dark:hover:text-dark-on-surface transition-colors">
-                    Wholesale Depots
-                  </a>
-                </li>
-                <li>
-                  <a href="#anti-theft" className="hover:text-light-on-surface dark:hover:text-dark-on-surface transition-colors">
-                    Pharmacies &amp; Stores
-                  </a>
-                </li>
-                <li>
-                  <a href="#anti-theft" className="hover:text-light-on-surface dark:hover:text-dark-on-surface transition-colors">
-                    Auto Spare Parts
-                  </a>
-                </li>
+              <ul className="flex flex-col gap-2.5 text-light-on-surface-variant dark:text-dark-on-surface-variant text-sm">
+                {[
+                  { label: 'Building Materials', href: '#anti-theft' },
+                  { label: 'Supermarkets & Retail', href: '#anti-theft' },
+                  { label: 'Wholesale Depots', href: '#anti-theft' },
+                  { label: 'Pharmacies & Stores', href: '#anti-theft' },
+                  { label: 'Auto Spare Parts', href: '#anti-theft' },
+                ].map((item) => (
+                  <li key={item.label}>
+                    <a
+                      href={item.href}
+                      className="inline-flex items-center transition-all duration-200 hover:translate-x-1.5 hover:text-light-primary dark:hover:text-dark-primary"
+                    >
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
 
+            {/* Commercial Column */}
             <div className="md:col-span-3 flex flex-col gap-gutter-sm">
               <h3 className="font-label text-label-sm uppercase tracking-wider text-light-on-surface dark:text-dark-on-surface font-bold">
                 Commercial
               </h3>
-              <ul className="flex flex-col gap-gutter-xs text-light-on-surface-variant dark:text-dark-on-surface-variant text-sm">
+              <ul className="flex flex-col gap-2.5 text-light-on-surface-variant dark:text-dark-on-surface-variant text-sm">
                 <li>
-                  <a href="#pricing" className="hover:text-light-on-surface dark:hover:text-dark-on-surface transition-colors">
+                  <a
+                    href="#pricing"
+                    className="inline-flex items-center transition-all duration-200 hover:translate-x-1.5 hover:text-light-primary dark:hover:text-dark-primary"
+                  >
                     Starter (₦6,500/mo)
                   </a>
                 </li>
                 <li>
-                  <a href="#pricing" className="hover:text-light-on-surface dark:hover:text-dark-on-surface transition-colors">
+                  <a
+                    href="#pricing"
+                    className="inline-flex items-center transition-all duration-200 hover:translate-x-1.5 hover:text-light-primary dark:hover:text-dark-primary"
+                  >
                     Business (₦10,500/mo)
                   </a>
                 </li>
                 <li>
-                  <a href="#pricing" className="hover:text-light-on-surface dark:hover:text-dark-on-surface transition-colors">
+                  <a
+                    href="#pricing"
+                    className="inline-flex items-center transition-all duration-200 hover:translate-x-1.5 hover:text-light-primary dark:hover:text-dark-primary"
+                  >
                     Enterprise (₦20,000/mo)
                   </a>
                 </li>
                 <li>
-                  <a href="#faq" className="hover:text-light-on-surface dark:hover:text-dark-on-surface transition-colors">
+                  <a
+                    href="#faq"
+                    className="inline-flex items-center transition-all duration-200 hover:translate-x-1.5 hover:text-light-primary dark:hover:text-dark-primary"
+                  >
                     Frequently Asked Questions
                   </a>
                 </li>
-                <li>
+                <li className="pt-1">
                   <Link
                     href="/login"
-                    className="font-label text-label-lg text-light-primary dark:text-dark-primary pt-gutter-xs inline-block hover:underline"
+                    className="font-label text-label-lg text-light-primary dark:text-dark-primary inline-flex items-center gap-1 group transition-all duration-200 hover:translate-x-1"
                   >
-                    Staff &amp; Owner Login →
+                    <span>Staff &amp; Owner Login</span>
+                    <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true" />
                   </Link>
                 </li>
               </ul>
             </div>
           </div>
 
+          {/* Bottom Bar with Enhanced Interactive Backlink */}
           <div className="pt-gutter-lg border-t border-light-outline-variant/40 dark:border-dark-outline-variant/40 flex flex-col sm:flex-row items-center justify-between gap-gutter-md">
             <span className="font-label text-label-sm text-light-on-surface-variant dark:text-dark-on-surface-variant">
               © 2026 BOLXOLVE LTD (RC: 9940684). All rights reserved.
             </span>
-            <a
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               href="https://bolxolve.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-mono text-mono-sm text-light-on-surface-variant dark:text-dark-on-surface-variant hover:text-light-primary dark:hover:text-dark-primary transition-colors hover:underline underline-offset-4"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-light-surface-container-lowest dark:bg-dark-surface-container-low border border-light-outline-variant/60 dark:border-dark-outline-variant/60 text-light-on-surface-variant dark:text-dark-on-surface-variant hover:border-light-primary dark:hover:border-dark-primary hover:text-light-primary dark:hover:text-dark-primary transition-all duration-200 font-mono text-mono-sm group shadow-xs cursor-pointer"
             >
-              bolxolve.com
-            </a>
+              <span>bolxolve.com</span>
+              <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
+            </motion.a>
           </div>
         </div>
-      </footer>
+      </motion.footer>
     </div>
   );
 }
