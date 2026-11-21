@@ -687,7 +687,7 @@ export default function LandingPage() {
                     <li className="flex items-start gap-gutter-sm">
                       <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
-                        <strong>Custom Domain</strong> (portal.yourcompany.com)
+                        Custom White-Label Domain ready (+₦20k add-on)
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
@@ -771,7 +771,7 @@ export default function LandingPage() {
                     <li className="flex items-start gap-gutter-sm">
                       <Check className="h-4 w-4 text-light-primary dark:text-dark-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="font-body text-body-md text-light-on-surface dark:text-dark-on-surface">
-                        Custom White-Label Domain &amp; Company Branding
+                        Custom White-Label Domain ready (+₦20k add-on)
                       </span>
                     </li>
                     <li className="flex items-start gap-gutter-sm">
@@ -885,11 +885,11 @@ export default function LandingPage() {
                       Custom White-Label Domain
                     </span>
                     <span className="font-body text-body-sm text-light-on-surface-variant dark:text-dark-on-surface-variant">
-                      portal.yourbiz.com (Free &amp; included on Business &amp; Enterprise).
+                      portal.yourbiz.com with custom logo, favicon &amp; automated SSL (available on any plan).
                     </span>
                   </div>
                   <div className="pt-2 border-t border-light-outline-variant/30 dark:border-dark-outline-variant/30 flex items-baseline gap-1">
-                    <span className="font-mono text-mono-md font-bold text-light-primary dark:text-dark-primary">₦10,000</span>
+                    <span className="font-mono text-mono-md font-bold text-light-primary dark:text-dark-primary">₦20,000</span>
                     <span className="font-body text-body-xs text-light-on-surface-variant dark:text-dark-on-surface-variant">one-time setup</span>
                   </div>
                 </div>
@@ -994,7 +994,7 @@ export default function LandingPage() {
                     <ChevronDown className="h-5 w-5 text-light-primary dark:text-dark-primary transition-transform duration-200 group-open:rotate-180 shrink-0" aria-hidden="true" />
                   </summary>
                   <p className="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant pt-gutter-md text-pretty">
-                    Yes. Both Business and Enterprise plans include custom white-label domain mapping. Your cashiers and customers will log into your own portal with your company name, custom logo, and branded receipts.
+                    Yes! Custom white-label domain routing (e.g. portal.yourcompany.com) with automated SSL and your custom company logo is available as a ₦20,000 one-time setup add-on across all plans. Your cashiers and customers will log into your own portal with your company brand and receipts.
                   </p>
                 </details>
 
