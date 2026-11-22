@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { usePlatformOverview } from '../hooks/useTenants';
+import { usePlatformOverview, usePaymentProvider, useUpdatePaymentProvider } from '../hooks/useTenants';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
@@ -31,6 +31,7 @@ import {
   Activity,
   Globe,
   Sparkles,
+  Landmark,
 } from 'lucide-react';
 
 interface SuperAdminDashboardProps {
@@ -44,6 +45,19 @@ interface SuperAdminDashboardProps {
 export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user }) => {
   const router = useRouter();
   const { data: overview, isLoading, isError, error, refetch, isFetching } = usePlatformOverview();
+  const { data: paymentProviderData } = usePaymentProvider();
+  const updatePaymentProviderMutation = useUpdatePaymentProvider();
+  const activeGateway = paymentProviderData?.provider || 'lenco';
+  const isUpdatingGateway = updatePaymentProviderMutation.isPending;
+
+  const handleToggleGateway = async (target: 'squad' | 'lenco') => {
+    try {
+      await updatePaymentProviderMutation.mutateAsync(target);
+    } catch (err) {
+      console.error('Failed to update payment gateway', err);
+    }
+  };
+
   const [selectedPlanTab, setSelectedPlanTab] = useState<'ALL' | PlanType>('ALL');
   const [selectedBillingTab, setSelectedBillingTab] = useState<'ALL' | BillingMode>('ALL');
   const [searchFilter, setSearchFilter] = useState('');
@@ -157,6 +171,71 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user }
               <ArrowRight className="h-3.5 w-3.5 ml-1" />
             </Button>
           </Link>
+        </div>
+      </div>
+
+      {/* ========================================================= */}
+      {/* ACTIVE PAYMENT GATEWAY CONTROLLER                         */}
+      {/* ========================================================= */}
+      <div className="p-4 sm:p-5 rounded-2xl border border-border bg-card shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center space-x-3.5">
+          <div className="h-10 w-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+            <Landmark className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-bold text-foreground font-heading">
+                Subscription Payment Engine
+              </span>
+              <Badge
+                variant="outline"
+                className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                  activeGateway === 'lenco'
+                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    : 'border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                }`}
+              >
+                Active: {activeGateway === 'lenco' ? 'Lenco Virtual Accounts' : 'Squad (GTCO)'}
+              </Badge>
+              {isUpdatingGateway && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Controls the dynamic bank transfer account generator for tenant subscription checkouts.
+            </p>
+          </div>
+        </div>
+
+        {/* Dynamic Provider Switcher */}
+        <div className="flex items-center space-x-2 self-start md:self-auto bg-secondary/50 p-1.5 rounded-xl border border-border">
+          <button
+            type="button"
+            disabled={isUpdatingGateway || activeGateway === 'lenco'}
+            onClick={() => handleToggleGateway('lenco')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center space-x-1.5 cursor-pointer disabled:cursor-not-allowed ${
+              activeGateway === 'lenco'
+                ? 'bg-card text-foreground shadow-xs border border-border/80'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className={`h-2 w-2 rounded-full ${activeGateway === 'lenco' ? 'bg-emerald-500' : 'bg-muted-foreground/40'}`} />
+            <span>Lenco (Live)</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={isUpdatingGateway || activeGateway === 'squad'}
+            onClick={() => handleToggleGateway('squad')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center space-x-1.5 cursor-pointer disabled:cursor-not-allowed ${
+              activeGateway === 'squad'
+                ? 'bg-card text-foreground shadow-xs border border-border/80'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className={`h-2 w-2 rounded-full ${activeGateway === 'squad' ? 'bg-blue-500' : 'bg-muted-foreground/40'}`} />
+            <span>Squad (GTCO)</span>
+          </button>
         </div>
       </div>
 

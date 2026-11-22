@@ -308,3 +308,31 @@ export const useDeleteTenantBranch = () => {
     },
   });
 };
+
+export const usePaymentProvider = () => {
+  return useQuery<{ provider: 'squad' | 'lenco' }>({
+    queryKey: ['admin', 'payment-provider'],
+    queryFn: async () => {
+      const response = await apiClient.get<ApiResponse<{ provider: 'squad' | 'lenco' }>>(
+        API_ENDPOINTS.SUBSCRIPTIONS.PAYMENT_PROVIDER
+      );
+      return response.data.data;
+    },
+  });
+};
+
+export const useUpdatePaymentProvider = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (provider: 'squad' | 'lenco') => {
+      const response = await apiClient.put<ApiResponse<{ provider: 'squad' | 'lenco'; updated: boolean }>>(
+        API_ENDPOINTS.SUBSCRIPTIONS.PAYMENT_PROVIDER,
+        { provider }
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'payment-provider'] });
+    },
+  });
+};

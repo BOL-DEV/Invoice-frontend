@@ -69,6 +69,7 @@ export const API_ENDPOINTS = {
     SIMULATE_PAYMENT: (reference: string) => `/api/subscriptions/payments/simulate/${encodeURIComponent(reference)}`,
     GLOBAL_PRICING: '/api/subscriptions/pricing/global',
     UPDATE_GLOBAL_PRICING: '/api/subscriptions/admin/pricing',
+    PAYMENT_PROVIDER: '/api/subscriptions/admin/payment-provider',
   },
   ACTIVITY: {
     BASE: '/api/activity',
