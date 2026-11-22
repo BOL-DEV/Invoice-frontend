@@ -450,11 +450,52 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   useEffect(() => {
     if (mode === 'create') {
       const quoQuery = searchParams.get('fromQuotation');
-      if (quoQuery && !fromQuotationId) {
-        setFromQuotationId(quoQuery);
+      if (quoQuery) {
+        if (!fromQuotationId) {
+          setFromQuotationId(quoQuery);
+        }
+        // Always ensure quotation details are loaded if not already populated
+        quotationService.getById(quoQuery).then((quo) => {
+          if (quo) {
+            if (quo.quotationNumber) setFromQuotationNumber(quo.quotationNumber);
+            if (!customerName.trim() && quo.customerName) setCustomerName(quo.customerName);
+            if (!customerPhone.trim() && quo.customerPhone) setCustomerPhone(quo.customerPhone);
+            if (!notes.trim() && quo.notes) setNotes(quo.notes);
+            if (Array.isArray(quo.items) && quo.items.length > 0) {
+              const hasExisting = items.some(
+                (it) => it.description.trim().length > 0 || Number(it.quantity) > 0 || Number(it.unitPrice) > 0
+              );
+              if (!hasExisting) {
+                const mapped = quo.items.map((it: any, idx: number) => ({
+                  id: `quo_${idx}_${Date.now()}`,
+                  position: idx + 1,
+                  description: it.description || '',
+                  quantity: Number(it.quantity) || 1,
+                  unitPrice: Number(it.unitPrice) || 0,
+                  totalPrice: Number(it.totalPrice) || (Number(it.quantity) * Number(it.unitPrice)),
+                  totalMeters: it.metrics || '',
+                }));
+                while (mapped.length < 3) {
+                  mapped.push({
+                    id: `empty_${mapped.length}_${Date.now()}`,
+                    position: mapped.length + 1,
+                    description: '',
+                    quantity: 0,
+                    unitPrice: 0,
+                    totalPrice: 0,
+                    totalMeters: '',
+                  });
+                }
+                setItems(mapped);
+              }
+            }
+          }
+        }).catch((err) => {
+          console.error('Failed to load quotation for conversion:', err);
+        });
       }
     }
-  }, [mode, searchParams, fromQuotationId]);
+  }, [mode, searchParams, fromQuotationId, setCustomerName, setCustomerPhone, setNotes, setItems]);
 
   // Persist working draft in localStorage whenever changes occur
   useEffect(() => {
@@ -481,6 +522,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
             customerSignature,
             items,
             charges,
+            fromQuotationId,
+            fromQuotationNumber,
             updatedAt: Date.now(),
           })
         );
@@ -492,7 +535,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
         localStorage.removeItem('invoice_creation_draft');
       } catch {}
     }
-  }, [mode, customerName, customerPhone, notes, customerSignature, items, charges]);
+  }, [mode, customerName, customerPhone, notes, customerSignature, items, charges, fromQuotationId, fromQuotationNumber]);
 
   // Prevent accidental tab closure or refresh when working on an unsaved invoice
   useEffect(() => {
@@ -776,37 +819,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
           </div>
         </div>
       )}
-      {/* Converting from Quotation banner */}
-      {mode === 'create' && fromQuotationId && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-800 dark:text-emerald-300 text-xs shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="flex items-center space-x-2.5">
-            <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="font-bold text-xs text-foreground">
-                Converting from Quotation {fromQuotationNumber ? `#${fromQuotationNumber}` : ''}
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                Quotation items and customer details are pre-filled below. Review, adjust prices or quantities as needed, then save to finalize as a live invoice.
-              </p>
-            </div>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setFromQuotationId(null);
-              setFromQuotationNumber(null);
-            }}
-            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground rounded-lg self-end sm:self-center"
-            title="Dismiss banner"
-          >
-            <X className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      )}
 
       {/* Draft restoration alert banner */}
       {mode === 'create' && hasRestoredDraft && !fromQuotationId && (
@@ -852,90 +864,105 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
           </Button>
           <div>
             <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC] font-heading">
-              {mode === 'create' ? 'Create New Invoice' : `Edit Invoice #${existingInvoice?.invoiceNumber}`}
+              {mode === 'create'
+                ? fromQuotationId
+                  ? `Convert Quotation ${fromQuotationNumber ? `#${fromQuotationNumber}` : ''}`
+                  : 'Create New Invoice'
+                : `Edit Invoice #${existingInvoice?.invoiceNumber}`}
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Complete cashier ledger entry fields sequentially.
+              {fromQuotationId
+                ? 'Review quoted items and finalize into an active invoice.'
+                : 'Complete cashier ledger entry fields sequentially.'}
             </p>
           </div>
         </div>
 
         {/* Floating Utilities triggers */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={isAiQuotaExhausted}
-            onClick={() => {
-              if (isAiQuotaExhausted) {
-                modal.alert(
-                  'AI Scanning Quota Exhausted',
-                  `This business has exhausted its monthly AI document scanning quota (${aiScansUsed}/${aiScansLimit} scans used). You can enter line items manually or contact your administrator to upgrade your allowance.`,
-                  'warning'
-                );
-                return;
-              }
-              setShowImportModal(true);
-            }}
-            className={`space-x-1.5 font-semibold text-xs rounded-xl h-9 shadow-sm transition-all ${
-              isAiQuotaExhausted
-                ? 'border-border text-muted-foreground/60 bg-muted/20 cursor-not-allowed opacity-60'
-                : 'border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30'
-            }`}
-            title={
-              isAiQuotaExhausted
-                ? `AI Document Scanning Quota Exhausted (${aiScansUsed}/${aiScansLimit} scans used this month)`
-                : `Auto-fill invoice from handwritten note, photo, or PDF (${aiScansRemaining} scans remaining)`
-            }
-          >
-            <Sparkles className={`h-4 w-4 ${isAiQuotaExhausted ? 'text-muted-foreground/50' : 'text-indigo-500 animate-pulse'}`} />
-            <span>Auto-fill from Note / File</span>
-            {isAiQuotaExhausted ? (
-              <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-bold border border-amber-500/20">
-                0 Left
-              </span>
-            ) : (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-mono font-medium">
-                {aiScansRemaining} left
-              </span>
-            )}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setShowCalculator(!showCalculator)}
-            className="space-x-1.5 font-semibold text-xs border-border bg-card rounded-xl h-9"
-          >
-            <Calculator className="h-4 w-4 text-muted-foreground" />
-            <span>Open Calculator</span>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setShowWeightCalculator(true)}
-            className="space-x-1.5 font-semibold text-xs border-border bg-card rounded-xl h-9"
-          >
-            <Scale className="h-4 w-4 text-muted-foreground" />
-            <span>Weight Estimator</span>
-          </Button>
-
-          {mode === 'create' && (
+        {fromQuotationId ? (
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+              <Sparkles className="h-3.5 w-3.5" />
+              Converting Quotation {fromQuotationNumber ? `#${fromQuotationNumber}` : ''}
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={handleClearFormConfirm}
-              className="space-x-1.5 font-semibold text-xs border-rose-500/30 text-rose-600 dark:text-rose-400 bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-100/60 dark:hover:bg-rose-900/30 rounded-xl h-9"
-              title="Clear all fields and start a fresh invoice"
+              disabled={isAiQuotaExhausted}
+              onClick={() => {
+                if (isAiQuotaExhausted) {
+                  modal.alert(
+                    'AI Scanning Quota Exhausted',
+                    `This business has exhausted its monthly AI document scanning quota (${aiScansUsed}/${aiScansLimit} scans used). You can enter line items manually or contact your administrator to upgrade your allowance.`,
+                    'warning'
+                  );
+                  return;
+                }
+                setShowImportModal(true);
+              }}
+              className={`space-x-1.5 font-semibold text-xs rounded-xl h-9 shadow-sm transition-all ${
+                isAiQuotaExhausted
+                  ? 'border-border text-muted-foreground/60 bg-muted/20 cursor-not-allowed opacity-60'
+                  : 'border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30'
+              }`}
+              title={
+                isAiQuotaExhausted
+                  ? `AI Document Scanning Quota Exhausted (${aiScansUsed}/${aiScansLimit} scans used this month)`
+                  : `Auto-fill invoice from handwritten note, photo, or PDF (${aiScansRemaining} scans remaining)`
+              }
             >
-              <RotateCcw className="h-3.5 w-3.5 text-rose-500" />
-              <span>Clear Form</span>
+              <Sparkles className={`h-4 w-4 ${isAiQuotaExhausted ? 'text-muted-foreground/50' : 'text-indigo-500 animate-pulse'}`} />
+              <span>Auto-fill from Note / File</span>
+              {isAiQuotaExhausted ? (
+                <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-bold border border-amber-500/20">
+                  0 Left
+                </span>
+              ) : (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-mono font-medium">
+                  {aiScansRemaining} left
+                </span>
+              )}
             </Button>
-          )}
-        </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCalculator(!showCalculator)}
+              className="space-x-1.5 font-semibold text-xs border-border bg-card rounded-xl h-9"
+            >
+              <Calculator className="h-4 w-4 text-muted-foreground" />
+              <span>Open Calculator</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowWeightCalculator(true)}
+              className="space-x-1.5 font-semibold text-xs border-border bg-card rounded-xl h-9"
+            >
+              <Scale className="h-4 w-4 text-muted-foreground" />
+              <span>Weight Estimator</span>
+            </Button>
+
+            {mode === 'create' && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleClearFormConfirm}
+                className="space-x-1.5 font-semibold text-xs border-rose-500/30 text-rose-600 dark:text-rose-400 bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-100/60 dark:hover:bg-rose-900/30 rounded-xl h-9"
+                title="Clear all fields and start a fresh invoice"
+              >
+                <RotateCcw className="h-3.5 w-3.5 text-rose-500" />
+                <span>Clear Form</span>
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6 items-start">
@@ -1010,38 +1037,40 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                 </CardTitle>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={isAiQuotaExhausted}
-                  onClick={() => {
-                    if (isAiQuotaExhausted) {
-                      modal.alert(
-                        'AI Scanning Quota Exhausted',
-                        `This business has exhausted its monthly AI document scanning quota (${aiScansUsed}/${aiScansLimit} scans used). You can enter items manually or contact your administrator to upgrade.`,
-                        'warning'
-                      );
-                      return;
+                {!fromQuotationId && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isAiQuotaExhausted}
+                    onClick={() => {
+                      if (isAiQuotaExhausted) {
+                        modal.alert(
+                          'AI Scanning Quota Exhausted',
+                          `This business has exhausted its monthly AI document scanning quota (${aiScansUsed}/${aiScansLimit} scans used). You can enter items manually or contact your administrator to upgrade.`,
+                          'warning'
+                        );
+                        return;
+                      }
+                      setShowImportModal(true);
+                    }}
+                    className={`flex-1 sm:flex-initial space-x-1.5 font-semibold text-xs rounded-xl h-9 sm:h-8 px-3 justify-center transition-all ${
+                      isAiQuotaExhausted
+                        ? 'border-border text-muted-foreground/60 bg-muted/20 cursor-not-allowed opacity-60'
+                        : 'border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30'
+                    }`}
+                    title={
+                      isAiQuotaExhausted
+                        ? `Monthly AI document scanning quota exhausted (${aiScansUsed}/${aiScansLimit} scans used)`
+                        : `Scan receipt / invoice with AI Vision (${aiScansRemaining} scans remaining)`
                     }
-                    setShowImportModal(true);
-                  }}
-                  className={`flex-1 sm:flex-initial space-x-1.5 font-semibold text-xs rounded-xl h-9 sm:h-8 px-3 justify-center transition-all ${
-                    isAiQuotaExhausted
-                      ? 'border-border text-muted-foreground/60 bg-muted/20 cursor-not-allowed opacity-60'
-                      : 'border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30'
-                  }`}
-                  title={
-                    isAiQuotaExhausted
-                      ? `Monthly AI document scanning quota exhausted (${aiScansUsed}/${aiScansLimit} scans used)`
-                      : `Scan receipt / invoice with AI Vision (${aiScansRemaining} scans remaining)`
-                  }
-                >
-                  <Sparkles className={`h-3.5 w-3.5 shrink-0 ${isAiQuotaExhausted ? 'text-muted-foreground/50' : 'text-indigo-500'}`} />
-                  <span className="whitespace-nowrap">
-                    {isAiQuotaExhausted ? 'Quota Exhausted' : 'Scan / Import'}
-                  </span>
-                </Button>
+                  >
+                    <Sparkles className={`h-3.5 w-3.5 shrink-0 ${isAiQuotaExhausted ? 'text-muted-foreground/50' : 'text-indigo-500'}`} />
+                    <span className="whitespace-nowrap">
+                      {isAiQuotaExhausted ? 'Quota Exhausted' : 'Scan / Import'}
+                    </span>
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="outline"
@@ -1052,7 +1081,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                   <Plus className="h-3.5 w-3.5 shrink-0" />
                   <span className="whitespace-nowrap">Add Row</span>
                 </Button>
-                {mode === 'create' && (
+                {mode === 'create' && !fromQuotationId && (
                   <Button
                     type="button"
                     variant="outline"

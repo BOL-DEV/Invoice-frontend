@@ -35,6 +35,7 @@ import {
   ExternalLink,
   Send,
   Pencil,
+  FileText,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../features/auth/context/AuthContext';
@@ -132,7 +133,41 @@ export default function QuotationsPage() {
     }
   };
 
-  const handleConvert = (quotation: Quotation) => {
+  const handleConvert = async (quotation: Quotation) => {
+    if (quotation.status === 'CONVERTED') {
+      modal.alert('Already Converted', `This quotation has already been converted to Invoice #${quotation.convertedInvoice?.invoiceNumber || ''}.`, 'info');
+      return;
+    }
+
+    const confirmed = await modal.confirm(
+      'Convert Quotation to Invoice',
+      `Convert Quotation #${quotation.quotationNumber} (${quotation.customerName}) directly to an official invoice? This locks the quotation and generates an active invoice.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setIsConverting(true);
+      const result = await quotationService.convertToInvoice(quotation.id);
+      await queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      await queryClient.invalidateQueries({ queryKey: ['quotations', 'summary'] });
+      await queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      setIsDetailOpen(false);
+
+      const viewInvoice = await modal.confirm(
+        'Invoice Created Successfully',
+        `Quotation #${quotation.quotationNumber} was successfully converted to Invoice #${result.invoice?.invoiceNumber || ''}. Would you like to view the new invoice now?`
+      );
+      if (viewInvoice) {
+        router.push('/invoices');
+      }
+    } catch (err: any) {
+      modal.alert('Conversion Failed', err?.response?.data?.message || 'Failed to convert quotation to invoice', 'error');
+    } finally {
+      setIsConverting(false);
+    }
+  };
+
+  const handleEditAndConvert = (quotation: Quotation) => {
     if (quotation.status === 'CONVERTED') {
       modal.alert('Already Converted', `This quotation has already been converted to Invoice #${quotation.convertedInvoice?.invoiceNumber || ''}.`, 'info');
       return;
@@ -141,19 +176,23 @@ export default function QuotationsPage() {
     // Map quotation items to invoice item schema
     const mappedItems = (quotation.items || []).map((it, idx) => ({
       id: `quo_${idx}_${Date.now()}`,
+      position: idx + 1,
       description: it.description || '',
       quantity: Number(it.quantity) || 0,
       unitPrice: Number(it.unitPrice) || 0,
       totalPrice: Number(it.totalPrice) || (Number(it.quantity) * Number(it.unitPrice)),
+      totalMeters: it.metrics || '',
     }));
 
     while (mappedItems.length < 3) {
       mappedItems.push({
         id: `empty_${mappedItems.length}_${Date.now()}`,
+        position: mappedItems.length + 1,
         description: '',
         quantity: 0,
         unitPrice: 0,
         totalPrice: 0,
+        totalMeters: '',
       });
     }
 
@@ -532,6 +571,11 @@ export default function QuotationsPage() {
                                   onClick: () => handleConvert(quo),
                                   variant: 'success' as const,
                                 },
+                                {
+                                  label: 'Edit & Convert in Form',
+                                  icon: <FileText className="h-4 w-4 text-primary" />,
+                                  onClick: () => handleEditAndConvert(quo),
+                                },
                               ]
                             : [
                                 {
@@ -830,6 +874,17 @@ export default function QuotationsPage() {
                       >
                         <Printer className="h-3.5 w-3.5 mr-1.5" />
                         <span>Print</span>
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditAndConvert(selectedQuotation)}
+                        className="rounded-xl h-9 text-xs cursor-pointer hover:bg-secondary"
+                        title="Edit quotation items in Invoice creation form"
+                      >
+                        <FileText className="h-3.5 w-3.5 mr-1.5" />
+                        <span>Edit in Form</span>
                       </Button>
 
                       <Button
