@@ -801,7 +801,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
   }
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto">
+    <div className="space-y-5 sm:space-y-6 max-w-[1400px] mx-auto pb-24 lg:pb-8">
       {mode === 'edit' && existingInvoice && existingInvoice.status !== 'DRAFT' && canEditFinalized && (
         <div className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs shadow-sm">
           <div className="flex items-center space-x-2.5">
@@ -857,20 +857,28 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
       )}
 
       {/* Top action bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-4">
-        <div className="flex items-center space-x-3.5">
-          <Button variant="outline" size="icon" onClick={() => router.back()} className="rounded-full h-9 w-9 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row justify-between items-start sm:items-center border-b border-border pb-3 sm:pb-4">
+        <div className="flex items-center space-x-3 w-full sm:w-auto">
+          <Button variant="outline" size="icon" onClick={() => router.back()} className="rounded-full h-8 w-8 sm:h-9 sm:w-9 shadow-sm shrink-0">
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC] font-heading">
-              {mode === 'create'
-                ? fromQuotationId
-                  ? `Convert Quotation ${fromQuotationNumber ? `#${fromQuotationNumber}` : ''}`
-                  : 'Create New Invoice'
-                : `Edit Invoice #${existingInvoice?.invoiceNumber}`}
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F8FAFC] font-heading truncate">
+                {mode === 'create'
+                  ? fromQuotationId
+                    ? `Convert Quotation ${fromQuotationNumber ? `#${fromQuotationNumber}` : ''}`
+                    : 'Create New Invoice'
+                  : `Edit Invoice #${existingInvoice?.invoiceNumber}`}
+              </h2>
+              {fromQuotationId && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shrink-0">
+                  <Sparkles className="h-3 w-3" />
+                  <span>Quotation</span>
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate">
               {fromQuotationId
                 ? 'Review quoted items and finalize into an active invoice.'
                 : 'Complete cashier ledger entry fields sequentially.'}
@@ -878,16 +886,9 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
           </div>
         </div>
 
-        {/* Floating Utilities triggers */}
-        {fromQuotationId ? (
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-              <Sparkles className="h-3.5 w-3.5" />
-              Converting Quotation {fromQuotationNumber ? `#${fromQuotationNumber}` : ''}
-            </span>
-          </div>
-        ) : (
-          <div className="flex flex-wrap items-center gap-2">
+        {/* Toolbar Triggers: Clean scrollable row on mobile, flex on desktop */}
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar w-full sm:w-auto py-0.5 -mx-1 px-1 sm:mx-0 sm:px-0">
+          {!fromQuotationId && (
             <Button
               type="button"
               variant="outline"
@@ -904,7 +905,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                 }
                 setShowImportModal(true);
               }}
-              className={`space-x-1.5 font-semibold text-xs rounded-xl h-9 shadow-sm transition-all ${
+              className={`space-x-1.5 font-semibold text-xs rounded-xl h-8 px-2.5 shadow-sm shrink-0 transition-all ${
                 isAiQuotaExhausted
                   ? 'border-border text-muted-foreground/60 bg-muted/20 cursor-not-allowed opacity-60'
                   : 'border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/30'
@@ -915,54 +916,50 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                   : `Auto-fill invoice from handwritten note, photo, or PDF (${aiScansRemaining} scans remaining)`
               }
             >
-              <Sparkles className={`h-4 w-4 ${isAiQuotaExhausted ? 'text-muted-foreground/50' : 'text-indigo-500 animate-pulse'}`} />
-              <span>Auto-fill from Note / File</span>
-              {isAiQuotaExhausted ? (
-                <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-bold border border-amber-500/20">
-                  0 Left
-                </span>
-              ) : (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-mono font-medium">
-                  {aiScansRemaining} left
-                </span>
-              )}
+              <Sparkles className={`h-3.5 w-3.5 ${isAiQuotaExhausted ? 'text-muted-foreground/50' : 'text-indigo-500 animate-pulse'}`} />
+              <span className="whitespace-nowrap">Scan Slip</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-mono font-medium">
+                {isAiQuotaExhausted ? '0' : aiScansRemaining}
+              </span>
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowCalculator(!showCalculator)}
-              className="space-x-1.5 font-semibold text-xs border-border bg-card rounded-xl h-9"
-            >
-              <Calculator className="h-4 w-4 text-muted-foreground" />
-              <span>Open Calculator</span>
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowWeightCalculator(true)}
-              className="space-x-1.5 font-semibold text-xs border-border bg-card rounded-xl h-9"
-            >
-              <Scale className="h-4 w-4 text-muted-foreground" />
-              <span>Weight Estimator</span>
-            </Button>
+          )}
 
-            {mode === 'create' && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleClearFormConfirm}
-                className="space-x-1.5 font-semibold text-xs border-rose-500/30 text-rose-600 dark:text-rose-400 bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-100/60 dark:hover:bg-rose-900/30 rounded-xl h-9"
-                title="Clear all fields and start a fresh invoice"
-              >
-                <RotateCcw className="h-3.5 w-3.5 text-rose-500" />
-                <span>Clear Form</span>
-              </Button>
-            )}
-          </div>
-        )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowCalculator(!showCalculator)}
+            className="space-x-1.5 font-semibold text-xs border-border bg-card rounded-xl h-8 px-2.5 shrink-0"
+          >
+            <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="whitespace-nowrap">Calculator</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowWeightCalculator(true)}
+            className="space-x-1.5 font-semibold text-xs border-border bg-card rounded-xl h-8 px-2.5 shrink-0"
+          >
+            <Scale className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="whitespace-nowrap">Weight</span>
+          </Button>
+
+          {mode === 'create' && !fromQuotationId && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleClearFormConfirm}
+              className="space-x-1.5 font-semibold text-xs border-rose-500/30 text-rose-600 dark:text-rose-400 bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-100/60 dark:hover:bg-rose-900/30 rounded-xl h-8 px-2.5 shrink-0"
+              title="Clear all fields and start a fresh invoice"
+            >
+              <RotateCcw className="h-3.5 w-3.5 text-rose-500" />
+              <span className="whitespace-nowrap">Clear</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6 items-start">
@@ -1212,7 +1209,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                           : 'border-border bg-card'
                       }`}
                     >
-                      {/* Line 1: S/N Badge + Description + Delete Button */}
+                      {/* Line 1: S/N Badge + Description + Metrics + Delete Button */}
                       <div className="flex items-center gap-2">
                         <span className="shrink-0 w-6 h-6 rounded-md bg-secondary/80 text-[11px] font-mono font-bold flex items-center justify-center text-muted-foreground select-none">
                           {item.position}
@@ -1224,8 +1221,14 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                           onChange={(e) => updateRow(idx, { description: e.target.value })}
                           onKeyDown={(e) => handleKeyDown(e, idx, 'description')}
                           onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'description' })}
+                          placeholder="Item description..."
                           className="bg-background text-xs font-medium h-8 rounded-lg border border-border flex-1"
                         />
+                        {(item as any).totalMeters && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground font-mono shrink-0">
+                            {(item as any).totalMeters}
+                          </span>
+                        )}
                         <Button
                           type="button"
                           variant="ghost"
@@ -1238,31 +1241,32 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                         </Button>
                       </div>
 
-                      {/* Line 2: Qty input + Rate input = Line Total */}
-                      <div className="flex items-center gap-2 pl-8">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Qty:</span>
+                      {/* Line 2: Qty input + Rate input + Line Total in clean 3-col grid */}
+                      <div className="grid grid-cols-12 gap-2 items-center pt-1 border-t border-border/40">
+                        <div className="col-span-4 flex items-center gap-1">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase shrink-0">Qty:</span>
                           <QuantityInput
                             id={`row-mob-${idx}-quantity`}
                             value={item.quantity}
                             onChange={(val) => updateRow(idx, { quantity: val })}
                             onKeyDown={(e) => handleKeyDown(e, idx, 'quantity')}
                             onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'quantity' })}
-                            className="bg-background text-xs h-7 rounded-lg border border-border w-16 text-center"
+                            className="bg-background text-xs h-8 rounded-lg border border-border w-full text-center"
                           />
                         </div>
-                        <div className="flex items-center gap-1 flex-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Rate:</span>
+                        <div className="col-span-4 flex items-center gap-1">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase shrink-0">Rate:</span>
                           <MoneyInput
                             id={`row-mob-${idx}-unitPrice`}
                             value={item.unitPrice}
                             onChange={(val) => updateRow(idx, { unitPrice: val })}
                             onKeyDown={(e) => handleKeyDown(e, idx, 'unitPrice')}
                             onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'unitPrice' })}
-                            className="bg-background text-xs h-7 rounded-lg border border-border flex-1"
+                            className="bg-background text-xs h-8 rounded-lg border border-border w-full"
                           />
                         </div>
-                        <div className="text-right shrink-0">
+                        <div className="col-span-4 text-right">
+                          <span className="block text-[9px] uppercase font-bold text-muted-foreground">Amount</span>
                           <span className="font-mono text-xs font-bold text-foreground">
                             ₦{item.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </span>
@@ -1659,6 +1663,43 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
               </div>
             </CardContent>
           </Card>
+        </div>
+      </div>
+
+      {/* Sticky Mobile Floating Action Bar (visible on mobile only) */}
+      <div className="fixed bottom-0 inset-x-0 z-30 bg-card/95 backdrop-blur-md border-t border-border p-3 shadow-lg lg:hidden flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground block leading-tight">Total</span>
+          <span className="font-mono text-sm sm:text-base font-extrabold text-foreground truncate block">
+            ₦{formattedTotal}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => handleSave('FINALIZED', 'print')}
+            disabled={createMutation.isPending || updateMutation.isPending}
+            className="h-8 px-2.5 rounded-xl border-border text-xs font-semibold"
+          >
+            <Printer className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+            <span>Print</span>
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => handleSave('FINALIZED', 'download')}
+            disabled={createMutation.isPending || updateMutation.isPending}
+            className="h-8 px-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-xs font-bold shadow-sm"
+          >
+            {createMutation.isPending || updateMutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+            ) : (
+              <FileDown className="h-3.5 w-3.5 mr-1" />
+            )}
+            <span>Finalize</span>
+          </Button>
         </div>
       </div>
 
