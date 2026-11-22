@@ -163,18 +163,13 @@ export default function LettersPage() {
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2.5 bg-indigo-500/10 text-indigo-600 rounded-xl shrink-0 mt-0.5">
-            <Mail className="h-5 w-5 sm:h-6 sm:w-6" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground leading-tight sm:leading-normal">
-              Official Letters & Correspondence
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Draft formal business letters formatted directly onto your organization letterhead
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-heading">
+            Official Letters & Correspondence
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Draft formal business letters formatted directly onto your organization letterhead
+          </p>
         </div>
 
         <Link href="/letters/new" className="w-full sm:w-auto">

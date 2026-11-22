@@ -820,67 +820,77 @@ export default function NewQuotationPage() {
             </div>
 
             {/* Mobile Compact View */}
-            <div className="md:hidden p-3 space-y-2.5 bg-slate-50/50 dark:bg-slate-900/10 border-t border-border">
+            <div className="md:hidden p-3 space-y-3 bg-slate-50/50 dark:bg-slate-900/10 border-t border-border">
               {items.map((item, idx) => (
                 <div
                   key={idx}
-                  className="p-2.5 rounded-xl border border-border bg-card space-y-2 relative"
+                  className="p-3 rounded-2xl border border-border bg-card space-y-2.5 relative"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="shrink-0 w-6 h-6 rounded-md bg-secondary/80 text-[11px] font-mono font-bold flex items-center justify-center text-muted-foreground select-none">
+                  {/* Row 1: S/N + Line Total + Trash */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-secondary text-[11px] font-mono font-bold flex items-center justify-center text-muted-foreground select-none shrink-0">
                       #{idx + 1}
                     </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="text-right">
+                        <span className="text-[9px] uppercase font-bold text-muted-foreground block leading-tight">Total</span>
+                        <span className="font-mono text-xs sm:text-sm font-extrabold text-foreground">
+                          ₦{(Number(item.totalPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeItem(idx)}
+                        disabled={items.length === 1}
+                        className="h-8 w-8 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors shrink-0 cursor-pointer"
+                        title="Delete line item"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Full-Width Description Input */}
+                  <div>
                     <Input
                       type="text"
                       value={item.description}
                       onChange={(e) => handleItemChange(idx, 'description', e.target.value)}
-                      className="bg-background text-xs font-medium h-8 rounded-lg border border-border flex-1"
+                      placeholder="Item description / particulars of goods..."
+                      className="bg-background text-xs sm:text-sm font-medium h-9 rounded-xl border border-border w-full"
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeItem(idx)}
-                      disabled={items.length === 1}
-                      className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 pl-8">
-                    <div>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Qty:</span>
+                  {/* Row 3: Qty, Meters, Rate with clean inputs & labels */}
+                  <div className="grid grid-cols-12 gap-2.5 pt-0.5">
+                    <div className="col-span-3 space-y-1">
+                      <Label className="text-[10px] font-bold text-muted-foreground uppercase block">Qty</Label>
                       <QuantityInput
                         value={item.quantity}
                         onChange={(val) => handleItemChange(idx, 'quantity', val)}
-                        className="bg-background text-xs h-7 rounded-lg border border-border text-center"
+                        className="bg-background text-xs sm:text-sm font-medium h-9 rounded-xl border border-border w-full text-center"
                       />
                     </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Meters:</span>
+                    <div className="col-span-4 space-y-1">
+                      <Label className="text-[10px] font-bold text-muted-foreground uppercase block">Meters (m)</Label>
                       <Input
                         type="text"
+                        placeholder="e.g. 12"
                         value={item.totalMeters}
                         onChange={(e) => handleItemChange(idx, 'totalMeters', e.target.value.replace(/[^0-9.]/g, ''))}
-                        className="bg-background text-xs h-7 rounded-lg border border-border text-center font-mono"
+                        className="bg-background text-xs sm:text-sm font-mono font-medium h-9 rounded-xl border border-border w-full text-center"
                       />
                     </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Rate:</span>
+                    <div className="col-span-5 space-y-1">
+                      <Label className="text-[10px] font-bold text-muted-foreground uppercase block">Rate (₦)</Label>
                       <MoneyInput
                         value={item.unitPrice}
                         onChange={(val) => handleItemChange(idx, 'unitPrice', val)}
-                        className="bg-background text-xs h-7 rounded-lg border border-border"
+                        className="bg-background text-xs sm:text-sm font-mono font-medium h-9 rounded-xl border border-border w-full"
                       />
                     </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1 border-t border-border/60 text-xs pl-8">
-                    <span className="text-muted-foreground">Line Total:</span>
-                    <span className="font-mono font-bold text-foreground">
-                      ₦{(Number(item.totalPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </span>
                   </div>
                 </div>
               ))}

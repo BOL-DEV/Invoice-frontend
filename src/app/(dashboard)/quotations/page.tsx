@@ -253,18 +253,13 @@ export default function QuotationsPage() {
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2.5 bg-blue-500/10 text-blue-600 rounded-xl shrink-0 mt-0.5">
-            <FileSpreadsheet className="h-5 w-5 sm:h-6 sm:w-6" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground leading-tight sm:leading-normal">
-              Quotations & Estimates
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Prepare price quotes for prospective clients with 1-click conversion to invoice
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-heading">
+            Quotations & Estimates
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Prepare price quotes for prospective clients with 1-click conversion to invoice
+          </p>
         </div>
 
         <Link href="/quotations/new" className="w-full sm:w-auto">
