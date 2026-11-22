@@ -54,6 +54,12 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
   const [failureReason, setFailureReason] = useState<string | null>(null);
   const [confirmedData, setConfirmedData] = useState<PaymentVerificationResult | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [customAmount, setCustomAmount] = useState<string>('');
+  const [mismatchDetails, setMismatchDetails] = useState<{
+    simulatedAmount: number;
+    expectedAmount: number;
+    attempts: any[];
+  } | null>(null);
   const isCheckingRef = useRef(false);
 
   // Reset state on modal open or when new payment is passed
@@ -65,6 +71,8 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
       setFailureReason(null);
       setConfirmedData(null);
       setFeedbackMessage(null);
+      setCustomAmount('');
+      setMismatchDetails(null);
       isCheckingRef.current = false;
     }
   }, [isOpen, paymentData?.transactionReference]);
@@ -196,9 +204,17 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
       if (res?.paid) {
         setConfirmedData(res);
         setIsPaid(true);
+        setMismatchDetails(null);
         queryClient.invalidateQueries({ queryKey: ['subscription'] });
         queryClient.invalidateQueries({ queryKey: ['business'] });
         if (onSuccess) onSuccess();
+      } else if (res?.attemptStatus === 'MISMATCH' || (scenario === 'MISMATCH' && res?.status === 'PENDING')) {
+        setMismatchDetails({
+          simulatedAmount: res?.simulatedAmount ?? (amount ?? 0),
+          expectedAmount: res?.expectedAmount ?? (paymentData?.amount ?? 0),
+          attempts: res?.attempts || [],
+        });
+        setFeedbackMessage(res?.message || 'Amount mismatch recorded. Squad auto-refund queued.');
       } else if (res?.status === 'EXPIRED') {
         setIsExpired(true);
         setFailureReason(res.failureReason || 'Virtual payment account session expired.');
@@ -562,59 +578,139 @@ export const DynamicBankTransferModal: React.FC<DynamicBankTransferModalProps> =
             {/* Action & Status */}
             <div className="pt-1 space-y-2.5">
               {paymentData.isSandbox ? (
-                <div className="space-y-2">
-                  <Button
-                    type="button"
-                    onClick={() => handleSimulatePayment('SUCCESS')}
-                    disabled={isSimulating}
-                    className="w-full h-10 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all shadow-lg shadow-emerald-500/10 cursor-pointer active:scale-[0.99]"
-                  >
-                    <FlaskConical className="h-4 w-4" />
-                    <span>{isSimulating ? 'Simulating via Squad...' : 'Simulate Success (Exact Price)'}</span>
-                  </Button>
-
-                  {/* Sandbox Error Testing Scenarios */}
-                  <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                <div className="space-y-3">
+                  {/* Squad Interactive UAT Testing Suite */}
+                  <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
                     <div className="flex items-center justify-between text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-0.5">
-                      <span className="flex items-center space-x-1 text-amber-400">
-                        <AlertTriangle className="h-3 w-3" />
-                        <span>Test Error Instances</span>
+                      <span className="flex items-center space-x-1.5 text-amber-400 font-bold">
+                        <FlaskConical className="h-3.5 w-3.5" />
+                        <span>Squad UAT Testing Console</span>
                       </span>
-                      <span className="text-slate-500 text-[9px] lowercase font-normal">sandbox QA</span>
+                      <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[9px] font-mono lowercase border border-amber-500/20">
+                        sandbox
+                      </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleSimulatePayment('MISMATCH', 0)}
-                        disabled={isSimulating}
-                        className="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 text-[11px] font-medium flex items-center justify-center space-x-1 transition-all cursor-pointer disabled:opacity-50"
-                        title="Simulate payment with no price / ₦0 sent"
-                      >
-                        <XCircle className="h-3.5 w-3.5 text-rose-400 shrink-0" />
-                        <span>No Price (₦0)</span>
-                      </button>
+                    {/* Mismatch Alert Banner */}
+                    {mismatchDetails && (
+                      <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs space-y-1.5 animate-in fade-in">
+                        <div className="flex items-center justify-between font-bold text-[11px]">
+                          <span className="flex items-center space-x-1">
+                            <AlertCircle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                            <span>Squad Status: MISMATCH</span>
+                          </span>
+                          <span className="text-[10px] text-amber-400/80 uppercase tracking-wider">Auto-Refund Queued</span>
+                        </div>
+                        <p className="text-[11px] text-amber-200/90 leading-relaxed">
+                          Sent: <strong className="text-white">₦{mismatchDetails.simulatedAmount.toLocaleString()}</strong> (Expected: ₦{mismatchDetails.expectedAmount.toLocaleString()}). Virtual account remains open for further testing.
+                        </p>
+                        {mismatchDetails.attempts && mismatchDetails.attempts.length > 1 && (
+                          <div className="pt-1.5 border-t border-amber-500/20 text-[10px] text-amber-300/80">
+                            <span className="font-semibold text-amber-400">Attempt Sequence ({mismatchDetails.attempts.length}): </span>
+                            <span>{mismatchDetails.attempts.map((a: any, i: number) => `#${i + 1}: ₦${Number(a.amountSent).toLocaleString()}`).join(' → ')}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                      <button
+                    {/* Interactive Custom Amount Input */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-slate-300 flex items-center justify-between">
+                        <span>Input Custom Transfer Amount (₦)</span>
+                        <span className="text-[10px] text-slate-500">Test wrong/inaccurate prices</span>
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <div className="relative flex-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₦</span>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="Enter any amount e.g. 10000"
+                            value={customAmount}
+                            onChange={(e) => setCustomAmount(e.target.value)}
+                            disabled={isSimulating}
+                            className="w-full h-9 pl-7 pr-3 bg-slate-950 border border-slate-700/80 rounded-lg text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500 transition-colors"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            const parsed = customAmount === '' ? 0 : Number(customAmount);
+                            if (parsed === paymentData.amount) {
+                              handleSimulatePayment('SUCCESS');
+                            } else {
+                              handleSimulatePayment('MISMATCH', parsed);
+                            }
+                          }}
+                          disabled={isSimulating}
+                          className="h-9 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg flex items-center space-x-1 shrink-0 cursor-pointer active:scale-95 transition-all shadow-sm"
+                        >
+                          <FlaskConical className="h-3.5 w-3.5" />
+                          <span>Simulate</span>
+                        </Button>
+                      </div>
+
+                      {/* Quick Presets from Squad Documentation */}
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomAmount('0');
+                            handleSimulatePayment('MISMATCH', 0);
+                          }}
+                          disabled={isSimulating}
+                          className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-medium text-slate-300 border border-slate-700/80 transition-colors cursor-pointer"
+                        >
+                          ₦0 (No Price)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = String(Math.floor(paymentData.amount / 2));
+                            setCustomAmount(val);
+                            handleSimulatePayment('MISMATCH', Number(val));
+                          }}
+                          disabled={isSimulating}
+                          className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-medium text-amber-300 border border-slate-700/80 transition-colors cursor-pointer"
+                        >
+                          ₦{(Math.floor(paymentData.amount / 2)).toLocaleString()} (Underpaid)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = String(paymentData.amount + 10000);
+                            setCustomAmount(val);
+                            handleSimulatePayment('MISMATCH', Number(val));
+                          }}
+                          disabled={isSimulating}
+                          className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-medium text-rose-300 border border-slate-700/80 transition-colors cursor-pointer"
+                        >
+                          ₦{(paymentData.amount + 10000).toLocaleString()} (Overpaid)
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Standard Squad Lifecycle Test Buttons */}
+                    <div className="pt-2 border-t border-slate-800 grid grid-cols-2 gap-1.5">
+                      <Button
                         type="button"
-                        onClick={() => handleSimulatePayment('MISMATCH', Math.max(100, Math.floor(paymentData.amount / 2)))}
+                        onClick={() => handleSimulatePayment('SUCCESS')}
                         disabled={isSimulating}
-                        className="p-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[11px] font-medium flex items-center justify-center space-x-1 transition-all cursor-pointer disabled:opacity-50"
-                        title="Simulate partial / wrong amount transfer"
+                        className="col-span-2 h-9 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-lg flex items-center justify-center space-x-1.5 cursor-pointer shadow-md shadow-emerald-500/10 active:scale-95 transition-all"
                       >
-                        <AlertCircle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                        <span>Wrong Amount</span>
-                      </button>
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <span>Simulate Exact Payment (₦{paymentData.amount.toLocaleString()} - Success)</span>
+                      </Button>
 
                       <button
                         type="button"
                         onClick={() => handleSimulatePayment('EXPIRED')}
                         disabled={isSimulating}
                         className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-slate-300 text-[11px] font-medium flex items-center justify-center space-x-1 transition-all cursor-pointer disabled:opacity-50"
-                        title="Simulate account session expired"
+                        title="Simulate payment after account expired"
                       >
                         <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                        <span>Test Expired</span>
+                        <span>Simulate Expired</span>
                       </button>
 
                       <button

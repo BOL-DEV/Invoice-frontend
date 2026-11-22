@@ -27,6 +27,16 @@ export interface PaymentVerificationResult {
   subscription?: any;
   newEndDate?: string;
   paidAt?: string;
+  attemptStatus?: 'SUCCESS' | 'MISMATCH' | 'EXPIRED' | 'FAILED';
+  simulatedAmount?: number;
+  expectedAmount?: number;
+  attempts?: Array<{
+    timestamp: string;
+    status: string;
+    amountSent: number;
+    expectedAmount: number;
+    reason: string;
+  }>;
 }
 
 export const useSubscription = () => {
