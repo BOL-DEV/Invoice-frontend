@@ -72,6 +72,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
 
   const [fromQuotationId, setFromQuotationId] = useState<string | null>(null);
   const [fromQuotationNumber, setFromQuotationNumber] = useState<string | null>(null);
+  const [fromQuotationTotal, setFromQuotationTotal] = useState<number | null>(null);
   
   // Context state
   const {
@@ -428,6 +429,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
             if (parsed.fromQuotationId) {
               setFromQuotationId(parsed.fromQuotationId);
               setFromQuotationNumber(parsed.fromQuotationNumber || null);
+              if (parsed.fromQuotationTotal) setFromQuotationTotal(Number(parsed.fromQuotationTotal));
             }
             if (Array.isArray(parsed.items) && parsed.items.length > 0) {
               setItems(parsed.items);
@@ -458,6 +460,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
         quotationService.getById(quoQuery).then((quo) => {
           if (quo) {
             if (quo.quotationNumber) setFromQuotationNumber(quo.quotationNumber);
+            if (quo.total) setFromQuotationTotal(Number(quo.total));
             if (!customerName.trim() && quo.customerName) setCustomerName(quo.customerName);
             if (!customerPhone.trim() && quo.customerPhone) setCustomerPhone(quo.customerPhone);
             if (!notes.trim() && quo.notes) setNotes(quo.notes);
@@ -524,6 +527,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
             charges,
             fromQuotationId,
             fromQuotationNumber,
+            fromQuotationTotal,
             updatedAt: Date.now(),
           })
         );
@@ -535,7 +539,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
         localStorage.removeItem('invoice_creation_draft');
       } catch {}
     }
-  }, [mode, customerName, customerPhone, notes, customerSignature, items, charges, fromQuotationId, fromQuotationNumber]);
+  }, [mode, customerName, customerPhone, notes, customerSignature, items, charges, fromQuotationId, fromQuotationNumber, fromQuotationTotal]);
 
   // Prevent accidental tab closure or refresh when working on an unsaved invoice
   useEffect(() => {
@@ -962,6 +966,32 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
         </div>
       </div>
 
+      {/* Quotation Conversion Context Bar */}
+      {mode === 'create' && fromQuotationId && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-xs shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
+              <FileSpreadsheet className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 space-y-0.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-xs sm:text-sm text-foreground">
+                  Converting Quotation {fromQuotationNumber ? `#${fromQuotationNumber}` : ''}
+                </span>
+                {fromQuotationTotal !== null && fromQuotationTotal > 0 && (
+                  <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                    Original Total: ₦{fromQuotationTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground truncate">
+                {customerName ? `Customer: ${customerName}` : ''} {customerPhone ? `(${customerPhone})` : ''} • Quoted items pre-filled below. Review or adjust before saving.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-3 gap-6 items-start">
         {/* Left Side: Ledger Input Grid */}
         <div className="lg:col-span-2 space-y-6">
@@ -1203,17 +1233,47 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -5 }}
                       transition={{ duration: 0.15 }}
-                      className={`p-2.5 rounded-xl border transition-all duration-150 space-y-2 relative ${
+                      className={`p-3 rounded-2xl border transition-all duration-150 space-y-2.5 relative ${
                         isActive
                           ? 'border-primary ring-2 ring-primary/20 bg-card shadow-sm'
                           : 'border-border bg-card'
                       }`}
                     >
-                      {/* Line 1: S/N Badge + Description + Metrics + Delete Button */}
-                      <div className="flex items-center gap-2">
-                        <span className="shrink-0 w-6 h-6 rounded-md bg-secondary/80 text-[11px] font-mono font-bold flex items-center justify-center text-muted-foreground select-none">
-                          {item.position}
-                        </span>
+                      {/* Row 1: Header (S/N, Metric/Specification, Line Total, Trash) */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-6 h-6 rounded-lg bg-secondary text-[11px] font-mono font-bold flex items-center justify-center text-muted-foreground select-none shrink-0">
+                            #{item.position}
+                          </span>
+                          {(item as any).totalMeters && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 truncate">
+                              Spec: {(item as any).totalMeters}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="text-right">
+                            <span className="text-[9px] uppercase font-bold text-muted-foreground block leading-tight">Total</span>
+                            <span className="font-mono text-xs sm:text-sm font-extrabold text-foreground">
+                              ₦{item.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => deleteRow(idx)}
+                            disabled={rows.length === 1}
+                            className="h-8 w-8 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors shrink-0"
+                            title="Delete row"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Row 2: Full-Width Description Input */}
+                      <div>
                         <Input
                           id={`row-mob-${idx}-description`}
                           type="text"
@@ -1221,55 +1281,39 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ mode, invoiceId }) => 
                           onChange={(e) => updateRow(idx, { description: e.target.value })}
                           onKeyDown={(e) => handleKeyDown(e, idx, 'description')}
                           onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'description' })}
-                          placeholder="Item description..."
-                          className="bg-background text-xs font-medium h-8 rounded-lg border border-border flex-1"
+                          placeholder="Item description / particulars of goods..."
+                          className="bg-background text-xs sm:text-sm font-medium h-9 rounded-xl border border-border w-full"
                         />
-                        {(item as any).totalMeters && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground font-mono shrink-0">
-                            {(item as any).totalMeters}
-                          </span>
-                        )}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteRow(idx)}
-                          disabled={rows.length === 1}
-                          className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
                       </div>
 
-                      {/* Line 2: Qty input + Rate input + Line Total in clean 3-col grid */}
-                      <div className="grid grid-cols-12 gap-2 items-center pt-1 border-t border-border/40">
-                        <div className="col-span-4 flex items-center gap-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase shrink-0">Qty:</span>
+                      {/* Row 3: Two Generous 50/50 Columns (Quantity & Rate) */}
+                      <div className="grid grid-cols-2 gap-2.5 pt-0.5">
+                        <div className="space-y-1">
+                          <Label htmlFor={`row-mob-${idx}-quantity`} className="text-[10px] font-bold text-muted-foreground uppercase flex items-center justify-between">
+                            <span>Qty</span>
+                          </Label>
                           <QuantityInput
                             id={`row-mob-${idx}-quantity`}
                             value={item.quantity}
                             onChange={(val) => updateRow(idx, { quantity: val })}
                             onKeyDown={(e) => handleKeyDown(e, idx, 'quantity')}
                             onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'quantity' })}
-                            className="bg-background text-xs h-8 rounded-lg border border-border w-full text-center"
+                            className="bg-background text-xs sm:text-sm font-medium h-9 rounded-xl border border-border w-full text-center"
                           />
                         </div>
-                        <div className="col-span-4 flex items-center gap-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase shrink-0">Rate:</span>
+
+                        <div className="space-y-1">
+                          <Label htmlFor={`row-mob-${idx}-unitPrice`} className="text-[10px] font-bold text-muted-foreground uppercase flex items-center justify-between">
+                            <span>Rate (₦)</span>
+                          </Label>
                           <MoneyInput
                             id={`row-mob-${idx}-unitPrice`}
                             value={item.unitPrice}
                             onChange={(val) => updateRow(idx, { unitPrice: val })}
                             onKeyDown={(e) => handleKeyDown(e, idx, 'unitPrice')}
                             onFocus={() => setFocus({ type: 'item', rowIndex: idx, fieldName: 'unitPrice' })}
-                            className="bg-background text-xs h-8 rounded-lg border border-border w-full"
+                            className="bg-background text-xs sm:text-sm font-mono font-medium h-9 rounded-xl border border-border w-full"
                           />
-                        </div>
-                        <div className="col-span-4 text-right">
-                          <span className="block text-[9px] uppercase font-bold text-muted-foreground">Amount</span>
-                          <span className="font-mono text-xs font-bold text-foreground">
-                            ₦{item.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                          </span>
                         </div>
                       </div>
                     </motion.div>
